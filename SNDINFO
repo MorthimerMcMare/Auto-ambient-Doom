@@ -1,6 +1,6 @@
 //
 
-// Computer beeps from the zdcmp2 ("ZDoom community map project II"):
+// From the zdcmp2 ("ZDoom community map project II"):
 DSBOOP1		DSBOOP1
 DSBOOP2		DSBOOP2
 DSBOOP3		DSBOOP3
@@ -55,4 +55,11 @@ $volume AA/Computer/Beep 0.4
 $attenuation AA/Computer/Boop 5
 $volume AA/Computer/Boop 0.4
 
+AA/Pipes/v1	DSASPIPS
+AA/Pipes/v2	DSASWAT1
+AA/Pipes/v3	DSASGOOP
+
+$random AA/Pipes { AA/Pipes/v1 AA/Pipes/v2 AA/Pipes/v3 }
+$attenuation AA/Pipes 4
+$volume AA/Pipes 0.4
 

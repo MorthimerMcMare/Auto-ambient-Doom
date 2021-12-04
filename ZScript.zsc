@@ -3,8 +3,10 @@ version "2.4"
 class AutoAmbientGroup play {
 	String name;
 	Array< class<Actor> > classes;
+	Array<TextureID> textures;
 	double actorsDistance;
 	double actorsSpreading;
+	TextureID cachedTexture;
 
 	Array<Actor> actors;
 
@@ -14,18 +16,53 @@ class AutoAmbientGroup play {
 		newGroup.name = groupname;
 		newGroup.actorsDistance = dist;
 		newGroup.actorsSpreading = spreading;
+		//newGroup.cachedTexture = 0;
 
 		return newGroup;
 	}
 
-	void AddClass( class<Actor> cls ) {
-		classes.Push( cls );
+	// See GZDoom source code, "/src/common/textures/textureid.h" ("class FTextureID").
+	//TextureID comparing is really much faster than same for String.
+	bool IsTextureInGroup( TextureID texID ) {
+		// At least something will be speeded up.
+		if ( texID == cachedTexture )
+			return true;
+
+		for ( int i = 0; i < textures.Size(); i++ ) {
+			if ( texID == textures[ i ] ) {
+				cachedTexture = texID;
+				return true;
+			}
+		}
+
+		return false;
+	} // of bool IsTextureInGroup( TextureID texID ) {
+
+	bool AddClass( class<Actor> cls ) {
+		if ( cls )
+			classes.Push( cls );
+
+		return !!cls;
+	}
+
+	bool AddTexture( String textureName ) {
+		TextureID addeeTex = TexMan.CheckForTexture( textureName, TexMan.Type_Wall );
+
+		if ( addeeTex ) {
+			// Dirty hack. But ZScript cannot push TextureID to the 
+			//Array<TextureID> due to special class logic.
+			textures.Push( 0 );
+			textures[ textures.Size() - 1 ] = addeeTex;
+		}
+
+		return !!addeeTex;
 	}
 
 	void SpawnActor( vector3 actorpos /*Line attachLine*/ ) {
 		Actor newActor = Actor.Spawn( classes[ Random( 0, classes.Size() - 1 ) ], actorpos );
 		bool grouplingTooClose = false;
 
+		// Maybe it's better to get rid of this check from the main cycle.
 		for ( int i = 0; i < actors.Size(); i++ ) {
 			//console.printf( "#" .. i .. ". actors.Size(): " .. actors.Size() .. ", newActor: " .. newActor .. ", actors[ i ]: " .. actors[ i ]  );
 
@@ -38,8 +75,9 @@ class AutoAmbientGroup play {
 		if ( grouplingTooClose ) {
 			newActor.Destroy();
 		} else if ( newActor ) {
-			//newActor.SetOrigin( newActor.pos + ( FRandom( -actorsSpreading, actorsSpreading ), FRandom( -actorsSpreading, actorsSpreading ), 0 ), false );
+			newActor.SetOrigin( newActor.pos + ( FRandom( -actorsSpreading, actorsSpreading ), FRandom( -actorsSpreading, actorsSpreading ), 0 ), false );
 			actors.Push( newActor );
+			console.printf( "Actor " .. newActor.GetClassName() .. " spawned at " .. newActor.pos );
 		}
 
 	} // of void SpawnActor( vector3 pos ) {
@@ -48,50 +86,80 @@ class AutoAmbientGroup play {
 
 
 class AutoAmbientHandler: EventHandler {
-	const ZCheckerHandlerOrder = 0x7FFFFFF0;
-
-	static const String techTexs[] = {
-		"COMPSTA1", "COMPSTA2", "COMPTALL", "COMPWERD", "SILVER3", "SW1COMP", "SW2COMP", "SPACEW3"
-	};
+	const AutoAmbientHandlerOrder = 0x7FAA0003;
 
 	Array<AutoAmbientGroup> groups;
 
 	override void OnRegister() {
-		SetOrder( ZCheckerHandlerOrder );
+		SetOrder( AutoAmbientHandlerOrder );
 		Super.OnRegister();
 	}
 
 	override void WorldLoaded( WorldEvent e ) {
-		groups.Push( AutoAmbientGroup.Create( "Tech", 128, 32 ) );
-		groups[ 0 ].AddClass( "AutoAmbientActor_Tech" );
+		groups.Push( AutoAmbientGroup.Create( "Comp", 128, 32 ) );
+		groups[ 0 ].AddClass( "AutoAmbientActor_Comp" );
+		groups[ 0 ].AddTexture( "COMPSTA1" );
+		groups[ 0 ].AddTexture( "COMPSTA2" );
+		groups[ 0 ].AddTexture( "COMPTALL" );
+		groups[ 0 ].AddTexture( "COMPWERD" );
+		groups[ 0 ].AddTexture( "SILVER3" );
+		groups[ 0 ].AddTexture( "SW1COMP" );
+		groups[ 0 ].AddTexture( "SW2COMP" );
+		groups[ 0 ].AddTexture( "SPACEW3" );
 
+		groups.Push( AutoAmbientGroup.Create( "Pipe", 256, 0 ) );
+		groups[ 1 ].AddClass( "AutoAmbientActor_Pipe" );
+		groups[ 1 ].AddTexture( "BROWNPIP" );
+		groups[ 1 ].AddTexture( "METAL4" );
+		groups[ 1 ].AddTexture( "METAL4" );
+		groups[ 1 ].AddTexture( "PIPE1" );
+		groups[ 1 ].AddTexture( "PIPE2" );
+		groups[ 1 ].AddTexture( "PIPE6" );
+		groups[ 1 ].AddTexture( "PIPEWAL1" );
+		groups[ 1 ].AddTexture( "PIPES" );
+		groups[ 1 ].AddTexture( "SK_LEFT" );
+		groups[ 1 ].AddTexture( "SK_RIGHT" );
+		groups[ 1 ].AddTexture( "SLOPPY2" );
+		groups[ 1 ].AddTexture( "SW1PIPE" );
+		groups[ 1 ].AddTexture( "SW2PIPE" );
+		groups[ 1 ].AddTexture( "TEKGREN4" );
+		groups[ 1 ].AddTexture( "ZZZFACE5" );
+		groups[ 1 ].AddTexture( "ZZZFACE7" );
+		groups[ 1 ].AddTexture( "ZZZFACE8" );
+
+		// A-a-argh! Five nested "for" cycles!..
 		for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {
 			Side l = level.Sides[ curSideIndex ];
-			//String textureNames[ 3 ];
 
 			for ( int i = 0; i < 2; i++ ) {
-				String textureName = TexMan.GetName( l.GetTexture( i ) );
+				TextureID texID = l.GetTexture( i );
 
-				for ( int j = 0; j < techTexs.Size(); j++ )
-					if ( textureName == techTexs[ j ] ) {
-						console.printf( "Found texture \"" .. textureName .. "\"." );
-						vector2 newActorXY = ( l.linedef.v1.p + l.linedef.v2.p ) / 2;
-						vector3 newActorPos = ( newActorXY.x, newActorXY.y, ( l.sector.ceilingplane.d - l.sector.floorplane.d ) / 2 );
+				if ( texID ) {
+					// Different groups may handle one texture:
+					for ( int j = 0; j < groups.Size(); j++ ) {
+						if ( groups[ j ].IsTextureInGroup( texID ) ) {
+							vector2 newActorXY = ( l.linedef.v1.p + l.linedef.v2.p ) / 2;
+							vector3 newActorPos = ( newActorXY.x, newActorXY.y, ( l.sector.ceilingplane.d - l.sector.floorplane.d ) / 2 );
 
-						groups[ 0 ].SpawnActor( newActorPos );
+							groups[ j ].SpawnActor( newActorPos );
+						}
 					}
+				} // of if ( texID ) {
 
-				//textureNames[ l.top ] = TexMan.GetName( l.GetTexture( l.top ) );
-			}
+			} // of for ( int i = 0; i < 2; i++ ) {
 
 		} // of for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {
 
+		for ( int i = 0; i < groups.Size(); i++ ) {
+		}
+
 		Super.WorldLoaded( e );
-	}
+	} // of override void WorldLoaded( WorldEvent e ) {
+
 } // of class AmbientHandler: EventHandler {
 
 
-class AutoAmbientActor_Tech: Actor {
+class AutoAmbientActor_Comp: Actor {
 	Default {
 		+NOINTERACTION;
 		+NOBLOCKMAP;
@@ -107,5 +175,15 @@ class AutoAmbientActor_Tech: Actor {
 	Spawn2:
 		TNT1 A 30 A_PlaySound( "AA/Computer/Boop", CHAN_AUTO );
 		Wait;
+	}
+}
+
+class AutoAmbientActor_Pipe: AutoAmbientActor_Comp {
+	States {
+	Spawn:
+		TNT1 A 0;
+		TNT1 A 1 A_SetTics( Random( 0, 29 ) );
+		TNT1 A -1 A_PlaySound( "AA/Pipes", CHAN_AUTO, looping: true );
+		Stop;
 	}
 }
