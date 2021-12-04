@@ -1,0 +1,111 @@
+version "2.4"
+
+class AutoAmbientGroup play {
+	String name;
+	Array< class<Actor> > classes;
+	double actorsDistance;
+	double actorsSpreading;
+
+	Array<Actor> actors;
+
+	static AutoAmbientGroup Create( String groupname, double dist, double spreading ) {
+		AutoAmbientGroup newGroup = new( 'AutoAmbientGroup' );
+
+		newGroup.name = groupname;
+		newGroup.actorsDistance = dist;
+		newGroup.actorsSpreading = spreading;
+
+		return newGroup;
+	}
+
+	void AddClass( class<Actor> cls ) {
+		classes.Push( cls );
+	}
+
+	void SpawnActor( vector3 actorpos /*Line attachLine*/ ) {
+		Actor newActor = Actor.Spawn( classes[ Random( 0, classes.Size() - 1 ) ], actorpos );
+		bool grouplingTooClose = false;
+
+		for ( int i = 0; i < actors.Size(); i++ ) {
+			//console.printf( "#" .. i .. ". actors.Size(): " .. actors.Size() .. ", newActor: " .. newActor .. ", actors[ i ]: " .. actors[ i ]  );
+
+			if ( newActor.Distance2D( actors[ i ] ) < actorsDistance ) {
+				grouplingTooClose = true;
+				break;
+			}
+		}
+
+		if ( grouplingTooClose ) {
+			newActor.Destroy();
+		} else if ( newActor ) {
+			//newActor.SetOrigin( newActor.pos + ( FRandom( -actorsSpreading, actorsSpreading ), FRandom( -actorsSpreading, actorsSpreading ), 0 ), false );
+			actors.Push( newActor );
+		}
+
+	} // of void SpawnActor( vector3 pos ) {
+
+} // of class AutoAmbientGroup {
+
+
+class AutoAmbientHandler: EventHandler {
+	const ZCheckerHandlerOrder = 0x7FFFFFF0;
+
+	static const String techTexs[] = {
+		"COMPSTA1", "COMPSTA2", "COMPTALL", "COMPWERD", "SILVER3", "SW1COMP", "SW2COMP", "SPACEW3"
+	};
+
+	Array<AutoAmbientGroup> groups;
+
+	override void OnRegister() {
+		SetOrder( ZCheckerHandlerOrder );
+		Super.OnRegister();
+	}
+
+	override void WorldLoaded( WorldEvent e ) {
+		groups.Push( AutoAmbientGroup.Create( "Tech", 128, 32 ) );
+		groups[ 0 ].AddClass( "AutoAmbientActor_Tech" );
+
+		for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {
+			Side l = level.Sides[ curSideIndex ];
+			//String textureNames[ 3 ];
+
+			for ( int i = 0; i < 2; i++ ) {
+				String textureName = TexMan.GetName( l.GetTexture( i ) );
+
+				for ( int j = 0; j < techTexs.Size(); j++ )
+					if ( textureName == techTexs[ j ] ) {
+						console.printf( "Found texture \"" .. textureName .. "\"." );
+						vector2 newActorXY = ( l.linedef.v1.p + l.linedef.v2.p ) / 2;
+						vector3 newActorPos = ( newActorXY.x, newActorXY.y, ( l.sector.ceilingplane.d - l.sector.floorplane.d ) / 2 );
+
+						groups[ 0 ].SpawnActor( newActorPos );
+					}
+
+				//textureNames[ l.top ] = TexMan.GetName( l.GetTexture( l.top ) );
+			}
+
+		} // of for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {
+
+		Super.WorldLoaded( e );
+	}
+} // of class AmbientHandler: EventHandler {
+
+
+class AutoAmbientActor_Tech: Actor {
+	Default {
+		+NOINTERACTION;
+		+NOBLOCKMAP;
+	}
+
+	States {
+	Spawn:
+		TNT1 A 0;
+		TNT1 A 1 A_SetTics( Random( 0, 29 ) );
+		TNT1 A 0 A_Jump( 127, "Spawn2" );
+		TNT1 A 30 A_PlaySound( "AA/Computer/Beep", CHAN_AUTO );
+		Wait;
+	Spawn2:
+		TNT1 A 30 A_PlaySound( "AA/Computer/Boop", CHAN_AUTO );
+		Wait;
+	}
+}
