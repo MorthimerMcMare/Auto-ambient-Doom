@@ -24,8 +24,7 @@ class AutoAmbientGroup play {
 	// See GZDoom source code, "/src/common/textures/textureid.h" ("class FTextureID").
 	//TextureID comparing is really much faster than same for String.
 	bool IsTextureInGroup( TextureID texID ) {
-		// At least something will be speeded up.
-		// In my opinion, 
+		// At least something (in my opinion about 20%) will be speeded up.
 		if ( texID == cachedTexture )
 			return true;
 
@@ -103,10 +102,7 @@ class AutoAmbientHandler: EventHandler {
 
 	override void OnRegister() {
 		SetOrder( AutoAmbientHandlerOrder );
-		Super.OnRegister();
-	}
 
-	override void WorldLoaded( WorldEvent e ) {
 		groups.Push( AutoAmbientGroup.Create( "Comp", 128, 32 ) );
 		groups[ 0 ].AddClass( "AutoAmbientActor_Comp" );
 		groups[ 0 ].AddTexture( "COMPSTA1" );
@@ -156,6 +152,11 @@ class AutoAmbientHandler: EventHandler {
 		groups[ 3 ].AddTexture( "SK_LEFT" );
 		groups[ 3 ].AddTexture( "SK_RIGHT" );
 		groups[ 3 ].AddTexture( "SLOPPY2" );
+
+		Super.OnRegister();
+	}
+
+	override void WorldLoaded( WorldEvent e ) {
 
 		// A-a-argh! Five nested "for" cycles in worst case!..
 		for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {

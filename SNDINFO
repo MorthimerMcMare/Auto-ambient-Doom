@@ -73,9 +73,9 @@ $volume AA/Pipes 0.4
 AA/Tech/v1	FF_ACT
 AA/Tech/v2	DSCOMHUM
 AA/Tech/v3	DSASLABD
-AA/Tech/v4	TP_LOOP
+//AA/Tech/v4	TP_LOOP
 
-$random AA/Tech { AA/Tech/v1 AA/Tech/v2 AA/Tech/v3 AA/Tech/v4 }
+$random AA/Tech { AA/Tech/v1 AA/Tech/v2 AA/Tech/v3 }
 $attenuation AA/Tech 3.5
 $volume AA/Tech 0.6
 
