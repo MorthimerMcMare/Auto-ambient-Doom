@@ -1,0 +1,200 @@
+
+class AutoAmbientGroup play {
+	String name;
+	Array< class<Actor> > classes;
+	Array<AutoAmbientSoundDefinition> autoclasses;
+	Array<TextureID> textures;
+	double actorsDistance;
+	double actorsSpreading;
+	EAutoAmbientSoundModes mode;
+
+	TextureID cachedTexture;
+
+	Array<Actor> actors;
+
+	static AutoAmbientGroup Create( String groupname, double dist, double spreading ) {
+		AutoAmbientGroup newGroup = new( 'AutoAmbientGroup' );
+
+		newGroup.name = groupname;
+		newGroup.actorsDistance = dist;
+		newGroup.actorsSpreading = spreading;
+		//newGroup.cachedTexture = 0;
+
+		return newGroup;
+	}
+
+	// See GZDoom source code, "/src/common/textures/textureid.h" ("class FTextureID").
+	//TextureID comparing is really much faster than same for String.
+	bool IsTextureInGroup( TextureID texID ) {
+		// At least something (in my opinion about 20%) will be speeded up.
+		if ( texID == cachedTexture )
+			return true;
+
+		for ( int i = 0; i < textures.Size(); i++ ) {
+			if ( texID == textures[ i ] ) {
+				cachedTexture = texID;
+				return true;
+			}
+		}
+
+		return false;
+	} // of bool IsTextureInGroup( TextureID texID ) {
+
+	bool AddClass( class<Actor> cls ) {
+		if ( cls )
+			classes.Push( cls );
+
+		return !!cls;
+	}
+
+	bool AddAutoSoundClass( Sound snd, EAutoAmbientSoundModes mode = AASM_Looping, double vol = 1.0, double attn = 1.0, uint delay1 = 0, uint delay2 = 35 ) {
+		AutoAmbientSoundDefinition newclass = AutoAmbientSoundDefinition.Create( snd, mode, vol, attn, delay1, delay2 );
+
+		if ( newclass )
+			autoclasses.Push( newclass );
+
+		return !!newclass;
+	}
+
+	bool AddTexture( String textureName ) {
+		TextureID addeeTex = TexMan.CheckForTexture( textureName, TexMan.Type_Wall );
+
+		if ( addeeTex ) {
+			// Dirty hack. But ZScript cannot push TextureID to the 
+			//Array<TextureID> due to special class logic.
+			textures.Push( 0 );
+			textures[ textures.Size() - 1 ] = addeeTex;
+		}
+
+		return !!addeeTex;
+	}
+
+	void SpawnActor( vector3 actorpos /*Line attachLine*/ ) {
+		Actor newActor = NULL;
+
+		// Get a random class from the (auto)classes arrays:
+		uint classesSize = classes.Size();
+		uint rnd = Random( 0, classesSize + autoclasses.Size() - 1 );
+
+		//console.printf( "rnd: " .. rnd .. ", c.Size(): " .. classesSize .. ", ac.Size(): " .. autoclasses.Size() );
+
+		if ( rnd < classesSize ) {
+			newActor = Actor.Spawn( classes[ rnd ], actorpos );
+		} else if ( autoclasses.Size() ) {
+			newActor = Actor.Spawn( "AutoAmbientSoundActor", actorpos );
+			AutoAmbientSoundActor( newActor ).Init( autoclasses[ rnd - classesSize ] );
+		}
+
+		if ( newActor ) {
+			bool grouplingTooClose = false; // Same mean as in word "Sibling".
+
+			// Maybe it's better to get rid of this check from the main cycle.
+			for ( int i = 0; i < actors.Size(); i++ ) {
+				//console.printf( "#" .. i .. ". actors.Size(): " .. actors.Size() .. ", newActor: " .. newActor .. ", actors[ i ]: " .. actors[ i ]  );
+
+				if ( newActor.Distance2D( actors[ i ] ) < actorsDistance ) {
+					grouplingTooClose = true;
+					break;
+				}
+			}
+
+			if ( grouplingTooClose ) {
+				newActor.Destroy();
+			} else if ( newActor ) {
+				if ( actorsSpreading != 0.0 )
+					newActor.SetOrigin( newActor.pos + ( FRandom( -actorsSpreading, actorsSpreading ), FRandom( -actorsSpreading, actorsSpreading ), 0 ), false );
+
+				actors.Push( newActor );
+				console.printf( "Actor from group " .. self.name .. " spawned at " .. newActor.pos );
+			}
+		} // of if ( newActor ) {
+	} // of void SpawnActor( vector3 pos ) {
+
+} // of class AutoAmbientGroup {
+
+
+class AutoAmbientSoundActor: Actor {
+	AutoAmbientSoundDefinition def;
+	bool actorInitialized; // Call "Init()" with right arguments to set it up.
+
+	// Here are stored the most used and local variables:
+	EAutoAmbientSoundModes playsoundMode;
+	uint minDelay, maxDelay, curDelay;
+
+
+	Default {
+		+NOINTERACTION;
+		+NOBLOCKMAP;
+		+INVISIBLE;
+	}
+
+	void Init( AutoAmbientSoundDefinition initDef ) {
+		def = initDef;
+
+		actorInitialized = ( def && ( def.snd != "" ) );
+
+		if ( actorInitialized ) {
+			playsoundMode = def.sndMode;
+
+			switch ( playsoundMode ) {
+				case AASM_Looping:
+					break;
+				case AASM_Fixed:
+					minDelay = maxDelay = def.minDelay;
+					break;
+				case AASM_Random:
+					minDelay = def.minDelay;
+					maxDelay = def.maxDelay;
+					break;
+				default:
+					console.printf( "Error: cannot init actor, sound mode " .. playsoundMode .. " isn't recognized." );
+					actorInitialized = false;
+					break;
+			}
+		}
+	} // of void Init( EAutoAmbientSoundModes mode, Sound soundToPlay, double volume = 1.0, double attn = 1.0, uint delay1 = 0, uint delay2 = 0 ) {
+
+
+	override void PostBeginPlay() {
+		Super.PostBeginPlay();
+
+		if ( actorInitialized ) {
+			curDelay = Random( 0, ( (playsoundMode == AASM_Looping)? 5 : maxDelay ) );
+		} else {
+			console.printf( "Actor " .. GetClassName() .. " <" .. self .. "> not initialized. Destroying self." );
+			Destroy();
+		}
+	} // of override void PostBeginPlay() {
+
+	override void Tick() {
+		// Must not stop on globalfreeze.
+
+		switch ( playsoundMode ) {
+			case AASM_Fixed:
+			case AASM_Random:
+				if ( curDelay-- <= 0 ) {
+					A_PlaySound( def.snd, CHAN_AUTO, def.sndVolume, false, def.sndAttenuation );
+					//S_Sound( def.snd, CHAN_AUTO, def.sndVolume, def.sndAttenuation );
+					curDelay = ( playsoundMode == AASM_Fixed )? minDelay : Random( minDelay, maxDelay );
+				}
+				break;
+			case AASM_Looping: // Light randomization.
+				if ( curDelay > 0 ) {
+					curDelay--;
+					A_PlaySound( def.snd, CHAN_AUTO, def.sndVolume, true, def.sndAttenuation );
+				}
+				break;
+			default:
+				break;
+		}
+
+		Super.Tick();
+	} // of override void Tick() {
+
+	States {
+	Spawn:
+		TNT1 A 0;
+		TNT1 A -1;
+		stop;
+	}
+} // of class AutoAmbientSoundActor: Actor {

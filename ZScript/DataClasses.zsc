@@ -1,0 +1,27 @@
+class AutoAmbientSoundDefinition {
+	Sound snd;
+	double sndVolume, sndAttenuation;
+	EAutoAmbientSoundModes sndMode;
+	uint minDelay, maxDelay;
+
+	static AutoAmbientSoundDefinition Create( Sound initSnd, EAutoAmbientSoundModes initMode, double initVolume, double initAttn, uint initMinDelay, uint initMaxDelay ) {
+		AutoAmbientSoundDefinition newDef = new( 'AutoAmbientSoundDefinition' );
+
+		newDef.snd = initSnd;
+		newDef.sndMode = initMode;
+		newDef.sndVolume = initVolume;
+		newDef.sndAttenuation = initAttn;
+		newDef.minDelay = initMinDelay;
+		newDef.maxDelay = initMaxDelay;
+
+		return newDef;
+	}
+} // of class AutoAmbientSoundDefinition {
+
+
+class AutoAmbientGroupCache {
+	TextureID texture;
+	Array<AutoAmbientGroup> groups;
+	uint frequency;
+} // of class AutoAmbientGroupCache {
+
