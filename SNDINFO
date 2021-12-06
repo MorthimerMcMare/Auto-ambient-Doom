@@ -2,8 +2,8 @@
 
 // Now all sounds are from the zdcmp2 ("ZDoom community map project II").
 
-// Computers
 
+// Computers:
 DSBOOP1		DSBOOP1
 DSBOOP2		DSBOOP2
 DSBOOP3		DSBOOP3
@@ -53,35 +53,20 @@ $random AA/Computers/Boop	{ DSBEEP1 DSBEEP2 DSBEEP3 DSBEEP4 DSBEEP5
 							DSBEEP12 DSBEEP13 DSBEEP14 DSBEEP15 DSBEEP16
 							 DSBEEP17 }
 
-$attenuation AA/Computers/Beep 5
-$volume AA/Computers/Beep 0.4
-$attenuation AA/Computers/Boop 5
-$volume AA/Computers/Boop 0.4
-
-// Pipes
-
+// Pipes:
 AA/Pipes/v1	DSASPIPS
 AA/Pipes/v2	DSASWAT1
 AA/Pipes/v3	DSASGOOP
-
 $random AA/Pipes { AA/Pipes/v1 AA/Pipes/v2 AA/Pipes/v3 }
-$attenuation AA/Pipes 4
-$volume AA/Pipes 0.4
 
-// Tech (energo)
 
+// Tech (energo):
 AA/Tech/v1	FF_ACT
 AA/Tech/v2	DSCOMHUM
 AA/Tech/v3	DSASLABD
-//AA/Tech/v4	TP_LOOP
-
 $random AA/Tech { AA/Tech/v1 AA/Tech/v2 AA/Tech/v3 }
-$attenuation AA/Tech 3.5
-$volume AA/Tech 0.6
 
-// Blood pipes
 
+// Blood pipes:
 AA/BloodPipes DSASSLOP
-$attenuation AA/BloodPipes 4.2
-$volume AA/BloodPipes 0.6
 
