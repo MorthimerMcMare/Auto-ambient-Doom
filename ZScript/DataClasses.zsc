@@ -25,3 +25,21 @@ class AutoAmbientGroupCache {
 	uint frequency;
 } // of class AutoAmbientGroupCache {
 
+class AutoAmbientTextureDefinition {
+	TextureID id;
+	vector2 start, offset, spreading;
+	vector2 size;
+
+	static AutoAmbientTextureDefinition Create( TextureID texID, vector2 initStartOffset, vector2 initOffset, vector2 initSpreading ) {
+		AutoAmbientTextureDefinition newDef = new( 'AutoAmbientTextureDefinition' );
+
+		newDef.id = texID;
+		newDef.start = initStartOffset;
+		newDef.offset = initOffset;
+		newDef.spreading = initSpreading;
+		newDef.size = TexMan.GetScaledSize( texID );
+
+		return newDef;
+	}
+} // of class AutoAmbientTextureDefinition {
+

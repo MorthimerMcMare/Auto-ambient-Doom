@@ -3,14 +3,15 @@ class AutoAmbientGroup play {
 	String name;
 	Array< class<Actor> > classes;
 	Array<AutoAmbientSoundDefinition> autoclasses;
-	Array<TextureID> textures;
+	Array<AutoAmbientTextureDefinition> textures;
 	double actorsDistance;
 	double actorsSpreading;
 	EAutoAmbientSoundModes mode;
 
 	TextureID cachedTexture;
+	AutoAmbientTextureDefinition cachedTextureDefinition;
 
-	Array<Actor> actors;
+	Array<Actor> actors; // All spawned auto actors for this group.
 
 	static AutoAmbientGroup Create( String groupname, double dist, double spreading ) {
 		AutoAmbientGroup newGroup = new( 'AutoAmbientGroup' );
@@ -21,31 +22,32 @@ class AutoAmbientGroup play {
 		//newGroup.cachedTexture = 0;
 
 		return newGroup;
-	}
+	} // of static AutoAmbientGroup Create( String groupname, double dist, double spreading )
+
 
 	// See GZDoom source code, "/src/common/textures/textureid.h" ("class FTextureID").
 	//TextureID comparing is really much faster than same for String.
 	bool IsTextureInGroup( TextureID texID ) {
-		// At least something (in my opinion about 20%) will be speeded up.
+		// At least something (in my opinion about 5..20%) will be speeded up.
 		if ( texID == cachedTexture )
 			return true;
 
 		for ( int i = 0; i < textures.Size(); i++ ) {
-			if ( texID == textures[ i ] ) {
+			if ( texID == textures[ i ].id ) {
 				cachedTexture = texID;
 				return true;
 			}
 		}
 
 		return false;
-	} // of bool IsTextureInGroup( TextureID texID ) {
+	} // of bool IsTextureInGroup( TextureID texID )
 
 	bool AddClass( class<Actor> cls ) {
 		if ( cls )
 			classes.Push( cls );
 
 		return !!cls;
-	}
+	} // of bool AddClass( class<Actor> cls )
 
 	bool AddAutoSoundClass( Sound snd, EAutoAmbientSoundModes mode = AASM_Looping, double vol = 1.0, double attn = 1.0, uint delay1 = 0, uint delay2 = 35 ) {
 		AutoAmbientSoundDefinition newclass = AutoAmbientSoundDefinition.Create( snd, mode, vol, attn, delay1, delay2 );
@@ -54,63 +56,187 @@ class AutoAmbientGroup play {
 			autoclasses.Push( newclass );
 
 		return !!newclass;
-	}
+	} // of bool AddAutoSoundClass( Sound snd, EAutoAmbientSoundModes mode = AASM_Looping, double vol = 1.0, double attn = 1.0, uint delay1 = 0, uint delay2 = 35 )
 
-	bool AddTexture( String textureName ) {
+	bool AddTexture( String textureName, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
 		TextureID addeeTex = TexMan.CheckForTexture( textureName, TexMan.Type_Wall );
 
 		if ( addeeTex ) {
-			// Dirty hack. But ZScript cannot push TextureID to the 
-			//Array<TextureID> due to special class logic.
-			textures.Push( 0 );
-			textures[ textures.Size() - 1 ] = addeeTex;
+			if ( start.x < 0.0 )
+				start = TexMan.GetScaledSize( addeeTex ) / 2.0;
+
+			if ( offset.x < 0.0 )
+				offset = TexMan.GetScaledSize( addeeTex );
+
+			if ( rnd.y < 0.0 )
+				rnd.y = rnd.x;
+
+			textures.Push( AutoAmbientTextureDefinition.Create( addeeTex, start, offset, rnd ) );
+
+			//console.printf( "New TexDef in " .. name .. ": \"" .. textureName .. "\", " .. start .. " + *" .. offset .. " + rnd" .. rnd );
 		}
 
 		return !!addeeTex;
-	}
+	} // of bool AddTexture( String textureName, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
 
-	void SpawnActor( vector3 actorpos /*Line attachLine*/ ) {
-		Actor newActor = NULL;
+	void SpawnActor( Side attachSide, int sidePos ) {
+		if ( !classes.Size() && !autoclasses.Size() )
+			return; // We cannot spawn something if we have no spawn data.
 
-		// Get a random class from the (auto)classes arrays:
-		uint classesSize = classes.Size();
-		uint rnd = Random( 0, classesSize + autoclasses.Size() - 1 );
+		// Locate a texture definition:
+		TextureID texID = attachSide.GetTexture( sidePos );
+		AutoAmbientTextureDefinition texdef = NULL;
 
-		//console.printf( "rnd: " .. rnd .. ", c.Size(): " .. classesSize .. ", ac.Size(): " .. autoclasses.Size() );
+		if ( cachedTextureDefinition && texID == cachedTextureDefinition.id ) {
+			texdef = cachedTextureDefinition;
+		} else {
+			for ( int i = 0; i < textures.Size(); i++ )
+				if ( textures[ i ].id == texID ) {
+					cachedTextureDefinition = texdef = textures[ i ];
+					break;
+				}
+		}
+		//console.printf( name .. "/\"" ..  TexMan.GetName( texID ) .. "\". TextureDef: " .. texdef );
 
-		if ( rnd < classesSize ) {
-			newActor = Actor.Spawn( classes[ rnd ], actorpos );
-		} else if ( autoclasses.Size() ) {
-			newActor = Actor.Spawn( "AutoAmbientSoundActor", actorpos );
-			AutoAmbientSoundActor( newActor ).Init( autoclasses[ rnd - classesSize ] );
+		if ( !texdef )
+			return; // Return if there's no neccesary texture definition.
+
+		Line attachLine = attachSide.linedef;
+		Side oppositeSide = ( attachLine.sidedef[ 0 ] == attachSide )? attachLine.sidedef[ 1 ] : attachLine.sidedef[ 0 ];
+		double lineWidth = attachLine.delta.Length();
+		double lineHeight = 0;
+
+		// [A]ttach/[O]pposite side, [F]loor/[C]eiling heights.
+		double af = attachSide.sector.floorplane.d * attachSide.sector.floorplane.negiC;
+		double ac = attachSide.sector.ceilingplane.d * attachSide.sector.ceilingplane.negiC;
+		double of = 0.0;
+		double oc = 0.0;
+		if ( oppositeSide ) {
+			of = oppositeSide.sector.floorplane.d * oppositeSide.sector.floorplane.negiC;
+			oc = oppositeSide.sector.ceilingplane.d * oppositeSide.sector.ceilingplane.negiC;
 		}
 
-		if ( newActor ) {
-			bool grouplingTooClose = false; // Same mean as in word "Sibling".
+		switch ( sidePos ) {
+			case Side.top:
+				if ( oppositeSide ) {
+					lineHeight = max( 0, ac - oc );
+					if ( lineHeight > 0 )
+						lineHeight = min( lineHeight, ac - af );
+				}
+				break;
+			case Side.mid:
+				lineHeight = max( 0, ac - af );
+				// Cannot recognize now what must be here...
+				//if ( lineHeight > 0 )
+				//	lineHeight = min( lineHeight, oc - of );
+				break;
+			case Side.bottom:
+				if ( oppositeSide ) {
+					lineHeight = max( 0, of - af );
+					if ( lineHeight > 0 )
+						lineHeight = min( lineHeight, ac - af );
+				}
+				break;
+			default:
+				break;
+		}
+
+		//console.printf( name .. "/\"" ..  TexMan.GetName( texdef.id ) .. "\". lineHeight: " .. lineHeight );
+
+		if ( lineHeight <= 0 )
+			return; // There's no point in creating an actor if the texture is not visible.
+
+		vector2 texMapOffset = (
+				attachSide.GetTextureXOffset( sidePos ) % lineWidth,
+				attachSide.GetTextureYOffset( sidePos ) % lineHeight
+		);
+
+		vector3 firstPoint = ( // From bottom-left.
+				attachLine.v1.p.x,
+				attachLine.v1.p.y,
+				af
+		);
+
+		Array<Actor> newActors;
+		uint classesSize = classes.Size();
+
+
+		// Converting virtual 2D-plane to the 3D-aligned line plane
+		//and spawning ambient actors:
+		for ( double texz = ( texMapOffset.y + texdef.start.y ) % texdef.size.y; texz < lineHeight; texz += texdef.offset.y ) {
+			for ( double texxy = ( texMapOffset.x + texdef.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texdef.offset.x ) {
+				// Get a random class from the (auto)classes arrays:
+				uint rnd = Random( 0, classesSize + autoclasses.Size() - 1 );
+				Actor newActor = NULL;
+
+				double actorPosRandomizeXY = FRandom( -texdef.spreading.x, texdef.spreading.x );
+				double actorPosRandomizeZ = FRandom( -texdef.spreading.y, texdef.spreading.y );
+
+				// Normalizing (v1-v2) and multiplying it to the wish length:
+				vector2 actorPosXY = firstPoint.xy + attachLine.delta / lineWidth * ( texxy + actorPosRandomizeXY );
+
+				vector3 actorPos = ( actorPosXY.x, actorPosXY.y, texz + firstPoint.z + actorPosRandomizeZ );
+				//console.printf( "Actor for tex \"" .. TexMan.GetName( texdef.id ) .. "\": relpos " .. actorPosXY - firstPoint.xy .. ", firstPointPos " .. firstPoint .. ", texMapOfs " .. texMapOffset .. ", line w/h " .. lineWidth .. "/" .. lineHeight );
+
+				/*
+				for ( int i = 0; i < newActors.Size(); i++ ) {
+					//console.printf( "#" .. i .. ". actors.Size(): " .. actors.Size() .. ", newActor: " .. newActor .. ", actors[ i ]: " .. actors[ i ]  );
+					vector2 vecdist = newActors[ i ].pos.xy - actorPos.xy;
+
+					if ( vecdist.Length() < actorsDistance ) {
+						canSpawn = false;
+						break;
+					}
+				} // of for ( int i = 0; i < newActors.Size(); i++ )
+				*/
+
+				if ( rnd < classesSize ) {
+					newActor = Actor.Spawn( classes[ rnd ], actorPos );
+				} else if ( autoclasses.Size() ) {
+					newActor = Actor.Spawn( "AutoAmbientSoundActor", actorPos );
+					AutoAmbientSoundActor( newActor ).Init( autoclasses[ rnd - classesSize ] );
+				} else {
+					console.printf( "Warning: random getter " .. rnd .. " is out-of-bounds of classes[] (size " .. classes.Size() .. ") and autoclasses[] (size " .. autoclasses.Size() .. ")." );
+				}
+
+				if ( newActor )
+					newActors.Push( newActor );
+			} // of for ( double texxy = texdef.start.x; texxy < lineWidth; texxy += texdef.offset.x )
+		} // of for ( double texz = texdef.start.y; texz < lineHeight; texz += texdef.offset.y )
+
+
+		// Clear all new actors close to the old ones.
+		// It seems like large waste of time.
+		uint actorsSize = actors.Size();
+
+		for ( int j = 0; j < newActors.Size(); j++ ) {
+			bool grouplingTooClose = false; // Same meaning as in word "Sibling".
 
 			// Maybe it's better to get rid of this check from the main cycle.
-			for ( int i = 0; i < actors.Size(); i++ ) {
-				//console.printf( "#" .. i .. ". actors.Size(): " .. actors.Size() .. ", newActor: " .. newActor .. ", actors[ i ]: " .. actors[ i ]  );
+			for ( int i = 0; i < actorsSize; i++ ) {
+				//console.printf( "#" .. i .. ". actors.Size(): " .. actors.Size() .. ", newActors[ j ]: " .. newActors[ j ] .. ", actors[ i ]: " .. actors[ i ] );
 
-				if ( newActor.Distance2D( actors[ i ] ) < actorsDistance ) {
+				if ( newActors[ j ].Distance2D( actors[ i ] ) < actorsDistance ) {
 					grouplingTooClose = true;
 					break;
 				}
 			}
 
 			if ( grouplingTooClose ) {
-				newActor.Destroy();
-			} else if ( newActor ) {
+				//console.printf( "Deleted actor at " .. newActors[ j ].pos );
+				newActors[ j ].Destroy();
+			} else {
 				if ( actorsSpreading != 0.0 )
-					newActor.SetOrigin( newActor.pos + ( FRandom( -actorsSpreading, actorsSpreading ), FRandom( -actorsSpreading, actorsSpreading ), 0 ), false );
+					newActors[ j ].SetOrigin( newActors[ j ].pos + ( FRandom( -actorsSpreading, actorsSpreading ), FRandom( -actorsSpreading, actorsSpreading ), 0 ), false );
 
-				actors.Push( newActor );
-				console.printf( "Actor from group " .. self.name .. " spawned at " .. newActor.pos );
+				actors.Push( newActors[ j ] );
+				console.printf( "Actor from group " .. name .. " spawned at " .. newActors[ j ].pos .. "." );
 			}
-		} // of if ( newActor ) {
-	} // of void SpawnActor( vector3 pos ) {
+		} // of for ( int j = 0; j < newActors.Size(); j++ )
 
-} // of class AutoAmbientGroup {
+	} // of void SpawnActor( vector3 pos )
+
+} // of class AutoAmbientGroup
 
 
 class AutoAmbientSoundActor: Actor {
@@ -125,7 +251,7 @@ class AutoAmbientSoundActor: Actor {
 	Default {
 		+NOINTERACTION;
 		+NOBLOCKMAP;
-		+INVISIBLE;
+		//+INVISIBLE;
 	}
 
 	void Init( AutoAmbientSoundDefinition initDef ) {
@@ -152,7 +278,7 @@ class AutoAmbientSoundActor: Actor {
 					break;
 			}
 		}
-	} // of void Init( EAutoAmbientSoundModes mode, Sound soundToPlay, double volume = 1.0, double attn = 1.0, uint delay1 = 0, uint delay2 = 0 ) {
+	} // of void Init( EAutoAmbientSoundModes mode, Sound soundToPlay, double volume = 1.0, double attn = 1.0, uint delay1 = 0, uint delay2 = 0 )
 
 
 	override void PostBeginPlay() {
@@ -164,7 +290,7 @@ class AutoAmbientSoundActor: Actor {
 			console.printf( "Actor " .. GetClassName() .. " <" .. self .. "> not initialized. Destroying self." );
 			Destroy();
 		}
-	} // of override void PostBeginPlay() {
+	} // of override void PostBeginPlay()
 
 	override void Tick() {
 		// Must not stop on globalfreeze.
@@ -189,12 +315,12 @@ class AutoAmbientSoundActor: Actor {
 		}
 
 		Super.Tick();
-	} // of override void Tick() {
+	} // of override void Tick()
 
 	States {
 	Spawn:
 		TNT1 A 0;
-		TNT1 A -1;
+		BAL2 A -1;
 		stop;
 	}
-} // of class AutoAmbientSoundActor: Actor {
+} // of class AutoAmbientSoundActor: Actor

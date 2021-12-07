@@ -19,20 +19,36 @@ class AutoAmbientHandler: EventHandler {
 	override void OnRegister() {
 		SetOrder( AutoAmbientHandlerOrder );
 
+		groups.Clear(); 
+		groupcache.Clear();
+
+		/*groups.Push( AutoAmbientGroup.Create( "Pipe", 256, 0 ) );
+		groups[ 0 ].AddAutoSoundClass( "AA/Pipes", vol: 0.4, attn: 4 );
+		groups[ 0 ].AddTexture( "BROWNPIP" );
+		groups[ 0 ].AddTexture( "METAL4" );
+		groups[ 0 ].AddTexture( "PIPE2" );
+		groups[ 0 ].AddTexture( "PIPE6" );
+		groups[ 0 ].AddTexture( "PIPEWAL1" );
+		groups[ 0 ].AddTexture( "PIPES" );
+		groups[ 0 ].AddTexture( "SW1PIPE" );
+		groups[ 0 ].AddTexture( "SW2PIPE" );
+		groups[ 0 ].AddTexture( "TEKGREN4" );*/
+
+//bool AddTexture( String textureName, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
+
 		groups.Push( AutoAmbientGroup.Create( "Comp", 128, 32 ) );
 		groups[ 0 ].AddAutoSoundClass( "AA/Computers/Beep", AASM_Fixed, 0.4, 5.0, 35 );
 		groups[ 0 ].AddAutoSoundClass( "AA/Computers/Boop", AASM_Fixed, 0.4, 5.0, 35 );
 		groups[ 0 ].AddTexture( "COMPSTA1" );
 		groups[ 0 ].AddTexture( "COMPSTA2" );
-		groups[ 0 ].AddTexture( "COMPTALL" );
+		groups[ 0 ].AddTexture( "COMPTALL", start: ( 32.0, 64.0 ), offset: ( 96.0, 0.0 ) );
 		groups[ 0 ].AddTexture( "SILVER3" );
-		groups[ 0 ].AddTexture( "SPACEW3" );
+		groups[ 0 ].AddTexture( "SPACEW3", rnd: ( 0.0, 24.0 ) );
 		//groups[ 0 ].AddClass( "AutoAmbientActor_Comp" );
 
 		groups.Push( AutoAmbientGroup.Create( "Pipe", 256, 0 ) );
 		groups[ 1 ].AddAutoSoundClass( "AA/Pipes", vol: 0.4, attn: 4 );
 		groups[ 1 ].AddTexture( "BROWNPIP" );
-		groups[ 1 ].AddTexture( "METAL4" );
 		groups[ 1 ].AddTexture( "METAL4" );
 		groups[ 1 ].AddTexture( "PIPE2" );
 		groups[ 1 ].AddTexture( "PIPE6" );
@@ -81,8 +97,8 @@ class AutoAmbientHandler: EventHandler {
 		for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {
 			Side l = level.Sides[ curSideIndex ];
 
-			for ( int i = 0; i < 2; i++ ) {
-				TextureID texID = l.GetTexture( i );
+			for ( int curSidePos = 0; curSidePos < 2; curSidePos++ ) {
+				TextureID texID = l.GetTexture( curSidePos );
 
 				if ( texID ) {
 					//console.printf( "Texture \"" .. TexMan.GetName( texID ) .. "\"." );
@@ -123,10 +139,11 @@ class AutoAmbientHandler: EventHandler {
 
 					// Spawning actor(s) according to the cached groups:
 					for ( int j = 0; j < texCache.groups.Size(); j++ ) {
-						vector2 newActorXY = ( l.linedef.v1.p + l.linedef.v2.p ) / 2;
-						vector3 newActorPos = ( newActorXY.x, newActorXY.y, ( l.sector.ceilingplane.d - l.sector.floorplane.d ) / 2 );
+						//vector2 newActorXY = ( l.linedef.v1.p + l.linedef.v2.p ) / 2;
+						//vector3 newActorPos = ( newActorXY.x, newActorXY.y, ( l.sector.ceilingplane.d - l.sector.floorplane.d ) / 2 );
+						//texCache.groups[ j ].SpawnActor( newActorPos );
 
-						texCache.groups[ j ].SpawnActor( newActorPos );
+						texCache.groups[ j ].SpawnActor( l, curSidePos );
 					}
 				} // of if ( texID ) {
 
