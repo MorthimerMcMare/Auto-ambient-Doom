@@ -251,7 +251,7 @@ class AutoAmbientSoundActor: Actor {
 	Default {
 		+NOINTERACTION;
 		+NOBLOCKMAP;
-		//+INVISIBLE;
+		+INVISIBLE;
 	}
 
 	void Init( AutoAmbientSoundDefinition initDef ) {
@@ -305,9 +305,9 @@ class AutoAmbientSoundActor: Actor {
 				}
 				break;
 			case AASM_Looping: // Light randomization.
-				if ( curDelay > 0 ) {
-					curDelay--;
-					A_PlaySound( def.snd, CHAN_AUTO, def.sndVolume, true, def.sndAttenuation );
+				if ( curDelay >= 0 ) {
+					if ( --curDelay < 0 )
+						A_PlaySound( def.snd, CHAN_AUTO, def.sndVolume, true, def.sndAttenuation );
 				}
 				break;
 			default:
