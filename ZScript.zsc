@@ -4,39 +4,76 @@ version "2.4.0"
 #include "ZScript/AutoActors.zsc"
 
 enum EAutoAmbientSoundModes {
-	AASM_Looping = 0,
+	AASM_Looped = 0,
 	AASM_Fixed,
 	AASM_Random
 };
 
+enum EAutoAmbientSamelineCheck {
+	AASC_On = 0,		// Default.
+	AASC_Off,
+	AASC_Only
+};
+
+enum EAutoAmbientActionlineCheck {
+	AAAC_Default = 0,
+	AAAC_Ignore,
+	AAAC_AlsoZeroHeight
+};
 
 class AutoAmbientHandler: EventHandler {
 	const AutoAmbientHandlerOrder = 0x7FAA0003;
 
+	Array<AutoAmbientTexture> textures;
 	Array<AutoAmbientGroup> groups;
-	Array<AutoAmbientGroupCache> groupcache; // Just a list which must be ordered by use frequency.
+	//Array<AutoAmbientGroupCache> groupcache; // Just a list which must be ordered by use frequency.
 
+	// Temporary methods, just for convenience.
+	void AddGroupToTexture( AutoAmbientTexture tex, AutoAmbientGroup group, vector2 gpos = ( -1.0, -1.0 ), vector2 gofspos = ( -1.0, -1.0 ) ) {
+		AutoAmbientTextureParameter newtexparam = AutoAmbientTextureParameter.Create( gpos, gofspos, ( 0.0, 0.0 ), 1.0 );
+		tex.AddGroupParam( group, newtexparam );
+	}
+
+	AutoAmbientTexture AddTexture( Name textureName, AutoAmbientGroup group, vector2 gpos = ( -1.0, -1.0 ), vector2 gofspos = ( -1.0, -1.0 ) ) {
+		AutoAmbientTexture newtex = AutoAmbientTexture.Create( textureName );
+		AddGroupToTexture( newtex, group, gpos, gofspos );
+		uint lastpos = textures.Push( newtex );
+		return textures[ lastpos ];
+	}
+
+	AutoAmbientTexture FindInvalidTexture( void ) {
+		for ( int i = 0; i < textures.Size(); i++ )
+			if ( !textures[ i ].Validate() )
+				return textures[ i ];
+
+		return NULL;
+	}
+
+	// Configuration (in future a file parser):
 	override void OnRegister() {
 		SetOrder( AutoAmbientHandlerOrder );
 
 		groups.Clear(); 
-		groupcache.Clear();
+		//groupcache.Clear();
+		textures.Clear();
 
-		/*groups.Push( AutoAmbientGroup.Create( "Pipe", 256, 0 ) );
+		groups.Push( AutoAmbientGroup.Create( "Pipe", 256 ) );
+		console.printf( "2" );
 		groups[ 0 ].AddAutoSoundClass( "AA/Pipes", vol: 0.4, attn: 4 );
-		groups[ 0 ].AddTexture( "BROWNPIP" );
-		groups[ 0 ].AddTexture( "METAL4" );
-		groups[ 0 ].AddTexture( "PIPE2" );
-		groups[ 0 ].AddTexture( "PIPE6" );
-		groups[ 0 ].AddTexture( "PIPEWAL1" );
-		groups[ 0 ].AddTexture( "PIPES" );
-		groups[ 0 ].AddTexture( "SW1PIPE" );
-		groups[ 0 ].AddTexture( "SW2PIPE" );
-		groups[ 0 ].AddTexture( "TEKGREN4" );*/
+		console.printf( "3" );
+		AddTexture( "BROWNPIP", groups[ 0 ] );
+		console.printf( "4" );
+		AddTexture( "METAL4", groups[ 0 ] );
+		AddTexture( "PIPE2", groups[ 0 ] );
+		AddTexture( "PIPE6", groups[ 0 ] );
+		AddTexture( "PIPEWAL1", groups[ 0 ] );
+		AddTexture( "PIPES", groups[ 0 ] );
+		AddTexture( "SW1PIPE", groups[ 0 ] );
+		AddTexture( "SW2PIPE", groups[ 0 ] );
+		AddTexture( "TEKGREN4", groups[ 0 ] );
+		console.printf( "max" );
 
-//bool AddTexture( String textureName, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
-
-		groups.Push( AutoAmbientGroup.Create( "Comp", 128, 32 ) );
+		/*groups.Push( AutoAmbientGroup.Create( "Comp", 128, 32 ) );
 		groups[ 0 ].AddAutoSoundClass( "AA/Computers/Beep", AASM_Fixed, 0.4, 5.0, 35 );
 		groups[ 0 ].AddAutoSoundClass( "AA/Computers/Boop", AASM_Fixed, 0.4, 5.0, 35 );
 		groups[ 0 ].AddTexture( "COMPSTA1" );
@@ -86,12 +123,22 @@ class AutoAmbientHandler: EventHandler {
 		groups[ 3 ].AddTexture( "SK_LEFT" );
 		groups[ 3 ].AddTexture( "SK_RIGHT" );
 		groups[ 3 ].AddTexture( "SLOPPY2" );
+		*/
 
 		Super.OnRegister();
 	}
 
 
 	override void WorldLoaded( WorldEvent e ) {
+		AutoAmbientTexture invalidTexture = FindInvalidTexture();
+
+		if ( invalidTexture ) {
+			console.printf( GetClassName() .. "::WorldLoaded(). ERROR: texture definition ID " .. invalidTexture.id .. " is not valid." );
+			console.printf( GetClassName() .. "::WorldLoaded(). Texture name: " .. TexMan.GetName( invalidTexture.id ) );
+			Super.WorldLoaded( e );
+			return;
+		}
+
 
 		// A-a-argh! Five nested "for" cycles in worst case!..
 		for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {
@@ -102,10 +149,10 @@ class AutoAmbientHandler: EventHandler {
 
 				if ( texID ) {
 					//console.printf( "Texture \"" .. TexMan.GetName( texID ) .. "\"." );
-					AutoAmbientGroupCache texCache = NULL;
+					//AutoAmbientGroupCache texCache = NULL;
 
 					// Attempt to find texture in cache array:
-					for ( int j = 0; j < groupcache.Size(); j++ ) {
+					/*for ( int j = 0; j < groupcache.Size(); j++ ) {
 						if ( groupcache[ j ].texture == texID ) {
 							texCache = groupcache[ j ];
 							groupcache[ j ].frequency++;
@@ -117,7 +164,7 @@ class AutoAmbientHandler: EventHandler {
 								//elements ("2, 1, 1, 2" -> "2, 1, 2, 1").
 								groupcache.Insert( j - 1, groupcache[ j ] );
 								groupcache.Delete( j + 1, 1 );
-							}*/
+							} * /
 							break;
 						}
 					} // of for ( int j = 0; j < groupcache.Size(); j++ ) {
@@ -144,7 +191,16 @@ class AutoAmbientHandler: EventHandler {
 						//texCache.groups[ j ].SpawnActor( newActorPos );
 
 						texCache.groups[ j ].SpawnActor( l, curSidePos );
+					}*/
+
+					// Temporary, extremely ugly solution.
+					for ( int j = 0; j < textures.Size(); j++ ) {
+						if ( textures[ j ].id == texID ) {
+							textures[ j ].CallGroupSpawn( l, curSidePos );
+							break;
+						}
 					}
+
 				} // of if ( texID ) {
 
 			} // of for ( int i = 0; i < 2; i++ ) {

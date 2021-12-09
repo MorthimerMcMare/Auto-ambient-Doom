@@ -1,8 +1,16 @@
 class AutoAmbientSoundDefinition {
 	Sound snd;
-	double sndVolume, sndAttenuation;
 	EAutoAmbientSoundModes sndMode;
+	double sndVolume, sndAttenuation;
 	uint minDelay, maxDelay;
+
+	double minRadius, minHeight;
+
+	Array<AutoAmbientGroup> groups;
+
+	/*uint workDistance;
+	Sound workSound;
+	double workSoundVolume, workSoundAttenuation;*/
 
 	static AutoAmbientSoundDefinition Create( Sound initSnd, EAutoAmbientSoundModes initMode, double initVolume, double initAttn, uint initMinDelay, uint initMaxDelay ) {
 		AutoAmbientSoundDefinition newDef = new( 'AutoAmbientSoundDefinition' );
@@ -14,32 +22,130 @@ class AutoAmbientSoundDefinition {
 		newDef.minDelay = initMinDelay;
 		newDef.maxDelay = initMaxDelay;
 
+		newDef.minRadius = newDef.minHeight = 0.0;
+		/*newDef.workDistance = -1;
+		newDef.workSoundVolume = newDef.workSoundAttenuation = 1.0;
+		newDef.workSound = "";*/
+
 		return newDef;
 	}
-} // of class AutoAmbientSoundDefinition {
+} // of class AutoAmbientSoundDefinition {}
 
 
-class AutoAmbientGroupCache {
+/*class AutoAmbientGroupCache {
 	TextureID texture;
 	Array<AutoAmbientGroup> groups;
 	uint frequency;
 } // of class AutoAmbientGroupCache {
+*/
 
-class AutoAmbientTextureDefinition {
-	TextureID id;
+class AutoAmbientTextureParameter {
 	vector2 start, offset, spreading;
-	vector2 size;
+	double chance;
 
-	static AutoAmbientTextureDefinition Create( TextureID texID, vector2 initStartOffset, vector2 initOffset, vector2 initSpreading ) {
-		AutoAmbientTextureDefinition newDef = new( 'AutoAmbientTextureDefinition' );
+	static AutoAmbientTextureParameter Create( vector2 initStartOffset, vector2 initOffset, vector2 initSpreading, double initChance ) {
+		AutoAmbientTextureParameter newDef = new( 'AutoAmbientTextureParameter' );
 
-		newDef.id = texID;
 		newDef.start = initStartOffset;
 		newDef.offset = initOffset;
 		newDef.spreading = initSpreading;
-		newDef.size = TexMan.GetScaledSize( texID );
+		newDef.chance = ( initChance >= 0.0 && initChance <= 1.0 )? initChance : 1.0;
 
 		return newDef;
 	}
-} // of class AutoAmbientTextureDefinition {
+} // of class AutoAmbientTextureParameter {}
 
+
+// It's not in a play scope really!!!
+class AutoAmbientTexture play {
+	TextureID id;
+	vector2 size; // Texture precalculated size.
+
+	Array<AutoAmbientGroup> groups;
+	Array<AutoAmbientTextureParameter> groupparams;
+
+	EAutoAmbientActionlineCheck actionlineCheck;
+	EAutoAmbientSamelineCheck samelineCheck;
+
+
+	static AutoAmbientTexture Create( String textureName ) {
+		AutoAmbientTexture newTex = NULL;
+		TextureID addeeTexID = TexMan.CheckForTexture( textureName, TexMan.Type_Wall );
+
+		if ( addeeTexID ) {
+			newTex = new( 'AutoAmbientTexture' );
+
+			newTex.id = addeeTexID;
+			newTex.size = TexMan.GetScaledSize( addeeTexID );
+		}
+
+		return newTex;
+	}
+
+	/*void AddClassParam( class<Actor> posclass, AutoAmbientTextureParameter param ) {
+		actors.Push( posclass );
+		actorsparam.Push( param );
+	}
+
+	void AddSoundactorParam( AutoAmbientSoundDefinition posclass, AutoAmbientTextureParameter param ) {
+		soundactors.Push( AutoAmbientSoundDefinition( posclass ) );
+		soundactorsparam.Push( param );
+	}
+
+	void AddLoopedsoundParam( Sound snd, AutoAmbientTextureParameter param ) {
+		soundactors.Push( AutoAmbientSoundDefinition.Create( snd, AASM_Looped, 1.0, 1.0, 0, 0 ) );
+		soundactorsparam.Push( param );
+	}
+
+
+	void AddClass( class<Actor> posclass, vector2 xy ) {
+		AddClassParam( posclass, AutoAmbientTextureParameter.Create( xy, ( -50, -50 ), ( 0, 0 ), 1.0 ) );
+	}
+
+	void AddSoundactor( AutoAmbientSoundDefinition posclass, vector2 xy ) {
+		AddSoundactorParam( posclass, AutoAmbientTextureParameter.Create( xy, ( -50, -50 ), ( 0, 0 ), 1.0 ) );
+	}
+
+	void AddLoopedsound( Sound snd, vector2 xy ) {
+		AddLoopedsoundParam( snd, AutoAmbientTextureParameter.Create( xy, ( -50, -50 ), ( 0, 0 ), 1.0 ) );
+	}*/
+
+	void AddGroupParam( AutoAmbientGroup group, AutoAmbientTextureParameter param ) {
+		if ( group )
+			groups.Push( group );
+
+		if ( param ) {
+			// By default start point is in the centre of the texture and 
+			//offset is a one texture size (for both X and Y):
+			if ( param.start.x < 0.0 )
+				param.start.x = size.x / 2.0;
+			if ( param.start.y < 0.0 )
+				param.start.y = size.y / 2.0;
+
+			if ( param.offset.x < 0.0 )
+				param.offset.x = size.x;
+			if ( param.offset.y < 0.0 )
+				param.offset.y = size.y;
+
+			if ( param.spreading.y < 0.0 )
+				param.spreading.y = param.spreading.x;
+
+			groupparams.Push( param );
+		}
+	} // of void AddGroupParam( AutoAmbientGroup group, AutoAmbientTextureParameter param ) {}
+
+	void AddGroup( AutoAmbientGroup group, vector2 xy = ( -50.0, -50.0 ) ) {
+		AddGroupParam( group, AutoAmbientTextureParameter.Create( xy, ( -50, -50 ), ( 0, 0 ), 1.0 ) );
+	}
+
+	bool Validate( void ) {
+		return ( id && size.Length() && groups.Size() && groups.Size() == groupparams.Size() );
+	}
+
+	// Temporary, extremely ugly solution.
+	void CallGroupSpawn( Side attachSide, int sidePos ) {
+		for ( int i = 0; i < groups.Size(); i++ )
+			groups[ i ].SpawnActor( attachSide, sidePos, self, i );
+	}
+
+} // of class AutoAmbientTexture {}
