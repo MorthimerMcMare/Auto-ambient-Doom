@@ -9,7 +9,7 @@ class AutoAmbientGroup play {
 	//AutoAmbientTexture cachedTextureDefinition;
 	//Array<AutoAmbientTextureDefinition> textures;
 
-	Array<Actor> spawned; // All spawned auto actors for this group.
+	Array<Actor> spawned; // All spawned on the level auto actors for this group.
 
 	static AutoAmbientGroup Create( String groupname, double dist ) {
 		AutoAmbientGroup newGroup = new( 'AutoAmbientGroup' );
@@ -41,6 +41,10 @@ class AutoAmbientGroup play {
 		return AddAutoSoundClass( snd, AASM_Looped );
 	}
 
+
+	void ClearSpawned( void ) {
+		spawned.Clear();
+	}
 
 	// Right now I'm too lazy to copy-paste code with refactoring identifiers
 	//to the AutoAmbientTexture.

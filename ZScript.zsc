@@ -22,7 +22,7 @@ enum EAutoAmbientActionlineCheck {
 };
 
 
-class AutoAmbientHandler: EventHandler {
+class AutoAmbientHandler: StaticEventHandler {
 	const AutoAmbientHandlerOrder = 0x7FAA0003;
 
 	Array<AutoAmbientTexture> textures;
@@ -31,14 +31,14 @@ class AutoAmbientHandler: EventHandler {
 
 	// Temporary methods, just for convenience.
 	int lastGroupIndex;
-	void AddGroupToTexture( AutoAmbientTexture tex, uint groupIndex, vector2 gpos = ( -1.0, -1.0 ), vector2 gofspos = ( -1.0, -1.0 ) ) {
-		AutoAmbientTextureParameter newtexparam = AutoAmbientTextureParameter.Create( gpos, gofspos, ( 0.0, 0.0 ), 1.0 );
+	void AddGroupToTexture( AutoAmbientTexture tex, uint groupIndex, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
+		AutoAmbientTextureParameter newtexparam = AutoAmbientTextureParameter.Create( start, offset, rnd, 1.0 );
 		tex.AddGroupParam( groups[ groupIndex ], newtexparam );
 	}
 
-	AutoAmbientTexture AddTexture( Name textureName, vector2 gpos = ( -1.0, -1.0 ), vector2 gofspos = ( -1.0, -1.0 ) ) {
+	AutoAmbientTexture AddTexture( Name textureName, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
 		AutoAmbientTexture newtex = AutoAmbientTexture.Create( textureName );
-		AddGroupToTexture( newtex, lastGroupIndex, gpos, gofspos );
+		AddGroupToTexture( newtex, lastGroupIndex, start, offset, rnd );
 		uint lastpos = textures.Push( newtex );
 		return textures[ lastpos ];
 	}
@@ -72,57 +72,41 @@ class AutoAmbientHandler: EventHandler {
 		AddTexture( "SW2PIPE" );
 		AddTexture( "TEKGREN4" );
 
-		/*groups.Push( AutoAmbientGroup.Create( "Comp", 128, 32 ) );
-		groups[ 0 ].AddAutoSoundClass( "AA/Computers/Beep", AASM_Fixed, 0.4, 5.0, 35 );
-		groups[ 0 ].AddAutoSoundClass( "AA/Computers/Boop", AASM_Fixed, 0.4, 5.0, 35 );
-		groups[ 0 ].AddTexture( "COMPSTA1" );
-		groups[ 0 ].AddTexture( "COMPSTA2" );
-		groups[ 0 ].AddTexture( "COMPTALL", start: ( 32.0, 64.0 ), offset: ( 96.0, 0.0 ) );
-		groups[ 0 ].AddTexture( "SILVER3" );
-		groups[ 0 ].AddTexture( "SPACEW3", rnd: ( 0.0, 24.0 ) );
+		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "Comp", 128 ) );
+		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Computers/Beep", AASM_Fixed, 0.4, 5.0, 35 );
+		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Computers/Boop", AASM_Fixed, 0.4, 5.0, 35 );
+		AddTexture( "COMPSTA1" );
+		AddTexture( "COMPSTA2" );
+		AddTexture( "COMPTALL", start: ( 32.0, 64.0 ), offset: ( 96.0, 0.0 ) );
+		AddTexture( "SILVER3" );
+		AddTexture( "SPACEW3", rnd: ( 0.0, 24.0 ) );
 		//groups[ 0 ].AddClass( "AutoAmbientActor_Comp" );
 
-		groups.Push( AutoAmbientGroup.Create( "Pipe", 256, 0 ) );
-		groups[ 1 ].AddAutoSoundClass( "AA/Pipes", vol: 0.4, attn: 4 );
-		groups[ 1 ].AddTexture( "BROWNPIP" );
-		groups[ 1 ].AddTexture( "METAL4" );
-		groups[ 1 ].AddTexture( "PIPE2" );
-		groups[ 1 ].AddTexture( "PIPE6" );
-		groups[ 1 ].AddTexture( "PIPEWAL1" );
-		groups[ 1 ].AddTexture( "PIPES" );
-		groups[ 1 ].AddTexture( "SW1PIPE" );
-		groups[ 1 ].AddTexture( "SW2PIPE" );
-		groups[ 1 ].AddTexture( "TEKGREN4" );
-		groups[ 1 ].AddTexture( "ZZZFACE5" );
-		groups[ 1 ].AddTexture( "ZZZFACE7" );
-		groups[ 1 ].AddTexture( "ZZZFACE8" );
+		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "Tech", 192 ) );
+		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Tech", vol: 0.6, attn: 3.5 );
+		AddTexture( "CEMENT2" );
+		AddTexture( "CEMENT4" );
+		AddTexture( "ICKWALL4" );
+		AddTexture( "SW1COMP" );
+		AddTexture( "SW2COMP" );
+		AddTexture( "COMPTALL" );
+		AddTexture( "COMPWERD" );
+		AddTexture( "TEKGREN1" );
+		AddTexture( "TEKWALL1" );
+		AddTexture( "TEKWALL4" );
+		AddTexture( "TEKWALL6" );
+		AddTexture( "ZZZFACE6" );
 
-		groups.Push( AutoAmbientGroup.Create( "Tech", 192, 24 ) );
-		groups[ 2 ].AddAutoSoundClass( "AA/Tech", vol: 0.6, attn: 3.5 );
-		groups[ 2 ].AddTexture( "CEMENT2" );
-		groups[ 2 ].AddTexture( "CEMENT4" );
-		groups[ 2 ].AddTexture( "ICKWALL4" );
-		groups[ 2 ].AddTexture( "SW1COMP" );
-		groups[ 2 ].AddTexture( "SW2COMP" );
-		groups[ 2 ].AddTexture( "COMPTALL" );
-		groups[ 2 ].AddTexture( "COMPWERD" );
-		groups[ 2 ].AddTexture( "TEKGREN1" );
-		groups[ 2 ].AddTexture( "TEKWALL1" );
-		groups[ 2 ].AddTexture( "TEKWALL4" );
-		groups[ 2 ].AddTexture( "TEKWALL6" );
-		groups[ 2 ].AddTexture( "ZZZFACE6" );
-
-		groups.Push( AutoAmbientGroup.Create( "BloodPipe", 128, 0 ) );
-		groups[ 3 ].AddAutoSoundClass( "AA/BloodPipes", vol: 0.6, attn: 4.2 );
-		groups[ 3 ].AddTexture( "BLODRIP1" );
-		groups[ 3 ].AddTexture( "BLODRIP2" );
-		groups[ 3 ].AddTexture( "BLODRIP3" );
-		groups[ 3 ].AddTexture( "BLODRIP4" );
-		groups[ 3 ].AddTexture( "PIPE1" );
-		groups[ 3 ].AddTexture( "SK_LEFT" );
-		groups[ 3 ].AddTexture( "SK_RIGHT" );
-		groups[ 3 ].AddTexture( "SLOPPY2" );
-		*/
+		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "BloodPipe", 128 ) );
+		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/BloodPipes", vol: 0.6, attn: 4.2 );
+		AddTexture( "BLODRIP1" );
+		AddTexture( "BLODRIP2" );
+		AddTexture( "BLODRIP3" );
+		AddTexture( "BLODRIP4" );
+		AddTexture( "PIPE1" );
+		AddTexture( "SK_LEFT" );
+		AddTexture( "SK_RIGHT" );
+		AddTexture( "SLOPPY2" );
 
 		console.printf( GetClassName() .. "::OnRegister(). Reloading configuration done." );
 		Super.OnRegister();
@@ -139,8 +123,14 @@ class AutoAmbientHandler: EventHandler {
 			return;
 		}
 
+		// Static event handler may save information through levels.
+		for ( int i = 0; i < groups.Size(); i++ )
+			groups[ i ].ClearSpawned();
 
-		// A-a-argh! Five nested "for" cycles in worst case!..
+
+		// A-a-argh! Seven nested "for" cycles in worst case!..
+		//(Alright, it's non-exponential dependence, most of them has from one 
+		//to three iterations).
 		for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {
 			Side l = level.Sides[ curSideIndex ];
 
@@ -197,8 +187,8 @@ class AutoAmbientHandler: EventHandler {
 					for ( int j = 0; j < textures.Size(); j++ ) {
 						if ( textures[ j ].id == texID ) {
 							// Chain call to groups linked to the texture:
-							for ( int i = 0; i < groups.Size(); i++ )
-								groups[ i ].SpawnActor( l, curSidePos, textures[ j ], i );
+							for ( int i = 0; i < textures[ j ].groups.Size(); i++ )
+								textures[ j ].groups[ i ].SpawnActor( l, curSidePos, textures[ j ], i );
 
 							break;
 						}

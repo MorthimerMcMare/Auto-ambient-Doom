@@ -94,9 +94,9 @@ class AutoAmbientTexture {
 			if ( param.start.y < 0.0 )
 				param.start.y = size.y / 2.0;
 
-			if ( param.offset.x < 0.0 )
+			if ( param.offset.x <= 0.0 )
 				param.offset.x = size.x;
-			if ( param.offset.y < 0.0 )
+			if ( param.offset.y <= 0.0 )
 				param.offset.y = size.y;
 
 			if ( param.spreading.y < 0.0 )
