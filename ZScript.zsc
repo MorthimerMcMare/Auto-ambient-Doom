@@ -29,14 +29,15 @@ class AutoAmbientHandler: EventHandler {
 	//Array<AutoAmbientGroupCache> groupcache; // Just a list which must be ordered by use frequency.
 
 	// Temporary methods, just for convenience.
-	void AddGroupToTexture( AutoAmbientTexture tex, AutoAmbientGroup group, vector2 gpos = ( -1.0, -1.0 ), vector2 gofspos = ( -1.0, -1.0 ) ) {
+	int lastGroupIndex;
+	void AddGroupToTexture( AutoAmbientTexture tex, uint groupIndex, vector2 gpos = ( -1.0, -1.0 ), vector2 gofspos = ( -1.0, -1.0 ) ) {
 		AutoAmbientTextureParameter newtexparam = AutoAmbientTextureParameter.Create( gpos, gofspos, ( 0.0, 0.0 ), 1.0 );
-		tex.AddGroupParam( group, newtexparam );
+		tex.AddGroupParam( groups[ groupIndex ], newtexparam );
 	}
 
-	AutoAmbientTexture AddTexture( Name textureName, AutoAmbientGroup group, vector2 gpos = ( -1.0, -1.0 ), vector2 gofspos = ( -1.0, -1.0 ) ) {
+	AutoAmbientTexture AddTexture( Name textureName, vector2 gpos = ( -1.0, -1.0 ), vector2 gofspos = ( -1.0, -1.0 ) ) {
 		AutoAmbientTexture newtex = AutoAmbientTexture.Create( textureName );
-		AddGroupToTexture( newtex, group, gpos, gofspos );
+		AddGroupToTexture( newtex, lastGroupIndex, gpos, gofspos );
 		uint lastpos = textures.Push( newtex );
 		return textures[ lastpos ];
 	}
@@ -53,25 +54,22 @@ class AutoAmbientHandler: EventHandler {
 	override void OnRegister() {
 		SetOrder( AutoAmbientHandlerOrder );
 
+		lastGroupIndex = -1;
 		groups.Clear(); 
 		//groupcache.Clear();
 		textures.Clear();
 
-		groups.Push( AutoAmbientGroup.Create( "Pipe", 256 ) );
-		console.printf( "2" );
-		groups[ 0 ].AddAutoSoundClass( "AA/Pipes", vol: 0.4, attn: 4 );
-		console.printf( "3" );
-		AddTexture( "BROWNPIP", groups[ 0 ] );
-		console.printf( "4" );
-		AddTexture( "METAL4", groups[ 0 ] );
-		AddTexture( "PIPE2", groups[ 0 ] );
-		AddTexture( "PIPE6", groups[ 0 ] );
-		AddTexture( "PIPEWAL1", groups[ 0 ] );
-		AddTexture( "PIPES", groups[ 0 ] );
-		AddTexture( "SW1PIPE", groups[ 0 ] );
-		AddTexture( "SW2PIPE", groups[ 0 ] );
-		AddTexture( "TEKGREN4", groups[ 0 ] );
-		console.printf( "max" );
+		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "Pipe", 256 ) );
+		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Pipes", vol: 0.4, attn: 4 );
+		AddTexture( "BROWNPIP" );
+		AddTexture( "METAL4" );
+		AddTexture( "PIPE2" );
+		AddTexture( "PIPE6" );
+		AddTexture( "PIPEWAL1" );
+		AddTexture( "PIPES" );
+		AddTexture( "SW1PIPE" );
+		AddTexture( "SW2PIPE" );
+		AddTexture( "TEKGREN4" );
 
 		/*groups.Push( AutoAmbientGroup.Create( "Comp", 128, 32 ) );
 		groups[ 0 ].AddAutoSoundClass( "AA/Computers/Beep", AASM_Fixed, 0.4, 5.0, 35 );
@@ -193,10 +191,13 @@ class AutoAmbientHandler: EventHandler {
 						texCache.groups[ j ].SpawnActor( l, curSidePos );
 					}*/
 
-					// Temporary, extremely ugly solution.
+					// Here must be a use frequency list, really.
 					for ( int j = 0; j < textures.Size(); j++ ) {
 						if ( textures[ j ].id == texID ) {
-							textures[ j ].CallGroupSpawn( l, curSidePos );
+							// Chain call to groups linked to the texture:
+							for ( int i = 0; i < groups.Size(); i++ )
+								groups[ i ].SpawnActor( l, curSidePos, textures[ j ], i );
+
 							break;
 						}
 					}

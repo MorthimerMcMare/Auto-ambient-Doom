@@ -56,10 +56,11 @@ class AutoAmbientTextureParameter {
 } // of class AutoAmbientTextureParameter {}
 
 
-// It's not in a play scope really!!!
-class AutoAmbientTexture play {
+class AutoAmbientTexture {
 	TextureID id;
 	vector2 size; // Texture precalculated size.
+
+	bool invalidFlag;
 
 	Array<AutoAmbientGroup> groups;
 	Array<AutoAmbientTextureParameter> groupparams;
@@ -77,46 +78,17 @@ class AutoAmbientTexture play {
 
 			newTex.id = addeeTexID;
 			newTex.size = TexMan.GetScaledSize( addeeTexID );
+			newTex.invalidFlag = false;
 		}
 
 		return newTex;
-	}
-
-	/*void AddClassParam( class<Actor> posclass, AutoAmbientTextureParameter param ) {
-		actors.Push( posclass );
-		actorsparam.Push( param );
-	}
-
-	void AddSoundactorParam( AutoAmbientSoundDefinition posclass, AutoAmbientTextureParameter param ) {
-		soundactors.Push( AutoAmbientSoundDefinition( posclass ) );
-		soundactorsparam.Push( param );
-	}
-
-	void AddLoopedsoundParam( Sound snd, AutoAmbientTextureParameter param ) {
-		soundactors.Push( AutoAmbientSoundDefinition.Create( snd, AASM_Looped, 1.0, 1.0, 0, 0 ) );
-		soundactorsparam.Push( param );
-	}
-
-
-	void AddClass( class<Actor> posclass, vector2 xy ) {
-		AddClassParam( posclass, AutoAmbientTextureParameter.Create( xy, ( -50, -50 ), ( 0, 0 ), 1.0 ) );
-	}
-
-	void AddSoundactor( AutoAmbientSoundDefinition posclass, vector2 xy ) {
-		AddSoundactorParam( posclass, AutoAmbientTextureParameter.Create( xy, ( -50, -50 ), ( 0, 0 ), 1.0 ) );
-	}
-
-	void AddLoopedsound( Sound snd, vector2 xy ) {
-		AddLoopedsoundParam( snd, AutoAmbientTextureParameter.Create( xy, ( -50, -50 ), ( 0, 0 ), 1.0 ) );
-	}*/
+	} // of static AutoAmbientTexture Create( String textureName ) {}
 
 	void AddGroupParam( AutoAmbientGroup group, AutoAmbientTextureParameter param ) {
-		if ( group )
+		if ( group && param ) {
 			groups.Push( group );
+			groupparams.Push( param );
 
-		if ( param ) {
-			// By default start point is in the centre of the texture and 
-			//offset is a one texture size (for both X and Y):
 			if ( param.start.x < 0.0 )
 				param.start.x = size.x / 2.0;
 			if ( param.start.y < 0.0 )
@@ -129,23 +101,18 @@ class AutoAmbientTexture play {
 
 			if ( param.spreading.y < 0.0 )
 				param.spreading.y = param.spreading.x;
-
-			groupparams.Push( param );
+		} else {
+			invalidFlag = true;
 		}
 	} // of void AddGroupParam( AutoAmbientGroup group, AutoAmbientTextureParameter param ) {}
 
+	// By default start point is in the centre of the texture and 
+	//offset is a one texture size (for both X and Y):
 	void AddGroup( AutoAmbientGroup group, vector2 xy = ( -50.0, -50.0 ) ) {
 		AddGroupParam( group, AutoAmbientTextureParameter.Create( xy, ( -50, -50 ), ( 0, 0 ), 1.0 ) );
 	}
 
 	bool Validate( void ) {
-		return ( id && size.Length() && groups.Size() && groups.Size() == groupparams.Size() );
+		return ( id && size.Length() && groups.Size() && !invalidFlag );
 	}
-
-	// Temporary, extremely ugly solution.
-	void CallGroupSpawn( Side attachSide, int sidePos ) {
-		for ( int i = 0; i < groups.Size(); i++ )
-			groups[ i ].SpawnActor( attachSide, sidePos, self, i );
-	}
-
 } // of class AutoAmbientTexture {}
