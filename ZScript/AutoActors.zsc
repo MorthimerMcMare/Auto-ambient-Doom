@@ -74,6 +74,7 @@ class AutoAmbientGroup play {
 		Side oppositeSide = ( attachLine.sidedef[ 0 ] == attachSide )? attachLine.sidedef[ 1 ] : attachLine.sidedef[ 0 ];
 		double lineWidth = attachLine.delta.Length();
 		double lineHeight = 0;
+		double firstPointFloorZOffset = 0.0;
 
 		// [A]ttach/[O]pposite side, [F]loor/[C]eiling heights:
 		double af = attachSide.sector.floorplane.d * attachSide.sector.floorplane.negiC;
@@ -91,6 +92,8 @@ class AutoAmbientGroup play {
 					lineHeight = max( 0, ac - oc );
 					if ( lineHeight > 0 )
 						lineHeight = min( lineHeight, ac - af );
+
+					firstPointFloorZOffset = oc - af;
 				}
 				break;
 			case Side.mid:
@@ -110,7 +113,7 @@ class AutoAmbientGroup play {
 				break;
 		} // of switch ( sidePos ) {
 
-		//console.printf( name .. "/\"" ..  TexMan.GetName( texdef.id ) .. "\". lineHeight: " .. lineHeight );
+		//console.printf( name .. ". \"" ..  TexMan.GetName( texdef.id ) .. "\" at" .. sidePos .. ". lineHeight: " .. lineHeight );
 
 		if ( lineHeight <= 0 && !( attachLine.special && texdef.actionlineCheck == AAAC_AlsoZeroHeight ) )
 			return; // There's no point in creating an actor if the texture is not visible.
@@ -124,7 +127,7 @@ class AutoAmbientGroup play {
 		vector3 firstPoint = ( // From bottom-left.
 				attachLine.v1.p.x,
 				attachLine.v1.p.y,
-				af
+				af + firstPointFloorZOffset
 		);
 
 		uint classesArraySize = classes.Size();

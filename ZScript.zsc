@@ -21,6 +21,7 @@ enum EAutoAmbientActionlineCheck {
 	AAAC_AlsoZeroHeight
 };
 
+
 class AutoAmbientHandler: EventHandler {
 	const AutoAmbientHandlerOrder = 0x7FAA0003;
 
@@ -123,6 +124,7 @@ class AutoAmbientHandler: EventHandler {
 		groups[ 3 ].AddTexture( "SLOPPY2" );
 		*/
 
+		console.printf( GetClassName() .. "::OnRegister(). Reloading configuration done." );
 		Super.OnRegister();
 	}
 
