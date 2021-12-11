@@ -27,18 +27,18 @@ class AutoAmbientHandler: StaticEventHandler {
 
 	Array<AutoAmbientTexture> textures;
 	Array<AutoAmbientGroup> groups;
-	//Array<AutoAmbientGroupCache> groupcache; // Just a list which must be ordered by use frequency.
+	Array<AutoAmbientCacheTexture> texcache; // Just a list which must be ordered by use frequency.
 
 	// Temporary methods, just for convenience.
 	int lastGroupIndex;
-	void AddGroupToTexture( AutoAmbientTexture tex, uint groupIndex, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
+	void AddExtraGroupToTexture( AutoAmbientTexture tex, uint groupIndex, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
 		AutoAmbientTextureParameter newtexparam = AutoAmbientTextureParameter.Create( start, offset, rnd, 1.0 );
 		tex.AddGroupParam( groups[ groupIndex ], newtexparam );
 	}
 
 	AutoAmbientTexture AddTexture( Name textureName, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
 		AutoAmbientTexture newtex = AutoAmbientTexture.Create( textureName );
-		AddGroupToTexture( newtex, lastGroupIndex, start, offset, rnd );
+		AddExtraGroupToTexture( newtex, lastGroupIndex, start, offset, rnd );
 		uint lastpos = textures.Push( newtex );
 		return textures[ lastpos ];
 	}
@@ -51,17 +51,18 @@ class AutoAmbientHandler: StaticEventHandler {
 		return NULL;
 	}
 
+
 	// Configuration (in future a file parser):
 	override void OnRegister() {
 		SetOrder( AutoAmbientHandlerOrder );
 
 		lastGroupIndex = -1;
-		groups.Clear(); 
-		//groupcache.Clear();
 		textures.Clear();
+		groups.Clear(); 
+		texcache.Clear();
 
 		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "Pipe", 256 ) );
-		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Pipes", vol: 0.4, attn: 4 );
+		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Pipes", vol: 0.4, attn: 4.5 );
 		AddTexture( "BROWNPIP" );
 		AddTexture( "METAL4" );
 		AddTexture( "PIPE2" );
@@ -79,11 +80,11 @@ class AutoAmbientHandler: StaticEventHandler {
 		AddTexture( "COMPSTA2" );
 		AddTexture( "COMPTALL", start: ( 32.0, 64.0 ), offset: ( 96.0, 0.0 ) );
 		AddTexture( "SILVER3" );
-		AddTexture( "SPACEW3", rnd: ( 0.0, 24.0 ) );
+		AddTexture( "SPACEW3", ( 32.0, 32.0 ), ( 64.0, 64.0 ), ( 0.0, 24.0 ) );
 		//groups[ 0 ].AddClass( "AutoAmbientActor_Comp" );
 
 		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "Tech", 192 ) );
-		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Tech", vol: 0.6, attn: 3.5 );
+		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Tech", vol: 0.7, attn: 3.5 );
 		AddTexture( "CEMENT2" );
 		AddTexture( "CEMENT4" );
 		AddTexture( "ICKWALL4" );
@@ -97,7 +98,7 @@ class AutoAmbientHandler: StaticEventHandler {
 		AddTexture( "TEKWALL6" );
 		AddTexture( "ZZZFACE6" );
 
-		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "BloodPipe", 128 ) );
+		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "BloodPipe", 96 ) );
 		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/BloodPipes", vol: 0.6, attn: 4.2 );
 		AddTexture( "BLODRIP1" );
 		AddTexture( "BLODRIP2" );
@@ -139,13 +140,15 @@ class AutoAmbientHandler: StaticEventHandler {
 
 				if ( texID ) {
 					//console.printf( "Texture \"" .. TexMan.GetName( texID ) .. "\"." );
-					//AutoAmbientGroupCache texCache = NULL;
+					AutoAmbientCacheTexture cachedTexture = NULL;
+
+					// Here must be a use frequency list, really.
 
 					// Attempt to find texture in cache array:
-					/*for ( int j = 0; j < groupcache.Size(); j++ ) {
-						if ( groupcache[ j ].texture == texID ) {
-							texCache = groupcache[ j ];
-							groupcache[ j ].frequency++;
+					for ( int j = 0; j < texcache.Size(); j++ ) {
+						if ( texcache[ j ].texID == texID ) {
+							cachedTexture = texcache[ j ];
+							texcache[ j ].frequency++;
 
 							// Ordering by use frequency:
 							/*if ( j > 0 && groupcache[ j ].frequency > groupcache[ j - 1 ].frequency ) {
@@ -154,57 +157,46 @@ class AutoAmbientHandler: StaticEventHandler {
 								//elements ("2, 1, 1, 2" -> "2, 1, 2, 1").
 								groupcache.Insert( j - 1, groupcache[ j ] );
 								groupcache.Delete( j + 1, 1 );
-							} * /
+							} */
 							break;
 						}
-					} // of for ( int j = 0; j < groupcache.Size(); j++ ) {
+					} // of for ( int j = 0; j < groupcache.Size(); j++ ) {}
 
 					// Creating new texture cache if necessary:
-					if ( !texCache ) {
-						texCache = new( 'AutoAmbientGroupCache' );
-						texCache.texture = texID;
-						texCache.frequency = 1;
+					if ( !cachedTexture ) {
+						cachedTexture = new( 'AutoAmbientCacheTexture' );
+						cachedTexture.texID = texID;
+						cachedTexture.frequency = 1;
+						cachedTexture.texdef = NULL; // Texture may has no defined ambient actors.
 
-						// Different groups may handle one texture.
-						for ( int j = 0; j < groups.Size(); j++ ) {
-							if ( groups[ j ].IsTextureInGroup( texID ) )
-								texCache.groups.Push( groups[ j ] );
-						}
+						for ( int j = 0; j < textures.Size(); j++ )
+							if ( textures[ j ].id == texID ) {
+								cachedTexture.texdef = textures[ j ];
+								break;
+							}
 
-						groupcache.Push( texCache );
+						texcache.Push( cachedTexture );
 					}
 
 					// Spawning actor(s) according to the cached groups:
-					for ( int j = 0; j < texCache.groups.Size(); j++ ) {
-						//vector2 newActorXY = ( l.linedef.v1.p + l.linedef.v2.p ) / 2;
-						//vector3 newActorPos = ( newActorXY.x, newActorXY.y, ( l.sector.ceilingplane.d - l.sector.floorplane.d ) / 2 );
-						//texCache.groups[ j ].SpawnActor( newActorPos );
+					AutoAmbientTexture curtexdef = cachedTexture.texdef;
 
-						texCache.groups[ j ].SpawnActor( l, curSidePos );
-					}*/
-
-					// Here must be a use frequency list, really.
-					for ( int j = 0; j < textures.Size(); j++ ) {
-						if ( textures[ j ].id == texID ) {
-							// Chain call to groups linked to the texture:
-							for ( int i = 0; i < textures[ j ].groups.Size(); i++ )
-								textures[ j ].groups[ i ].SpawnActor( l, curSidePos, textures[ j ], i );
-
-							break;
-						}
+					if ( curtexdef ) {
+						for ( int j = 0; j < curtexdef.groups.Size(); j++ )
+							curtexdef.groups[ j ].SpawnActor( l, curSidePos, curtexdef, j );
 					}
 
-				} // of if ( texID ) {
+				} // of if ( texID ) {}
 
-			} // of for ( int i = 0; i < 2; i++ ) {
+			} // of for ( int curSidePos = 0; curSidePos < 2; curSidePos++ ) {}
 
-		} // of for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {
+		} // of for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {}
 
 
 		Super.WorldLoaded( e );
-	} // of override void WorldLoaded( WorldEvent e ) {
+	} // of override void WorldLoaded( WorldEvent e ) {}
 
-} // of class AmbientHandler: EventHandler {
+} // of class AmbientHandler: EventHandler {}
 
 
 /*class AutoAmbientActor_Comp: Actor {

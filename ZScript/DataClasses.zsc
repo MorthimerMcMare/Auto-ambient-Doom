@@ -32,12 +32,11 @@ class AutoAmbientSoundDefinition {
 } // of class AutoAmbientSoundDefinition {}
 
 
-/*class AutoAmbientGroupCache {
-	TextureID texture;
-	Array<AutoAmbientGroup> groups;
+class AutoAmbientCacheTexture {
+	TextureID texID;
+	AutoAmbientTexture texdef;
 	uint frequency;
-} // of class AutoAmbientGroupCache {
-*/
+} // of class AutoAmbientCacheTexture {}
 
 class AutoAmbientTextureParameter {
 	vector2 start, offset, spreading;
