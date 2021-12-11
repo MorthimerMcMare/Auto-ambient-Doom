@@ -10,15 +10,32 @@ enum EAutoAmbientSoundModes {
 };
 
 enum EAutoAmbientSamelineCheck {
-	AASC_On = 0,		// Default.
+	AASC_On,
 	AASC_Off,
-	AASC_Only
+	AASC_Only,
+
+	AASC_Default = AASC_On
 };
 
 enum EAutoAmbientActionlineCheck {
-	AAAC_Default = 0,
+	AAAC_Yes = 0,
 	AAAC_Ignore,
-	AAAC_AlsoZeroHeight
+	AAAC_AlsoZeroHeight,
+
+	AAAC_Default = AAAC_Yes
+};
+
+enum EAutoAmbientParserBlocks {
+	AAPB_Global = 0,
+	AAPB_Texture,
+	AAPB_TexParam,
+	AAPB_Group,
+	AAPB_Sound,
+
+	AAPB_TextureParam = AAPB_TexParam,
+	AAPB_TextureParameter = AAPB_TexParam,
+	AAPB_SoundActor = AAPB_Sound,
+	AAPB_SoundDef = AAPB_Sound
 };
 
 
@@ -32,7 +49,7 @@ class AutoAmbientHandler: StaticEventHandler {
 	// Temporary methods, just for convenience.
 	int lastGroupIndex;
 	void AddExtraGroupToTexture( AutoAmbientTexture tex, uint groupIndex, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
-		AutoAmbientTextureParameter newtexparam = AutoAmbientTextureParameter.Create( start, offset, rnd, 1.0 );
+		AutoAmbientTextureParameter newtexparam = AutoAmbientTextureParameter.Create( "temp", start, offset, rnd, 1.0 );
 		tex.AddGroupParam( groups[ groupIndex ], newtexparam );
 	}
 
@@ -54,44 +71,198 @@ class AutoAmbientHandler: StaticEventHandler {
 
 	String aaConfigFile;
 	int parserPos, aaConfigFileLength;
-	/*AutoAmbientTexture parserDefaultTexture;
-	AutoAmbientTextureParameter parserDefaultTextureParam;
-	AutoAmbientGroup parserDefaultGroup;
-	AutoAmbientSoundDefinition parserDefaultSound;*/
+
+	EAutoAmbientParserBlocks parserCurBlockType;
+
+	AutoAmbientTexture parserDefaultTexture, parserCurTexture;
+	AutoAmbientTextureParameter parserDefaultTextureParam, parserCurTextureParam;
+	AutoAmbientGroup parserDefaultGroup, parserCurGroup;
+	AutoAmbientSoundDefinition parserDefaultSound, parserCurSound;
 
 	String readNextWord( void ) {
 		String word = "";
-
-		bool quoted = false; // Phrase in "double quotes" parses as one word.
-
 		String curChar = aaConfigFile.CharAt( parserPos );
 
-		// Get rid of the empty symbols before some word:
-		while ( ( curChar == " " || curChar == "\t" || curChar == "\n" ) && parserPos < aaConfigFileLength )
-			curChar = aaConfigFile.CharAt( ++parserPos );
+		// Get rid of the empty symbols and comments before some meaningful word:
+		do {
+			// Comment skip ("\#.*\n"):
+			if ( curChar == "#" )
+				while ( parserPos < aaConfigFileLength && curChar.CharCodeAt( 0 ) != 10 )
+					curChar = aaConfigFile.CharAt( ++parserPos );
 
-		if ( aaConfigFile.CharAt( parserPos ) == '"' /* && parserPos < aaConfigFileLength */ ) {
-			quoted = true;
-			curChar = aaConfigFile.CharAt( ++parserPos );
-		}
+			// Empty chars skip ("[ \t\n]"):
+			while ( ( curChar == " " || curChar == "\t" || curChar == "\n" ) && parserPos < aaConfigFileLength )
+				curChar = aaConfigFile.CharAt( ++parserPos );
+		} while ( curChar == "#" && parserPos < aaConfigFileLength );
 
-		while ( parserPos < aaConfigFileLength && ( quoted || ( curChar != " " && curChar != "\t" && curChar.CharCodeAt( 0 ) != 10 ) ) ) {
-			//console.printf( "word \"" .. word .. "\", char[ " .. parserPos .. " ] = " .. curChar.CharCodeAt( 0 ) );
+		if ( parserPos < aaConfigFileLength ) {
+			bool quoted = false; // Phrase in "double quotes" is parsed as one word.
 
-			if ( quoted && curChar == '"' ) {
-				quoted ^= true;
-			} else {
-				word = word .. curChar;
+			if ( aaConfigFile.CharAt( parserPos ) == '"' ) {
+				quoted = true;
+				curChar = aaConfigFile.CharAt( ++parserPos );
 			}
 
-			curChar = aaConfigFile.CharAt( ++parserPos );
+			while ( parserPos < aaConfigFileLength && ( quoted || ( curChar != " " && curChar != "\t" && curChar.CharCodeAt( 0 ) != 10 ) ) ) {
+				//console.printf( "word \"" .. word .. "\", char[ " .. parserPos .. " ] = " .. curChar.CharCodeAt( 0 ) );
+
+				if ( quoted && curChar == '"' ) {
+					quoted ^= true;
+				} else {
+					word = word .. curChar;
+				}
+
+				curChar = aaConfigFile.CharAt( ++parserPos );
+			}
 		}
 
 		return word;
-	}
+	} // of String readNextWord( void ) {}
 
 
-	// Configuration (file parser):
+	bool ParseTextureBlock( String texname ) {
+		return true;
+	} // of bool ParseTextureBlock( String texname ) {}
+
+	bool ParseTextureParameterBlock( String paramname ) {
+		return true;
+	} // of bool ParseTextureParameterBlock( String paramname ) {}
+
+	bool ParseGroupBlock( String groupname ) {
+		return true;
+	} // of bool ParseGroupBlock( String groupname ) {}
+
+	bool ParseSoundActorBlock( String actorname ) {
+		return true;
+	} // of bool ParseSoundActorBlock( String actorname ) {}
+
+	bool ParseBlockHeader( void ) {
+		bool successfulParsing = true;
+
+		String identifier = readNextWord();
+		String curWord = "";
+
+		if ( readNextWord() == "{" ) { // '}' for the not clever colorer.
+			switch ( parserCurBlockType ) {
+				case AAPB_Texture:
+					if ( identifier == "default" ) {
+						parserCurTexture = parserDefaultTexture;
+					} else {
+						parserCurTexture = AutoAmbientTexture.Create( identifier );
+						parserCurTexture.actionlineCheck = parserDefaultTexture.actionlineCheck;
+						parserCurTexture.samelineCheck = parserDefaultTexture.samelineCheck;
+					}
+
+					while ( successfulParsing && ( curWord = readNextWord() ) != /*'{'*/ "}" )
+						successfulParsing = ParseTextureBlock( curWord );
+					break;
+				case AAPB_TextureParameter:
+					if ( identifier == "default" )
+						parserCurTextureParam = parserDefaultTextureParam;
+					else
+						parserCurTextureParam = AutoAmbientTextureParameter.Create( identifier, parserDefaultTextureParam.start, parserDefaultTextureParam.offset, parserDefaultTextureParam.spreading, parserDefaultTextureParam.chance );
+
+					while ( successfulParsing && ( curWord = readNextWord() ) != /*'{'*/ "}" )
+						successfulParsing = ParseTextureParameterBlock( curWord );
+					break;
+				case AAPB_Group:
+					if ( identifier == "default" )
+						parserCurGroup = parserDefaultGroup;
+					else
+						parserCurGroup = AutoAmbientGroup.Create( identifier, parserDefaultGroup.actorsDistance );
+
+					while ( successfulParsing && ( curWord = readNextWord() ) != /*'{'*/ "}" )
+						successfulParsing = ParseGroupBlock( curWord );
+					break;
+				case AAPB_SoundDef:
+					if ( identifier == "default" ) {
+						parserCurSound = parserDefaultSound;
+					} else {
+						parserCurSound = AutoAmbientSoundDefinition.Create( "null", 
+								parserDefaultSound.sndMode, parserDefaultSound.sndVolume, parserDefaultSound.sndAttenuation,
+								parserDefaultSound.minDelay, parserDefaultSound.maxDelay );
+					}
+
+					while ( successfulParsing && ( curWord = readNextWord() ) != /*'{'*/ "}" )
+						successfulParsing = ParseSoundActorBlock( curWord );
+					break;
+				case AAPB_Global:
+					console.printf( GetClassName() .. "::ParseBlockHeader(). Impossible parser block type \"Global\"." );
+					successfulParsing = false;
+					break;
+				default:
+					console.printf( GetClassName() .. "::ParseBlockHeader(). Unrecognized parser block type " .. parserCurBlockType .. "." );
+					successfulParsing = false;
+					break;
+			}
+		} else {
+			console.printf( GetClassName() .. "::ParseBlockHeader(). '{' after \"" .. identifier .. "\" expected." ); // '}' for the not clever colorer.
+			successfulParsing = false;
+		}
+
+		return successfulParsing;
+	} // of bool ParseBlockHeader( void ) {}
+
+	bool ParseGlobalScope( void ) {
+		bool successfulParsing = true;
+
+		String curWord = readNextWord();
+		//console.printf( GetClassName() .. "::ParseGlobalScope(). Parsed word \"" .. curWord .. "\"." );
+
+		if ( curWord == "include" ) {
+			ParseFile( readNextWord() );
+			parserCurBlockType = AAPB_Global;
+		} else if ( curWord == "texture" ) {
+			parserCurBlockType = AAPB_Texture;
+			ParseBlockHeader();
+		} else if ( curWord == "textureparam" ) {
+			parserCurBlockType = AAPB_TexParam;
+			ParseBlockHeader();
+		} else if ( curWord == "group" ) {
+			parserCurBlockType = AAPB_Group;
+			ParseBlockHeader();
+		} else if ( curWord == "soundactor" ) {
+			parserCurBlockType = AAPB_SoundDef;
+			ParseBlockHeader();
+		} else if ( curWord != "" ) {
+			console.printf( GetClassName() .. "::ParseGlobalScope(). Unknown keyword \"" .. curWord .. "\"" );
+			successfulParsing = false;
+		}
+
+		return successfulParsing;
+	} // of bool ParseGlobalScope( void ) {}
+
+
+	bool ParseFile( String filename ) {
+		bool successfulParsing = true;
+
+		int configFileHandler = Wads.FindLump( filename );
+
+		// "AAmbient.cfg" file unparsing:
+        if ( configFileHandler != -1 ) {
+			console.printf( GetClassName() .. "::ParseFile(). Parsing file \"" .. filename .. "\"." );
+			parserPos = 0;
+            aaConfigFile = Wads.ReadLump( configFileHandler );
+
+            aaConfigFile.ToLower();
+            aaConfigFile.Replace( "\r", "\n" ); // "dos2unix", "mac2unix"...
+			aaConfigFileLength = aaConfigFile.Length();
+
+			parserCurBlockType = AAPB_Global;
+
+			while ( parserPos < aaConfigFileLength && successfulParsing ) {
+				successfulParsing = ParseGlobalScope();
+			} // of while ( parserPos < aaConfigFileLength ) {}
+
+        } else {
+			console.printf( GetClassName() .. "::ParseFile(). Cannot find file \"" .. filename .. "\"." );
+			successfulParsing = false;
+		}
+
+		return successfulParsing;
+	} // of bool ParseFile( String filename ) {}
+
+	// Configuration init/file parser:
 	override void OnRegister() {
 		SetOrder( AutoAmbientHandlerOrder );
 
@@ -115,12 +286,12 @@ class AutoAmbientHandler: StaticEventHandler {
 		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "Comp", 128 ) );
 		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Computers/Beep", AASM_Fixed, 0.4, 5.0, 35 );
 		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Computers/Boop", AASM_Fixed, 0.4, 5.0, 35 );
+		//groups[ lastGroupIndex ].AddClass( "AutoAmbientActor_Comp" );
 		AddTexture( "COMPSTA1" );
 		AddTexture( "COMPSTA2" );
 		AddTexture( "COMPTALL", start: ( 32.0, 64.0 ), offset: ( 96.0, 0.0 ) );
 		AddTexture( "SILVER3" );
 		AddTexture( "SPACEW3", ( 32.0, 32.0 ), ( 64.0, 64.0 ), ( 0.0, 24.0 ) );
-		//groups[ 0 ].AddClass( "AutoAmbientActor_Comp" );
 
 		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "Tech", 192 ) );
 		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Tech", vol: 0.7, attn: 3.5 );
@@ -148,30 +319,22 @@ class AutoAmbientHandler: StaticEventHandler {
 		AddTexture( "SK_RIGHT" );
 		AddTexture( "SLOPPY2" );
 
+		parserDefaultTexture = new( 'AutoAmbientTexture' );
+		parserDefaultTexture.actionlineCheck = AAAC_Default;
+		parserDefaultTexture.samelineCheck = AASC_Default;
+		parserDefaultTextureParam = AutoAmbientTextureParameter.Create( "Default texture parameter", ( -50.0, -50.0 ), ( -100.0, -100.0 ), ( 0.0, 0.0 ), 1.0 );
+		parserDefaultGroup = AutoAmbientGroup.Create( "Default group", 256 );
+		parserDefaultSound = AutoAmbientSoundDefinition.Create( "Default sound definition", AASM_Looped, 1.0, 1.0, 35, 35 );
 
-        int autoAmbientConfigFileHandler = Wads.FindLump( "aambient.cfg" );
+		parserCurTexture = NULL;
+		parserCurTextureParam = NULL;
+		parserCurGroup = NULL;
+		parserCurSound = NULL;
 
-		// Rude "AAmbient.cfg" file unparsing:
-        if ( autoAmbientConfigFileHandler ) {
-			console.printf( "Unparsing started..." );
-			parserPos = 0;
-            aaConfigFile = Wads.ReadLump( autoAmbientConfigFileHandler );
-
-            aaConfigFile.ToLower();
-            aaConfigFile.Replace( "\r", "\n" ); // "dos2unix", "mac2unix"...
-			aaConfigFileLength = aaConfigFile.Length();
-
-			String curWord = "";
-
-			while ( parserPos < aaConfigFileLength ) {
-				curWord = readNextWord();
-				console.printf( GetClassName() .. "::OnRegister(). Parsed word \"" .. curWord .. "\"." );
-			}
-
+		if ( ParseFile( "aambient.cfg" ) )
 			console.printf( GetClassName() .. "::OnRegister(). Loading configuration done." );
-        } else {
-			console.printf( GetClassName() .. "::OnRegister(). Cannot find \"aambient.cfg\"." );
-		}
+		else
+			console.printf( GetClassName() .. "::OnRegister(). An error occured during configuration file parsing." );
 
 		Super.OnRegister();
 	}
@@ -184,6 +347,7 @@ class AutoAmbientHandler: StaticEventHandler {
 			console.printf( GetClassName() .. "::WorldLoaded(). ERROR: texture definition ID " .. invalidTexture.id .. " is not valid." );
 			console.printf( GetClassName() .. "::WorldLoaded(). Texture name: " .. TexMan.GetName( invalidTexture.id ) );
 			Super.WorldLoaded( e );
+
 			return;
 		}
 
