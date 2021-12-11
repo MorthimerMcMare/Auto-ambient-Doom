@@ -28,6 +28,13 @@ class AutoAmbientGroup play {
 		return !!cls;
 	} // of bool AddClass( class<Actor> cls ) {}
 
+	bool AddSoundClass( AutoAmbientSoundDefinition sndclass ) {
+		if ( sndclass )
+			autoclasses.Push( sndclass );
+
+		return !!sndclass;
+	}
+
 	bool AddAutoSoundClass( Sound snd, EAutoAmbientSoundModes mode = AASM_Looped, double vol = 1.0, double attn = 1.0, uint delay1 = 0, uint delay2 = 35 ) {
 		AutoAmbientSoundDefinition newclass = AutoAmbientSoundDefinition.Create( snd, mode, vol, attn, delay1, delay2 );
 
@@ -37,8 +44,8 @@ class AutoAmbientGroup play {
 		return !!newclass;
 	} // of bool AddAutoSoundClass( Sound snd, EAutoAmbientSoundModes mode = AASM_Looped, double vol = 1.0, double attn = 1.0, uint delay1 = 0, uint delay2 = 35 ) {}
 
-	bool AddAutoLoopedSound( Sound snd ) {
-		return AddAutoSoundClass( snd, AASM_Looped );
+	bool AddAutoLoopedSound( Sound snd, double vol = 1.0, double attn = 1.0 ) {
+		return AddAutoSoundClass( snd, mode: AASM_Looped, vol: vol, attn: attn );
 	}
 
 
@@ -185,7 +192,7 @@ class AutoAmbientGroup play {
 
 					if ( newActor ) {
 						spawned.Push( newActor );
-						console.printf( "Actor \"" .. newActor.GetClassName() .. "\" from group " .. name .. " spawned at " .. newActor.pos .. "." );
+						console.printf( "Actor \"" .. newActor.GetClassName() .. "\" from group " .. name .. " spawned at " .. newActor.pos .. " (texture \"" .. texID .. "\")." );
 					}
 				} // of if ( !grouplingTooClose ) {}
 
@@ -264,8 +271,10 @@ class AutoAmbientSoundActor: Actor {
 				break;
 			case AASM_Looped: // Light randomization.
 				if ( curDelay >= 0 ) {
-					if ( --curDelay < 0 )
+					if ( --curDelay < 0 ) {
+						//console.printf( "Looped sound " .. def.snd .. ", volume " .. def.sndVolume .. "." );
 						A_PlaySound( def.snd, CHAN_AUTO, def.sndVolume, true, def.sndAttenuation );
+					}
 				}
 				break;
 			default:

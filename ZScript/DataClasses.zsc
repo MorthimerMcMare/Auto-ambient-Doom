@@ -79,9 +79,9 @@ class AutoAmbientTexture {
 
 			newTex.id = addeeTexID;
 			newTex.size = TexMan.GetScaledSize( addeeTexID );
-			newTex.invalidFlag = false;
 			newTex.actionlineCheck = AAAC_Default;
 			newTex.samelineCheck = AASC_Default;
+			newTex.invalidFlag = false;
 		}
 
 		return newTex;
@@ -111,9 +111,9 @@ class AutoAmbientTexture {
 
 	// By default start point is in the centre of the texture and 
 	//offset is a one texture size (for both X and Y):
-	/*void AddGroup( AutoAmbientGroup group, vector2 xy = ( -50.0, -50.0 ) ) {
-		AddGroupParam( group, AutoAmbientTextureParameter.Create( xy, ( -50, -50 ), ( 0, 0 ), 1.0 ) );
-	}*/
+	void AddGroup( AutoAmbientGroup group, vector2 xy = ( -50.0, -50.0 ) ) {
+		AddGroupParam( group, AutoAmbientTextureParameter.Create( "__auto_texparam", xy, ( -50, -50 ), ( 0, 0 ), 1.0 ) );
+	}
 
 	bool Validate( void ) {
 		return ( id && size.Length() && groups.Size() && !invalidFlag );
