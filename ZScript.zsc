@@ -52,7 +52,46 @@ class AutoAmbientHandler: StaticEventHandler {
 	}
 
 
-	// Configuration (in future a file parser):
+	String aaConfigFile;
+	int parserPos, aaConfigFileLength;
+	/*AutoAmbientTexture parserDefaultTexture;
+	AutoAmbientTextureParameter parserDefaultTextureParam;
+	AutoAmbientGroup parserDefaultGroup;
+	AutoAmbientSoundDefinition parserDefaultSound;*/
+
+	String readNextWord( void ) {
+		String word = "";
+
+		bool quoted = false; // Phrase in "double quotes" parses as one word.
+
+		String curChar = aaConfigFile.CharAt( parserPos );
+
+		// Get rid of the empty symbols before some word:
+		while ( ( curChar == " " || curChar == "\t" || curChar == "\n" ) && parserPos < aaConfigFileLength )
+			curChar = aaConfigFile.CharAt( ++parserPos );
+
+		if ( aaConfigFile.CharAt( parserPos ) == '"' /* && parserPos < aaConfigFileLength */ ) {
+			quoted = true;
+			curChar = aaConfigFile.CharAt( ++parserPos );
+		}
+
+		while ( parserPos < aaConfigFileLength && ( quoted || ( curChar != " " && curChar != "\t" && curChar.CharCodeAt( 0 ) != 10 ) ) ) {
+			//console.printf( "word \"" .. word .. "\", char[ " .. parserPos .. " ] = " .. curChar.CharCodeAt( 0 ) );
+
+			if ( quoted && curChar == '"' ) {
+				quoted ^= true;
+			} else {
+				word = word .. curChar;
+			}
+
+			curChar = aaConfigFile.CharAt( ++parserPos );
+		}
+
+		return word;
+	}
+
+
+	// Configuration (file parser):
 	override void OnRegister() {
 		SetOrder( AutoAmbientHandlerOrder );
 
@@ -109,7 +148,31 @@ class AutoAmbientHandler: StaticEventHandler {
 		AddTexture( "SK_RIGHT" );
 		AddTexture( "SLOPPY2" );
 
-		console.printf( GetClassName() .. "::OnRegister(). Reloading configuration done." );
+
+        int autoAmbientConfigFileHandler = Wads.FindLump( "aambient.cfg" );
+
+		// Rude "AAmbient.cfg" file unparsing:
+        if ( autoAmbientConfigFileHandler ) {
+			console.printf( "Unparsing started..." );
+			parserPos = 0;
+            aaConfigFile = Wads.ReadLump( autoAmbientConfigFileHandler );
+
+            aaConfigFile.ToLower();
+            aaConfigFile.Replace( "\r", "\n" ); // "dos2unix", "mac2unix"...
+			aaConfigFileLength = aaConfigFile.Length();
+
+			String curWord = "";
+
+			while ( parserPos < aaConfigFileLength ) {
+				curWord = readNextWord();
+				console.printf( GetClassName() .. "::OnRegister(). Parsed word \"" .. curWord .. "\"." );
+			}
+
+			console.printf( GetClassName() .. "::OnRegister(). Loading configuration done." );
+        } else {
+			console.printf( GetClassName() .. "::OnRegister(). Cannot find \"aambient.cfg\"." );
+		}
+
 		Super.OnRegister();
 	}
 
@@ -197,15 +260,3 @@ class AutoAmbientHandler: StaticEventHandler {
 	} // of override void WorldLoaded( WorldEvent e ) {}
 
 } // of class AmbientHandler: EventHandler {}
-
-
-/*class AutoAmbientActor_Comp: Actor {
-	States {
-	Spawn:
-		TNT1 A 0;
-		TNT1 A 1 A_SetTics( Random( 0, 29 ) );
-		TNT1 A 0 A_Jump( 127, "Spawn2" );
-		TNT1 A 30 A_PlaySound( "AA/Computers/Beep", CHAN_AUTO, 0.2, false, 4 );
-		Wait;
-	}
-}*/
