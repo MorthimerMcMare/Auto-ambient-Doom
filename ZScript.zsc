@@ -85,10 +85,12 @@ class AutoAmbientHandler: StaticEventHandler {
 				return textureparams[ i ];
 		return NULL;
 	}
-	AutoAmbientSoundDefinition FindSoundDef( String snd ) {
-		for ( int i = 0; i < sounddefs.Size(); i++ )
-			if ( sounddefs[ i ].snd == snd )
+	AutoAmbientSoundDefinition FindSoundDef( String sndname ) {
+		for ( int i = 0; i < sounddefs.Size(); i++ ) {
+			console.printf( "sounddefs[ " .. i .. " ]: " .. sounddefs[ i ].name .. " == " .. sndname );
+			if ( sounddefs[ i ].name == sndname )
 				return sounddefs[ i ];
+		}
 		return NULL;
 	}
 
@@ -246,7 +248,7 @@ class AutoAmbientHandler: StaticEventHandler {
 
 		} else if ( configFileLine[ 0 ] == "soundactor" ) {
 			if ( configFileLine.Size() > 1 ) {
-				for ( int i = 1; i < configFileLine.Size() + 1; i++ ) {
+				for ( int i = 1; i < configFileLine.Size(); i++ ) {
 					AutoAmbientSoundDefinition gsnd = FindSoundDef( configFileLine[ i ] );
 
 					if ( gsnd ) {
@@ -350,6 +352,8 @@ class AutoAmbientHandler: StaticEventHandler {
 
 		String blockIdentifier = configFileLine[ 1 ];
 
+		console.printf( "Identifier: " .. blockIdentifier );
+
 		if ( !emptyBlock && parserCurBlockType != AAPB_Texture )
 			readNextConfigLine();
 
@@ -448,7 +452,7 @@ class AutoAmbientHandler: StaticEventHandler {
 				if ( blockIdentifier == "default" ) {
 					parserCurSound = parserDefaultSound;
 				} else {
-					parserCurSound = AutoAmbientSoundDefinition.Create( blockIdentifier,
+					parserCurSound = AutoAmbientSoundDefinition.Create( blockIdentifier, "null",
 							parserDefaultSound.sndMode, parserDefaultSound.sndVolume, parserDefaultSound.sndAttenuation,
 							parserDefaultSound.minDelay, parserDefaultSound.maxDelay );
 				}
@@ -604,7 +608,7 @@ class AutoAmbientHandler: StaticEventHandler {
 		parserDefaultTexture = AutoAmbientTexture.CreateTemporalBase();
 		parserDefaultTextureParam = AutoAmbientTextureParameter.Create( "Default texture parameter", ( -50.0, -50.0 ), ( -100.0, -100.0 ), ( 0.0, 0.0 ), 1.0 );
 		parserDefaultGroup = AutoAmbientGroup.Create( "Default group", 256 );
-		parserDefaultSound = AutoAmbientSoundDefinition.Create( "Default sound definition", AASM_Looped, 1.0, 1.0, 35, 35 );
+		parserDefaultSound = AutoAmbientSoundDefinition.Create( "Default sound definition", "null", AASM_Looped, 1.0, 1.0, 35, 35 );
 
 		parserCurTexture = NULL;
 		parserCurTextureParam = NULL;

@@ -1,4 +1,5 @@
 class AutoAmbientSoundDefinition {
+	String name;
 	Sound snd;
 	EAutoAmbientSoundModes sndMode;
 	double sndVolume, sndAttenuation;
@@ -12,9 +13,10 @@ class AutoAmbientSoundDefinition {
 	Sound workSound;
 	double workSoundVolume, workSoundAttenuation;*/
 
-	static AutoAmbientSoundDefinition Create( Sound initSnd, EAutoAmbientSoundModes initMode, double initVolume, double initAttn, uint initMinDelay, uint initMaxDelay ) {
+	static AutoAmbientSoundDefinition Create( String initName, Sound initSnd, EAutoAmbientSoundModes initMode, double initVolume, double initAttn, uint initMinDelay, uint initMaxDelay ) {
 		AutoAmbientSoundDefinition newDef = new( 'AutoAmbientSoundDefinition' );
 
+		newDef.name = initName;
 		newDef.snd = initSnd;
 		newDef.sndMode = initMode;
 		newDef.sndVolume = initVolume;

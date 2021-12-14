@@ -36,7 +36,7 @@ class AutoAmbientGroup play {
 	}
 
 	bool AddAutoSoundClass( Sound snd, EAutoAmbientSoundModes mode = AASM_Looped, double vol = 1.0, double attn = 1.0, uint delay1 = 0, uint delay2 = 35 ) {
-		AutoAmbientSoundDefinition newclass = AutoAmbientSoundDefinition.Create( snd, mode, vol, attn, delay1, delay2 );
+		AutoAmbientSoundDefinition newclass = AutoAmbientSoundDefinition.Create( snd, snd, mode, vol, attn, delay1, delay2 );
 
 		if ( newclass )
 			autoclasses.Push( newclass );
