@@ -72,9 +72,9 @@ class AutoAmbientTexture {
 
 	static AutoAmbientTexture Create( String textureName ) {
 		AutoAmbientTexture newTex = NULL;
-		TextureID addeeTexID = TexMan.CheckForTexture( textureName, TexMan.Type_Wall );
+		TextureID addeeTexID = TexMan.CheckForTexture( textureName, TexMan.Type_Wall, TexMan.DontCreate );
 
-		if ( addeeTexID ) {
+		if ( TexMan.GetName( addeeTexID ) != "" ) {
 			newTex = new( 'AutoAmbientTexture' );
 
 			newTex.id = addeeTexID;
@@ -86,6 +86,13 @@ class AutoAmbientTexture {
 
 		return newTex;
 	} // of static AutoAmbientTexture Create( String textureName ) {}
+
+	static AutoAmbientTexture CreateTemporalBase( void ) {
+		AutoAmbientTexture newTex = new( 'AutoAmbientTexture' );
+		newTex.actionlineCheck = AAAC_Default;
+		newTex.samelineCheck = AASC_Default;
+		return newTex;
+	}
 
 	void AddGroupParam( AutoAmbientGroup group, AutoAmbientTextureParameter param ) {
 		if ( group && param ) {

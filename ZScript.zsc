@@ -321,39 +321,83 @@ class AutoAmbientHandler: StaticEventHandler {
 	} // of void ParseSoundActorBlock( void ) {}
 
 	void ParseBlockHeader( void ) {
-		String blockIdentifier = configFileLine[ 1 ];
-		bool emptyBlock = ( configFileLine[ 2 ] == "{}" );
+		// Guaranted that amount of words in line is greater than 2.
+		// Second case is for using totally default parameters.
 
-		if ( !emptyBlock )
+		String lastWord = configFileLine[ configFileLine.Size() - 1 ];
+		bool emptyBlock = ( lastWord == "{}" || ( configFileLine[ configFileLine.Size() - 2 ] == "{" && lastWord == "}" ) );
+
+		if ( !emptyBlock && lastWord != "{" ) {
+			ParserError( "::ParseBlockHeader(). '{' after \"" .. configFileLine[ 1 ] .. "\" expected." ); // '}}' for the not clever colorer.
+			return;
+		}
+
+		int textureLastNameIndex = configFileLine.Size() - 1;
+		if ( lastWord == /*'{'*/ "}" )
+			textureLastNameIndex--;
+
+		String blockIdentifier = configFileLine[ 1 ];
+
+		if ( !emptyBlock && parserCurBlockType != AAPB_Texture )
 			readNextConfigLine();
-		//String identifier = "";
-		//String curWord = "";
 
 		switch ( parserCurBlockType ) {
 			case AAPB_Texture:
-				if ( blockIdentifier == "default" ) {
-					parserCurTexture = parserDefaultTexture;
-					parserCurTexture.groups.Clear();
-				} else {
-					parserCurTexture = AutoAmbientTexture.Create( blockIdentifier );
-					if ( emptyBlock )
-						for ( int i = 0; i < parserDefaultTexture.groups.Size(); i++ )
-							parserCurTexture.AddGroupParam( parserDefaultTexture.groups[ i ], parserDefaultTexture.groupparams[ i ] );
-					parserCurTexture.actionlineCheck = parserDefaultTexture.actionlineCheck;
-					parserCurTexture.samelineCheck = parserDefaultTexture.samelineCheck;
+				// Different handling because of not fixed amount of arguments.
 
-					//console.printf( "parserCurTexture.groups.Size(): " .. parserCurTexture.groups.Size() .. ". ID: " .. parserCurTexture.id );
-					//for ( int i = 0; i < parserCurTexture.groups.Size(); i++ ) console.printf( i .. ": " .. parserCurTexture.groups[ i ].name );
-				}
+				Array<String> textureNames;
+				for ( int i = 1; i < textureLastNameIndex; i++ )
+					textureNames.Push( configFileLine[ i ] );
 
-				if ( !emptyBlock )
+				parserCurTexture = AutoAmbientTexture.CreateTemporalBase();
+				parserCurTexture.actionlineCheck = parserDefaultTexture.actionlineCheck;
+				parserCurTexture.samelineCheck = parserDefaultTexture.samelineCheck;
+
+				if ( !emptyBlock ) {
+					readNextConfigLine();
 					while ( !parserErrorFlag && ( !configFileLine.Size() ^ ( configFileLine[ 0 ] != /*'{'*/ "}" ) ) ) {
 						ParseTextureBlock();
 						readNextConfigLine();
 					}
+				} else {
+					for ( int i = 0; i < parserDefaultTexture.groups.Size(); i++ )
+						parserCurTexture.AddGroupParam( parserDefaultTexture.groups[ i ], parserDefaultTexture.groupparams[ i ] );
 
-				if ( parserCurTexture && parserCurTexture != parserDefaultTexture )
-					textures.Push( parserCurTexture );
+					parserCurTexture.actionlineCheck = parserDefaultTexture.actionlineCheck;
+					parserCurTexture.samelineCheck = parserDefaultTexture.samelineCheck;
+				} // of else, of if ( !emptyBlock ) {}
+
+				for ( int i = 0; i < textureNames.Size(); i++ ) {
+					String curIdentifier = textureNames[ i ];
+					AutoAmbientTexture newTextureDef;
+
+					if ( curIdentifier == "default" ) {
+						newTextureDef = parserDefaultTexture;
+						newTextureDef.groups.Clear();
+						newTextureDef.groupparams.Clear();
+					} else {
+						newTextureDef = AutoAmbientTexture.Create( curIdentifier );
+
+						if ( !newTextureDef ) {
+							ParserError( "::ParseBlockHeader(). \"texture\": Wrong texture name \"" .. curIdentifier .. "\"." );
+							break;
+						}
+					}
+
+					if ( newTextureDef ) {
+						for ( int i = 0; i < parserCurTexture.groups.Size(); i++ )
+							newTextureDef.AddGroupParam( parserCurTexture.groups[ i ], parserCurTexture.groupparams[ i ] );
+
+						newTextureDef.actionlineCheck = parserCurTexture.actionlineCheck;
+						newTextureDef.samelineCheck = parserCurTexture.samelineCheck;
+
+						if ( newTextureDef != parserDefaultTexture ) {
+							//console.printf( "Push to textures[]: " .. parserCurTexture.id );
+							textures.Push( newTextureDef );
+						}
+					} // of if ( parserCurTexture ) {}
+
+				} // of for ( int i = 0; i < textureNames.Size(); i++ ) {}
 				break;
 			case AAPB_TextureParameter:
 				if ( blockIdentifier == "default" )
@@ -425,36 +469,34 @@ class AutoAmbientHandler: StaticEventHandler {
 
 		if ( lineArgsAmount > 0 ) {
 			if ( lineArgsAmount == 2 && configFileLine[ 0 ] == "include" ) {
-				//int prevParserPos = parserPos;
-				//parserPos = 0;
 				int prevParserLineNum = parserLineNum;
-				parserLineNum = 0;
-				//aaConfigFile = ...
+				String prevConfigFile = aaConfigFile;
 
+				parserLineNum = 0;
 				ParseFile( configFileLine[ 1 ] );
 
+				aaConfigFile = prevConfigFile;
 				parserCurBlockType = AAPB_Global;
-				//parserPos = prevParserPos;
 				parserLineNum = prevParserLineNum;
-			} else if ( lineArgsAmount == 3 ) {
-				// Second case is for using totally default parameters.
-				if ( configFileLine[ 2 ] == "{" || configFileLine[ 2 ] == "{}" ) { /* '}' */
-					if ( configFileLine[ 0 ] == "texture" )
-						parserCurBlockType = AAPB_Texture;
-					else if ( configFileLine[ 0 ] == "textureparam" )
-						parserCurBlockType = AAPB_TextureParam;
-					else if ( configFileLine[ 0 ] == "group" )
-						parserCurBlockType = AAPB_Group;
-					else if ( configFileLine[ 0 ] == "soundactor" )
-						parserCurBlockType = AAPB_SoundDef;
-					else
-						ParserError( "::ParseGlobalScope(). Unknown global scope keyword \"" .. configFileLine[ 0 ] .. "\"." );
-
-					if ( parserCurBlockType != AAPB_Global )
-						ParseBlockHeader();
+			} else if ( configFileLine[ 0 ] == "texture" ) {
+				if ( lineArgsAmount > 2 ) {
+					parserCurBlockType = AAPB_Texture;
+					ParseBlockHeader();
 				} else {
-					ParserError( "::ParseGlobalScope(). '{' after \"" .. configFileLine[ 1 ] .. "\" expected." ); // '}' for the not clever colorer.
+					ParserError( "::ParseGlobalScope(). Amount of words after the texture block definition must be greater than 1." );
 				}
+			} else if ( lineArgsAmount == 3 ) {
+				if ( configFileLine[ 0 ] == "textureparam" )
+					parserCurBlockType = AAPB_TextureParam;
+				else if ( configFileLine[ 0 ] == "group" )
+					parserCurBlockType = AAPB_Group;
+				else if ( configFileLine[ 0 ] == "soundactor" )
+					parserCurBlockType = AAPB_SoundDef;
+				else
+					ParserError( "::ParseGlobalScope(). Unknown global scope keyword \"" .. configFileLine[ 0 ] .. "\"." );
+
+				if ( parserCurBlockType != AAPB_Global )
+					ParseBlockHeader();
 			} else {
 				ParserError( "::ParseGlobalScope(). Incorrect global scope keyword sequence (\"" .. configFileLine[ 0 ] .. " <...>\")." );
 			}
@@ -477,10 +519,10 @@ class AutoAmbientHandler: StaticEventHandler {
 			//aaConfigFileLength = aaConfigFile.Length();
             aaConfigFile.Split( aaConfigLines, "\n", TOK_SKIPEMPTY );
 
-			parserCurBlockType = AAPB_Global;
-
-			while ( parserLineNum < aaConfigLines.Size() && !parserErrorFlag )
+			while ( parserLineNum < aaConfigLines.Size() && !parserErrorFlag ) {
+				parserCurBlockType = AAPB_Global;
 				ParseGlobalScope();
+			}
 
         } else {
 			ParserError( "::ParseFile(). Cannot find file \"" .. filename .. "\"." );
@@ -547,9 +589,7 @@ class AutoAmbientHandler: StaticEventHandler {
 		AddTexture( "SK_RIGHT" );
 		AddTexture( "SLOPPY2" );*/
 
-		parserDefaultTexture = new( 'AutoAmbientTexture' );
-		parserDefaultTexture.actionlineCheck = AAAC_Default;
-		parserDefaultTexture.samelineCheck = AASC_Default;
+		parserDefaultTexture = AutoAmbientTexture.CreateTemporalBase();
 		parserDefaultTextureParam = AutoAmbientTextureParameter.Create( "Default texture parameter", ( -50.0, -50.0 ), ( -100.0, -100.0 ), ( 0.0, 0.0 ), 1.0 );
 		parserDefaultGroup = AutoAmbientGroup.Create( "Default group", 256 );
 		parserDefaultSound = AutoAmbientSoundDefinition.Create( "Default sound definition", AASM_Looped, 1.0, 1.0, 35, 35 );
@@ -574,9 +614,12 @@ class AutoAmbientHandler: StaticEventHandler {
 
 		if ( invalidTexture ) {
 			console.printf( GetClassName() .. "::WorldLoaded(). ERROR: texture definition ID " .. invalidTexture.id .. " is not valid." );
-			console.printf( GetClassName() .. "::WorldLoaded(). Texture name: " .. TexMan.GetName( invalidTexture.id ) );
-			Super.WorldLoaded( e );
+			console.printf( GetClassName() .. "::WorldLoaded(). Validate callback: " 
+							.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length() 
+							.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. !invalidTexture.groupparams.Size() 
+							.. ", addingErrorFlag=" .. invalidTexture.invalidFlag );
 
+			Super.WorldLoaded( e );
 			return;
 		}
 
