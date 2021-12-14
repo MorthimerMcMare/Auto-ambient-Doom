@@ -52,7 +52,6 @@ class AutoAmbientHandler: StaticEventHandler {
 
 	String aaConfigFile;
 	Array<String> aaConfigLines;
-	//int parserPos, aaConfigFileLength;
 	int parserLineNum;
 	bool parserErrorFlag;
 	Array<String> configFileLine; // One line from the configuration file, "getNextConfigLine()" stores the value here.
@@ -65,19 +64,6 @@ class AutoAmbientHandler: StaticEventHandler {
 	AutoAmbientSoundDefinition parserDefaultSound, parserCurSound;
 
 
-	// Temporary methods, just for convenience.
-	/*int lastGroupIndex;
-	void AddExtraGroupToTexture( AutoAmbientTexture tex, uint groupIndex, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
-		AutoAmbientTextureParameter newtexparam = AutoAmbientTextureParameter.Create( "temp", start, offset, rnd, 1.0 );
-		tex.AddGroupParam( groups[ groupIndex ], newtexparam );
-	}
-
-	AutoAmbientTexture AddTexture( Name textureName, vector2 start = ( -1.0, -1.0 ), vector2 offset = ( -1.0, -1.0 ), vector2 rnd = ( 0.0, 0.0 ) ) {
-		AutoAmbientTexture newtex = AutoAmbientTexture.Create( textureName );
-		AddExtraGroupToTexture( newtex, lastGroupIndex, start, offset, rnd );
-		uint lastpos = textures.Push( newtex );
-		return textures[ lastpos ];
-	}*/
 
 	AutoAmbientTexture FindInvalidTexture( void ) {
 		for ( int i = 0; i < textures.Size(); i++ )
@@ -208,7 +194,7 @@ class AutoAmbientHandler: StaticEventHandler {
 					ParserError( "::ParseTextureBlock(). \"group\": cannot find group name \"" .. configFileLine[ 1 ] .. "\"." );
 				}
 			} else {
-				ParserError( "::ParseTextureBlock(). \"group\": wrong amount of arguments (got " .. configFileLine.Size() .. ", may be <name> <x> <y> or <name> <texparam>)." );
+				ParserError( "::ParseTextureBlock(). \"group\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <name> <x> <y> or <name> <texparam>)." );
 			} // of else of if ( configFileLine.Size() == 2 || configFileLine.Size() == 3 ) {}
 
 		} else if ( configFileLine[ 0 ] == "samelinecheck" ) {
@@ -221,6 +207,34 @@ class AutoAmbientHandler: StaticEventHandler {
 	} // of void ParseTextureBlock( void ) {}
 
 	void ParseTextureParameterBlock( void ) {
+		// Right now percentage are defined as negative float-point digits.
+		uint lineArgsAmount = configFileLine.Size();
+
+		if ( configFileLine[ 0 ] == "start" ) {
+			if ( lineArgsAmount == 3 )
+				parserCurTextureParam.start = ( configFileLine[ 1 ].ToDouble(), configFileLine[ 2 ].ToDouble() );
+			else
+				ParserError( "::ParseTextureParameterBlock(). \"start\": wrong amout of arguments (got " .. lineArgsAmount .. ", must be <x> <y>)." );
+		} else if ( configFileLine[ 0 ] == "offset" ) {
+			if ( lineArgsAmount == 3 )
+				parserCurTextureParam.offset = ( configFileLine[ 1 ].ToDouble(), configFileLine[ 2 ].ToDouble() );
+			else
+				ParserError( "::ParseTextureParameterBlock(). \"offset\": wrong amout of arguments (got " .. lineArgsAmount .. ", must be <x> <y>)." );
+		} else if ( configFileLine[ 0 ] == "random" ) {
+			switch ( lineArgsAmount ) {
+				case 2: parserCurTextureParam.spreading.x = parserCurTextureParam.spreading.y = ( configFileLine[ 1 ].ToDouble() );
+					break;
+				case 3: parserCurTextureParam.spreading = ( configFileLine[ 1 ].ToDouble(), configFileLine[ 2 ].ToDouble() );
+					break;
+				default: ParserError( "::ParseTextureParameterBlock(). \"random\": wrong amout of arguments (got " .. lineArgsAmount .. ", must be <rndxy> or <rndx> <rndy>)." );
+					break;
+			}
+		} else if ( configFileLine[ 0 ] == "chance" ) {
+			if ( lineArgsAmount == 2 )
+				parserCurTextureParam.chance = configFileLine[ 1 ].ToDouble();
+			else
+				ParserError( "::ParseTextureParameterBlock(). \"chance\": wrong amout of arguments (got " .. lineArgsAmount .. ", must be <value>)." );
+		}
 	} // of void ParseTextureParameterBlock( void ) {}
 
 	void ParseGroupBlock( void ) {
@@ -228,9 +242,7 @@ class AutoAmbientHandler: StaticEventHandler {
 			if ( configFileLine.Size() == 2 )
 				parserCurGroup.actorsDistance = configFileLine[ 1 ].ToDouble();
 			else
-				ParserError( "::ParseGroupBlock(). \"mindistance\": wrong amount of arguments (got " .. configFileLine.Size() .. ", may be <distance>." );
-
-			//console.printf( parserCurGroup.name .. ".actorsDistance: " .. parserCurGroup.actorsDistance );
+				ParserError( "::ParseGroupBlock(). \"mindistance\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <distance>." );
 
 		} else if ( configFileLine[ 0 ] == "soundactor" ) {
 			if ( configFileLine.Size() > 1 ) {
@@ -257,7 +269,7 @@ class AutoAmbientHandler: StaticEventHandler {
 
 				parserCurGroup.AddAutoLoopedSound( configFileLine[ 1 ], newsndvolume, newsndattn );
 			} else {
-				ParserError( "::ParseGroupBlock(). \"loopedsound\": wrong amount of arguments (got " .. configFileLine.Size() .. ", may be <snd> [<volume> [<attenuation>]])." );
+				ParserError( "::ParseGroupBlock(). \"loopedsound\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <snd> [<volume> [<attenuation>]])." );
 			} // of else of if ( configFileLine.Size() == 2 || configFileLine.Size() == 3 ) {}
 
 		} else if ( configFileLine[ 0 ] == "actor" ) {

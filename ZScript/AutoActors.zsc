@@ -61,7 +61,6 @@ class AutoAmbientGroup play {
 
 		// Locate a texture definition:
 		TextureID texID = attachSide.GetTexture( sidePos );
-		//AutoAmbientTexture texdef = NULL;
 
 		// See GZDoom source code, "/src/common/textures/textureid.h"
 		//("class FTextureID"). TextureID comparing is really much faster 
@@ -80,6 +79,11 @@ class AutoAmbientGroup play {
 
 		if ( !texdef )
 			return; // Return if there's no neccesary texture definition.
+
+		AutoAmbientTextureParameter texparam = texdef.groupparams[ groupPos ];
+
+		if ( FRandom( 0.0, 1.0 ) > texparam.chance )
+			return; // Return if chance to spawn failed.
 
 		Line attachLine = attachSide.linedef;
 		Side oppositeSide = ( attachLine.sidedef[ 0 ] == attachSide )? attachLine.sidedef[ 1 ] : attachLine.sidedef[ 0 ];
@@ -144,20 +148,21 @@ class AutoAmbientGroup play {
 		uint classesArraySize = classes.Size();
 		uint alreadySpawnedArraySize = spawned.Size();
 
-		AutoAmbientTextureParameter texparam = texdef.groupparams[ groupPos ];
-
 		// Converting virtual 2D-plane to the 3D-aligned line plane
 		//and adding potential positions to the array:
 		for ( double texz = ( texMapOffset.y + texparam.start.y ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {
 			for ( double texxy = ( texMapOffset.x + texparam.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {
-				double actorPosRandomizeXY = FRandom( -texparam.spreading.x, texparam.spreading.x );
-				double actorPosRandomizeZ = FRandom( -texparam.spreading.y, texparam.spreading.y );
+				double texxyRandomized = texxy + FRandom( -texparam.spreading.x, texparam.spreading.x );
+				double texzRandomized = texz + FRandom( -texparam.spreading.y, texparam.spreading.y );
+
+				if ( texxyRandomized < 0.0 || texxyRandomized > lineWidth || texzRandomized < 0.0 || texzRandomized > lineHeight )
+					continue; // Skip spawning if random tried to spawn actor outside the texture.
 
 				// Converting to the world 3D-coordinates. Normalizing 
 				//(v1-v2), multiplying it to the wish length...
-				vector2 actorPosXY = firstPoint.xy + attachLine.delta / lineWidth * ( texxy + actorPosRandomizeXY );
+				vector2 actorPosXY = firstPoint.xy + attachLine.delta / lineWidth * texxyRandomized;
 				// ...And adding a Z-component:
-				vector3 newPos = ( actorPosXY.x, actorPosXY.y, texz + firstPoint.z + actorPosRandomizeZ );
+				vector3 newPos = ( actorPosXY.x, actorPosXY.y, firstPoint.z + texzRandomized );
 
 				//console.printf( "Actor for tex \"" .. TexMan.GetName( texdef.id ) .. "\": relpos " .. actorPosXY - firstPoint.xy .. ", firstPointPos " .. firstPoint .. ", texMapOfs " .. texMapOffset .. ", line w/h " .. lineWidth .. "/" .. lineHeight );
 
