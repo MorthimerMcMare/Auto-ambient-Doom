@@ -398,7 +398,7 @@ class AutoAmbientHandler: StaticEventHandler {
 
 					if ( newTextureDef ) {
 						for ( int i = 0; i < parserCurTexture.groups.Size(); i++ )
-							newTextureDef.AddGroupParam( parserCurTexture.groups[ i ], parserCurTexture.groupparams[ i ] );
+							newTextureDef.AddGroupParam( parserCurTexture.groups[ i ], parserCurTexture.groupparams[ i ].Copy() );
 
 						newTextureDef.actionlineCheck = parserCurTexture.actionlineCheck;
 						newTextureDef.samelineCheck = parserCurTexture.samelineCheck;

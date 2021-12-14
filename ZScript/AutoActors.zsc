@@ -150,8 +150,8 @@ class AutoAmbientGroup play {
 
 		// Converting virtual 2D-plane to the 3D-aligned line plane
 		//and adding potential positions to the array:
-		for ( double texz = ( texMapOffset.y + texparam.start.y ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {
-			for ( double texxy = ( texMapOffset.x + texparam.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {
+		for ( double texz = ( texMapOffset.y + texparam.start.y - texparam.spreading.y / 2 ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {
+			for ( double texxy = ( texMapOffset.x + texparam.start.x - texparam.spreading.x / 2 ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {
 				double texxyRandomized = texxy + FRandom( -texparam.spreading.x, texparam.spreading.x );
 				double texzRandomized = texz + FRandom( -texparam.spreading.y, texparam.spreading.y );
 

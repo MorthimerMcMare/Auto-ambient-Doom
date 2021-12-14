@@ -54,6 +54,19 @@ class AutoAmbientTextureParameter {
 
 		return newDef;
 	}
+
+	// To enforce AutoAmbientTexture to recalculate offsets based on size.
+	AutoAmbientTextureParameter Copy( void ) {
+		AutoAmbientTextureParameter copiedDef = new( 'AutoAmbientTextureParameter' );
+
+		copiedDef.name = name;
+		copiedDef.start = start;
+		copiedDef.offset = offset;
+		copiedDef.spreading = spreading;
+		copiedDef.chance = chance;
+
+		return copiedDef;
+	}
 } // of class AutoAmbientTextureParameter {}
 
 
@@ -99,15 +112,17 @@ class AutoAmbientTexture {
 			groups.Push( group );
 			groupparams.Push( param );
 
-			if ( param.start.x < 0.0 )
-				param.start.x = size.x / 2.0;
-			if ( param.start.y < 0.0 )
-				param.start.y = size.y / 2.0;
+			if ( size.length() > 0 ) {
+				if ( param.start.x < 0.0 )
+					param.start.x = size.x / 2.0;
+				if ( param.start.y < 0.0 )
+					param.start.y = size.y / 2.0;
 
-			if ( param.offset.x <= 0.0 )
-				param.offset.x = size.x;
-			if ( param.offset.y <= 0.0 )
-				param.offset.y = size.y;
+				if ( param.offset.x <= 0.0 )
+					param.offset.x = size.x;
+				if ( param.offset.y <= 0.0 )
+					param.offset.y = size.y;
+			}
 
 			if ( param.spreading.y < 0.0 )
 				param.spreading.y = param.spreading.x;
