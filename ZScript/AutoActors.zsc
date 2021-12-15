@@ -82,9 +82,6 @@ class AutoAmbientGroup play {
 
 		AutoAmbientTextureParameter texparam = texdef.groupparams[ groupPos ];
 
-		if ( FRandom( 0.0, 1.0 ) > texparam.chance )
-			return; // Return if chance to spawn failed.
-
 		Line attachLine = attachSide.linedef;
 		Side oppositeSide = ( attachLine.sidedef[ 0 ] == attachSide )? attachLine.sidedef[ 1 ] : attachLine.sidedef[ 0 ];
 		double lineWidth = attachLine.delta.Length();
@@ -133,10 +130,33 @@ class AutoAmbientGroup play {
 		if ( lineHeight <= 0 && !( attachLine.special && texdef.actionlineCheck == AAAC_AlsoZeroHeight ) )
 			return; // There's no point in creating an actor if the texture is not visible.
 
+		//if ( lineWidth <= texdef.size.x && lineHeight <= texdef.size.y && FRandom( 0.0, 1.0 ) > texparam.chance )
+		//	return; // Return if chance to spawn on small line failed.
+
+		double unpeggedOffset = 0.0;
+
+		switch ( sidePos ) { // Better to write it in previous switch-case block?
+			case Side.top:
+				if ( attachLine.flags & Line.ML_DONTPEGTOP )
+					unpeggedOffset = ( lineHeight - abs( texdef.size.y - lineHeight ) ) % texdef.size.y;
+				break;
+			case Side.mid:
+				if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
+					unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
+				//else
+				//	unpeggedOffset = lineHeight % texdef.size.y; // Not right.
+				break;
+			case Side.bottom:
+				if ( attachLine.flags & Line.ML_DONTPEGBOTTOM )
+					unpeggedOffset = ( texdef.size.y - lineHeight ) % lineHeight;
+				break;
+			default:
+				break;
+		}
 
 		vector2 texMapOffset = (
-				attachSide.GetTextureXOffset( sidePos ) % lineWidth,
-				attachSide.GetTextureYOffset( sidePos ) % lineHeight
+				attachSide.GetTextureXOffset( sidePos ) % texdef.size.x,
+				( attachSide.GetTextureYOffset( sidePos ) + unpeggedOffset ) % texdef.size.y
 		);
 
 		vector3 firstPoint = ( // From bottom-left.
@@ -148,10 +168,20 @@ class AutoAmbientGroup play {
 		uint classesArraySize = classes.Size();
 		uint alreadySpawnedArraySize = spawned.Size();
 
+		String debugTextureName = TexMan.GetName( texID );
+
+		if ( debugTextureName == "METAL5" ) {
+			texparam.offset = ( 64.0, 128.0 ); // !!!
+			console.printf( "METAL5: start.y = (" .. texMapOffset.y  .. " + " .. texparam.start.y .. ") % " .. texdef.size.y .. " = " .. ( texMapOffset.y + texparam.start.y ) % texdef.size.y .. ", end.y " .. lineHeight ); // .. ". texparam.offset.x: " .. texparam.offset.x );
+		}
+
 		// Converting virtual 2D-plane to the 3D-aligned line plane
 		//and adding potential positions to the array:
-		for ( double texz = ( texMapOffset.y + texparam.start.y - texparam.spreading.y / 2 ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {
-			for ( double texxy = ( texMapOffset.x + texparam.start.x - texparam.spreading.x / 2 ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {
+		for ( double texz = ( texMapOffset.y + texparam.start.y ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {
+			for ( double texxy = ( texMapOffset.x + texparam.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {
+				//if ( texparam.chance != 0.0 && FRandom( 0.0, 1.0 ) > texparam.chance )
+				//	continue; // Skip spawning if chance to spawn failed.
+
 				double texxyRandomized = texxy + FRandom( -texparam.spreading.x, texparam.spreading.x );
 				double texzRandomized = texz + FRandom( -texparam.spreading.y, texparam.spreading.y );
 
@@ -192,7 +222,7 @@ class AutoAmbientGroup play {
 						newActor = Actor.Spawn( "AutoAmbientSoundActor", newPos );
 						AutoAmbientSoundActor( newActor ).Init( autoclasses[ rnd - classesArraySize ] );
 					} else {
-						console.printf( "Warning: random getter " .. rnd .. " is out-of-bounds of classes[] (size " .. classesArraySize .. ") and autoclasses[] (size " .. autoclasses.Size() .. ")." );
+						console.printf( "Warning: random getter " .. rnd .. " is out-of-bounds of classes[ " .. classesArraySize .. " ] and autoclasses[ " .. autoclasses.Size() .. " ]." );
 					}
 
 					if ( newActor ) {
@@ -221,13 +251,13 @@ class AutoAmbientSoundActor: Actor {
 	Default {
 		+NOINTERACTION;
 		+NOBLOCKMAP;
-		+INVISIBLE;
+		//+INVISIBLE;
 	}
 
 	void Init( AutoAmbientSoundDefinition initDef ) {
 		def = initDef;
 
-		actorInitialized = ( def && ( def.snd != "" ) );
+		actorInitialized = ( def && ( def.snd != "" ) && ( def.snd != "null" ) );
 
 		if ( actorInitialized ) {
 			playsoundMode = def.sndMode;
@@ -257,7 +287,7 @@ class AutoAmbientSoundActor: Actor {
 		if ( actorInitialized ) {
 			curDelay = Random( 0, ( (playsoundMode == AASM_Looped)? 5 : maxDelay ) );
 		} else {
-			console.printf( "Actor " .. GetClassName() .. " <" .. self .. "> not initialized. Destroying self." );
+			console.printf( GetClassName() .. "::PostBeginPlay(). Actor at " .. pos .. " not initialized (wrong sound provided?). Destroying self." );
 			Destroy();
 		}
 	} // of override void PostBeginPlay() {}

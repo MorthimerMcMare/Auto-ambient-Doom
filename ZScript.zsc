@@ -86,11 +86,9 @@ class AutoAmbientHandler: StaticEventHandler {
 		return NULL;
 	}
 	AutoAmbientSoundDefinition FindSoundDef( String sndname ) {
-		for ( int i = 0; i < sounddefs.Size(); i++ ) {
-			console.printf( "sounddefs[ " .. i .. " ]: " .. sounddefs[ i ].name .. " == " .. sndname );
+		for ( int i = 0; i < sounddefs.Size(); i++ )
 			if ( sounddefs[ i ].name == sndname )
 				return sounddefs[ i ];
-		}
 		return NULL;
 	}
 
@@ -352,7 +350,7 @@ class AutoAmbientHandler: StaticEventHandler {
 
 		String blockIdentifier = configFileLine[ 1 ];
 
-		console.printf( "Identifier: " .. blockIdentifier );
+		//console.printf( "Identifier: " .. blockIdentifier );
 
 		if ( !emptyBlock && parserCurBlockType != AAPB_Texture )
 			readNextConfigLine();
