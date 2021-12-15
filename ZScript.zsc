@@ -624,15 +624,24 @@ class AutoAmbientHandler: StaticEventHandler {
 
 
 	override void WorldLoaded( WorldEvent e ) {
+		bool dontLoadAutoAmbient = false;
+
+		if ( e.IsSaveGame || parserErrorFlag )
+			dontLoadAutoAmbient = true;
+
 		AutoAmbientTexture invalidTexture = FindInvalidTexture();
 
 		if ( invalidTexture ) {
+			dontLoadAutoAmbient = true;
 			console.printf( GetClassName() .. "::WorldLoaded(). ERROR: texture definition ID " .. invalidTexture.id .. " is not valid." );
 			console.printf( GetClassName() .. "::WorldLoaded(). Validate callback: " 
 							.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length() 
 							.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. !invalidTexture.groupparams.Size() 
 							.. ", addingErrorFlag=" .. invalidTexture.invalidFlag );
+		}
 
+
+		if ( dontLoadAutoAmbient ) {
 			Super.WorldLoaded( e );
 			return;
 		}
