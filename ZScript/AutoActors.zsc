@@ -90,6 +90,8 @@ class AutoAmbientGroup play {
 		double lineHeight = 0;
 		double firstPointFloorZOffset = 0.0;
 
+		double unpeggedOffset = 0.0;
+
 		// [A]ttach/[O]pposite side, [F]loor/[C]eiling heights:
 		double af = attachSide.sector.floorplane.d * attachSide.sector.floorplane.negiC;
 		double ac = attachSide.sector.ceilingplane.d * attachSide.sector.ceilingplane.negiC;
@@ -108,26 +110,37 @@ class AutoAmbientGroup play {
 						lineHeight = min( lineHeight, ac - af );
 
 					firstPointFloorZOffset = oc - af;
+
+					if ( attachLine.flags & Line.ML_DONTPEGTOP )
+						unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
 				}
 				break;
 			case Side.mid:
 				lineHeight = max( 0, ac - af );
+
 				// Cannot recognize now what must be here...
 				//if ( lineHeight > 0 )
 				//	lineHeight = min( lineHeight, oc - of );
+
+				if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
+					unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
 				break;
 			case Side.bottom:
 				if ( oppositeSide ) {
 					lineHeight = max( 0, of - af );
 					if ( lineHeight > 0 )
 						lineHeight = min( lineHeight, ac - af );
+
+					if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
+						unpeggedOffset = lineHeight - texdef.size.y;
+					else 
+						unpeggedOffset = ( ac - af ) % texdef.size.y;
 				}
 				break;
 			default:
 				break;
 		} // of switch ( sidePos ) {
 
-		//console.printf( name .. ". \"" ..  TexMan.GetName( texdef.id ) .. "\" at" .. sidePos .. ". lineHeight: " .. lineHeight );
 
 		if ( lineHeight <= 0 && !( attachLine.special && texdef.actionlineCheck == AAAC_AlsoZeroHeight ) )
 			return; // There's no point in creating an actor if the texture is not visible.
@@ -135,27 +148,6 @@ class AutoAmbientGroup play {
 		//if ( lineWidth <= texdef.size.x && lineHeight <= texdef.size.y && FRandom( 0.0, 1.0 ) > texparam.chance )
 		//	return; // Return if chance to spawn on small line failed.
 
-		double unpeggedOffset = 0.0;
-
-		switch ( sidePos ) { // Better to write it in previous switch-case block?
-			case Side.top:
-				if ( attachLine.flags & Line.ML_DONTPEGTOP )
-					//unpeggedOffset = ( lineHeight - abs( texdef.size.y - lineHeight ) ) % texdef.size.y;
-					unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
-				break;
-			case Side.mid:
-				if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
-					unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
-				//else
-				//	unpeggedOffset = lineHeight % texdef.size.y; // Not right.
-				break;
-			case Side.bottom:
-				if ( attachLine.flags & Line.ML_DONTPEGBOTTOM )
-					unpeggedOffset = ( texdef.size.y - lineHeight ) % lineHeight;
-				break;
-			default:
-				break;
-		}
 
 		vector2 texMapOffset = (
 				attachSide.GetTextureXOffset( sidePos ) % texdef.size.x,
@@ -171,18 +163,17 @@ class AutoAmbientGroup play {
 		uint classesArraySize = classes.Size();
 		uint alreadySpawnedArraySize = spawned.Size();
 
-		String debugTextureName = TexMan.GetName( texID );
-
-		if ( debugTextureName == "BIGBRIK3" ) {
-			console.printf( "BIGBRIK3: start.y = (" .. texMapOffset.y  .. " + " .. texparam.start.y .. ") % " .. texdef.size.y .. " = " .. ( texMapOffset.y + texparam.start.y ) % texdef.size.y .. ", end.y " .. lineHeight ); // .. ". texparam.offset.x: " .. texparam.offset.x );
-		}
+		//String debugTextureName = TexMan.GetName( texID );
+		//if ( debugTextureName == "BIGBRIK3" ) {
+		//	console.printf( debugTextureName .. ": start.y = (" .. texMapOffset.y  .. " + " .. texparam.start.y .. ") % " .. texdef.size.y .. " = " .. ( texMapOffset.y + texparam.start.y ) % texdef.size.y .. ", end.y " .. lineHeight .. ". tex.offsety: " .. attachSide.GetTextureYOffset( sidePos ) ); // .. ". texparam.offset.x: " .. texparam.offset.x );
+		//}
 
 		// Converting virtual 2D-plane to the 3D-aligned line plane
 		//and adding potential positions to the array:
 		for ( double texz = ( texMapOffset.y + texparam.start.y ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {
 			for ( double texxy = ( texMapOffset.x + texparam.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {
-				//if ( texparam.chance != 0.0 && FRandom( 0.0, 1.0 ) > texparam.chance )
-				//	continue; // Skip spawning if chance to spawn failed.
+				if ( texparam.chance != 0.0 && FRandom( 0.0, 1.0 ) > texparam.chance )
+					continue; // Skip spawning if chance to spawn failed.
 
 				double texxyRandomized = texxy + FRandom( -texparam.spreading.x, texparam.spreading.x );
 				double texzRandomized = texz + FRandom( -texparam.spreading.y, texparam.spreading.y );
@@ -229,8 +220,8 @@ class AutoAmbientGroup play {
 
 					if ( newActor ) {
 						spawned.Push( newActor );
-						console.printf( "\"" .. texID .. "\"->" .. name .. ". Actor " .. newActor.GetClassName() .. " spawned at " .. newActor.pos .. "." );
-						//console.printf( "Actor \"" .. newActor.GetClassName() .. "\" from group " .. name .. " spawned at " .. newActor.pos .. " (texture \"" .. texID .. "\")." );
+						//console.printf( "\"" .. texID .. "\"->" .. name .. ". Actor " .. newActor.GetClassName() .. " spawned at " .. newActor.pos .. "." );
+						console.printf( "Actor \"" .. newActor.GetClassName() .. "\" from group " .. name .. " spawned at " .. newActor.pos .. " (texture \"" .. texID .. "\")." );
 					}
 				} // of if ( !grouplingTooClose ) {}
 
@@ -254,7 +245,7 @@ class AutoAmbientSoundActor: Actor {
 	Default {
 		+NOINTERACTION;
 		+NOBLOCKMAP;
-		//+INVISIBLE;
+		+INVISIBLE;
 	}
 
 	void Init( AutoAmbientSoundDefinition initDef ) {
