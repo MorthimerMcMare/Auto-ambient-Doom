@@ -140,10 +140,11 @@ AA/Hell/loop2		AAHELL2
 AA/Hell/loop3		AAHELL3
 
 // Lumeniscent lamps:
-AA/LumeniscentLamps/loop1		AALUML1
-AA/LumeniscentLamps/loop2		AALUML2
 AA/LumeniscentLamps/loopA/v1	AALUMLA1
 AA/LumeniscentLamps/loopA/v2	AALUMLA2
+$random AA/LumeniscentLamps/loopA { AA/LumeniscentLamps/loopA/v1 AA/LumeniscentLamps/loopA/v2 }
+AA/LumeniscentLamps/loop1		AALUML1
+AA/LumeniscentLamps/loop2		AALUML2
 
 // Pipes:
 AA/Pipes/loopA/v1	AAPIPEA1
