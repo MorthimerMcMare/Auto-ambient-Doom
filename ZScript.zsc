@@ -350,7 +350,7 @@ class AutoAmbientHandler: StaticEventHandler {
 
 		String blockIdentifier = configFileLine[ 1 ];
 
-		//console.printf( "Identifier: " .. blockIdentifier );
+		//console.printf( "Block identifier (second word): " .. blockIdentifier );
 
 		if ( !emptyBlock && parserCurBlockType != AAPB_Texture )
 			readNextConfigLine();
@@ -475,7 +475,6 @@ class AutoAmbientHandler: StaticEventHandler {
 	} // of void ParseBlockHeader( void ) {}
 
 	void ParseGlobalScope( void ) {
-		//String curWord = readNextWord();
 		readNextConfigLine();
 		//console.printf( GetClassName() .. "::ParseGlobalScope(). Parsed line \"" .. curWord .. "\"." );
 
@@ -650,6 +649,15 @@ class AutoAmbientHandler: StaticEventHandler {
 		for ( int i = 0; i < groups.Size(); i++ )
 			groups[ i ].ClearSpawned();
 
+		/*for ( int i = 0; i < textures.Size(); i++ ) {
+			String debugGroups = "TEX " .. textures[ i ].id .. ":";
+			AutoAmbientTexture curdebugtex = textures[ i ];
+			for ( int j = 0; j < curdebugtex.groups.Size(); j++ )
+				debugGroups = debugGroups .. " " .. curdebugtex.groups[ j ].name;
+
+			console.printf( debugGroups );
+		}*/
+
 
 		// A-a-argh! Seven nested "for" cycles in worst case!..
 		//(Alright, it's non-exponential dependence, most of them has from one 
@@ -657,7 +665,7 @@ class AutoAmbientHandler: StaticEventHandler {
 		for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {
 			Side l = level.Sides[ curSideIndex ];
 
-			for ( int curSidePos = 0; curSidePos < 2; curSidePos++ ) {
+			for ( int curSidePos = Side.top; curSidePos <= Side.bottom; curSidePos++ ) {
 				TextureID texID = l.GetTexture( curSidePos );
 
 				if ( texID ) {

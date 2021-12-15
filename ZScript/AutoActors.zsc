@@ -62,6 +62,8 @@ class AutoAmbientGroup play {
 		// Locate a texture definition:
 		TextureID texID = attachSide.GetTexture( sidePos );
 
+		//console.printf( GetClassName() .. "::SpawnActor(). \"" .. texID .. "\" handle." );
+
 		// See GZDoom source code, "/src/common/textures/textureid.h"
 		//("class FTextureID"). TextureID comparing is really much faster 
 		//than same for String. Also cache may help in speeding up at least 
@@ -138,7 +140,8 @@ class AutoAmbientGroup play {
 		switch ( sidePos ) { // Better to write it in previous switch-case block?
 			case Side.top:
 				if ( attachLine.flags & Line.ML_DONTPEGTOP )
-					unpeggedOffset = ( lineHeight - abs( texdef.size.y - lineHeight ) ) % texdef.size.y;
+					//unpeggedOffset = ( lineHeight - abs( texdef.size.y - lineHeight ) ) % texdef.size.y;
+					unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
 				break;
 			case Side.mid:
 				if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
@@ -170,9 +173,8 @@ class AutoAmbientGroup play {
 
 		String debugTextureName = TexMan.GetName( texID );
 
-		if ( debugTextureName == "METAL5" ) {
-			texparam.offset = ( 64.0, 128.0 ); // !!!
-			console.printf( "METAL5: start.y = (" .. texMapOffset.y  .. " + " .. texparam.start.y .. ") % " .. texdef.size.y .. " = " .. ( texMapOffset.y + texparam.start.y ) % texdef.size.y .. ", end.y " .. lineHeight ); // .. ". texparam.offset.x: " .. texparam.offset.x );
+		if ( debugTextureName == "BIGBRIK3" ) {
+			console.printf( "BIGBRIK3: start.y = (" .. texMapOffset.y  .. " + " .. texparam.start.y .. ") % " .. texdef.size.y .. " = " .. ( texMapOffset.y + texparam.start.y ) % texdef.size.y .. ", end.y " .. lineHeight ); // .. ". texparam.offset.x: " .. texparam.offset.x );
 		}
 
 		// Converting virtual 2D-plane to the 3D-aligned line plane
@@ -227,7 +229,8 @@ class AutoAmbientGroup play {
 
 					if ( newActor ) {
 						spawned.Push( newActor );
-						console.printf( "Actor \"" .. newActor.GetClassName() .. "\" from group " .. name .. " spawned at " .. newActor.pos .. " (texture \"" .. texID .. "\")." );
+						console.printf( "\"" .. texID .. "\"->" .. name .. ". Actor " .. newActor.GetClassName() .. " spawned at " .. newActor.pos .. "." );
+						//console.printf( "Actor \"" .. newActor.GetClassName() .. "\" from group " .. name .. " spawned at " .. newActor.pos .. " (texture \"" .. texID .. "\")." );
 					}
 				} // of if ( !grouplingTooClose ) {}
 
