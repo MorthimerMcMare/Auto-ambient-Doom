@@ -221,7 +221,7 @@ class AutoAmbientGroup play {
 					if ( newActor ) {
 						spawned.Push( newActor );
 						//console.printf( "\"" .. texID .. "\"->" .. name .. ". Actor " .. newActor.GetClassName() .. " spawned at " .. newActor.pos .. "." );
-						console.printf( "Actor \"" .. newActor.GetClassName() .. "\" from group " .. name .. " spawned at " .. newActor.pos .. " (texture \"" .. texID .. "\")." );
+						console.printf( "Actor " .. newActor.GetClassName() .. " spawned on \"" .. texID .. "->" .. name .. "\" at " .. newActor.pos .. "." );
 					}
 				} // of if ( !grouplingTooClose ) {}
 
@@ -281,13 +281,22 @@ class AutoAmbientSoundActor: Actor {
 		if ( actorInitialized ) {
 			curDelay = Random( 0, ( (playsoundMode == AASM_Looped)? 5 : maxDelay ) );
 		} else {
-			console.printf( GetClassName() .. "::PostBeginPlay(). Actor at " .. pos .. " not initialized (wrong sound provided?). Destroying self." );
+			String soundInfo;
+
+			if ( !def )
+				soundInfo = "without linked sound definition";
+			else if ( ( def.snd == "" ) || ( def.snd == "null" ) )
+				soundInfo = "with no linked sound (wrong sound name in configuration file?)";
+			else
+				soundInfo = "with sound \"" .. def.snd .. "\"";
+
+			console.printf( GetClassName() .. " at " .. pos .. " " .. soundInfo .. " not initialized and thus destroyed." );
 			Destroy();
 		}
 	} // of override void PostBeginPlay() {}
 
 	override void Tick() {
-		// Must not stop on globalfreeze.
+		// Sounds must not stop during globalfreeze.
 
 		switch ( playsoundMode ) {
 			case AASM_Fixed:
