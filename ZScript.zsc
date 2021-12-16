@@ -407,8 +407,80 @@ class AutoAmbientHandler: StaticEventHandler {
 				// Different handling because of not fixed amount of arguments.
 
 				Array<String> textureNames;
-				for ( int i = 1; i < textureLastNameIndex; i++ )
-					textureNames.Push( configFileLine[ i ] );
+
+				for ( int i = 1; i < textureLastNameIndex; i++ ) {
+					int regexBracketStart = configFileLine[ i ].IndexOf( "[" );
+
+					if ( regexBracketStart == -1 ) {
+						textureNames.Push( configFileLine[ i ] );
+					} else {
+						Array<String> unregexpedTextureNames;
+						String regexpedName = configFileLine[ i ];
+						uint regexPrevTexturesAmount = 0;
+						uint regexCopyableSymbolsAmount = 0; // Length of the normal symbols string.
+						bool regexCurTextureIndexOffset = false;
+
+						bool inSquareBrackets = false;
+
+						//console.printf( "regex.Length(): " .. regexpedName.Length() );
+						unregexpedTextureNames.Push( "" );
+
+						for ( int j = 0; j < regexpedName.Length(); j++ ) {
+							String curchar = regexpedName.CharAt( j );
+
+							if ( curchar == "[" ) {
+								if ( !inSquareBrackets ) {
+									inSquareBrackets = true;
+									regexPrevTexturesAmount = unregexpedTextureNames.Size();
+									regexCurTextureIndexOffset = 0;
+								} else {
+									ParserError( "::ParseBlockHeader(). Double square brackets nest in the regular expression \"" .. regexpedName .. "\"." );
+									break;
+								}
+
+							} else if ( curchar == "]" ) {
+								if ( inSquareBrackets ) {
+									inSquareBrackets = false;
+									regexCopyableSymbolsAmount++;
+								} else {
+									ParserError( "::ParseBlockHeader(). Closing bracket comes before opening in the regular expression \"" .. regexpedName .. "\"." );
+									break;
+								}
+
+							} else if ( !inSquareBrackets ) {
+								// Just copy current symbol to the end of each previous texture names.
+								for ( int k = 0; k < unregexpedTextureNames.Size(); k++ )
+									unregexpedTextureNames[ k ] = unregexpedTextureNames[ k ] .. curchar;
+								regexCopyableSymbolsAmount++;
+
+							} else {
+								// In-brackets behaviour, brute dynamical array expanding.
+								for ( int k = 0; k < regexPrevTexturesAmount; k++ ) {
+									String newUnregexpedTextureName = unregexpedTextureNames[ k ].Left( regexCopyableSymbolsAmount ) .. curchar;
+
+									if ( regexCurTextureIndexOffset )
+										unregexpedTextureNames.Push( newUnregexpedTextureName );
+									else
+										unregexpedTextureNames[ k ] = newUnregexpedTextureName;
+								}
+
+								regexCurTextureIndexOffset = true;
+							}
+						} // of for ( int j = 0; j < regexpedName.Size(); j++ ) {}
+
+						if ( parserErrorFlag )
+							break;
+
+						for ( int j = 0; j < unregexpedTextureNames.Size(); j++ ) {
+							//console.printf( "Unregexped[ " .. j .. " ]: " .. unregexpedTextureNames[ j ] );
+							textureNames.Push( unregexpedTextureNames[ j ] );
+						}
+					} // of else of if ( regexBracketStart == -1 ) {}
+
+				} // of for ( int i = 1; i < textureLastNameIndex; i++ ) {}
+
+				if ( parserErrorFlag )
+					break;
 
 				parserCurTexture = AutoAmbientTexture.CreateTemporalBase();
 				parserCurTexture.actionlineCheck = parserDefaultTexture.actionlineCheck;
