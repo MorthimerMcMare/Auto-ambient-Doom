@@ -52,9 +52,10 @@ class AutoAmbientHandler: StaticEventHandler {
 
 	String aaConfigFile;
 	Array<String> aaConfigLines;
+	bool aaConfigEoF;
 	int parserLineNum;
 	bool parserErrorFlag;
-	Array<String> configFileLine; // One line from the configuration file, "getNextConfigLine()" stores the value here.
+	Array<String> configFileLine; // One line from the configuration file, "readNextConfigLine()" stores the value here.
 
 	EAutoAmbientParserBlocks parserCurBlockType;
 
@@ -143,32 +144,78 @@ class AutoAmbientHandler: StaticEventHandler {
 	*/
 
 	void readNextConfigLine( void ) {
-		configFileLine.Clear();
+		if ( !aaConfigEoF ) {
+			bool repeatFlag = true;
+			configFileLine.Clear();
 
-		if ( ++parserLineNum < aaConfigLines.Size() ) {
-			//int newlinePos = aaConfigFile.IndexOf( "\n", parserPos );
-			//int parserPos = ( newlinePos != -1 )? ( newlinePos - parserPos ) : aaConfigFileLength;
+			while ( repeatFlag ) {
+				String tempstr = aaConfigLines[ parserLineNum ];
+				int newlinePos = tempstr.IndexOf( "#" );
 
-			String tempstr = aaConfigLines[ parserLineNum ];
-			int newlinePos = tempstr.IndexOf( "#" );
+				if ( newlinePos != -1 )
+					tempstr = tempstr.Left( newlinePos );
 
-			if ( newlinePos != -1 )
-				tempstr = tempstr.Left( newlinePos );
+				//console.printf( GetClassName() .. "::readNextConfigLine(). Before parsing. tempstr: \"" .. tempstr .. "\"." );
 
-			tempstr.Replace( "\t", " " );
-			// No quotes check now.
-			tempstr.Split( configFileLine, " ", TOK_SKIPEMPTY );
+				// "String.Split()" realization with quotes check:
+				uint wordStartIndex = 0;
+				int i = 0;
+				bool quoted = false;
+				bool cutWord = false;
 
-			if ( configFileLine.Size() == 1 && configFileLine[ 0 ].CharCodeAt( 0 ) == 0 )
-				configFileLine.Clear();
+				for ( ; i < tempstr.Length(); i++ ) {
+					int charcode = tempstr.CharCodeAt( i );
 
-			//console.printf( "readNextConfigLine(). tempstr: \"" .. tempstr .. "\"." );
-		}
+					if ( charcode == 0x22 ) { // Double quote ('"').
+						if ( quoted ^= true )
+							wordStartIndex++;
+						else
+							cutWord = true;
+					} else if ( ( charcode == 0x20 || charcode == 0x09 ) && !quoted ) { // Space and tab characters.
+						cutWord = true;
+					}
+
+					if ( cutWord ) {
+						uint wordLength = i - wordStartIndex;
+
+						if ( wordLength > 0 )
+							configFileLine.Push( tempstr.Mid( wordStartIndex, wordLength ) );
+
+						wordStartIndex = i + 1;
+						cutWord = false;
+					}
+				} // of for ( int i = 0; i < tempstr.Length(); i++ ) {}
+
+				if ( i - wordStartIndex > 0 ) // Pushing the last word.
+					configFileLine.Push( tempstr.Mid( wordStartIndex ) );
+
+				if ( quoted )
+					console.printf( GetClassName() .. "::readNextConfigLine(). Warning: double quotes ('\"') not closed." );
+
+				//String debugString = "";
+				//for ( i = 0; i < configFileLine.Size(); i++ )
+				//	debugString = debugString .. " \"" .. configFileLine[ i ] .. "\"";
+				//console.printf( GetClassName() .. "::readNextConfigLine(). Parsed words: " .. debugString );
+
+
+				// Finalization. 
+				aaConfigEoF = ( ++parserLineNum >= aaConfigLines.Size() );
+
+				bool emptyStringFlag = ( configFileLine.Size() == 0 || ( configFileLine.Size() == 1 && configFileLine[ 0 ].CharCodeAt( 0 ) == 0 ) );
+
+				if ( emptyStringFlag && aaConfigEoF )
+					configFileLine.Clear();
+
+				repeatFlag = ( !aaConfigEoF && emptyStringFlag );
+			}
+
+		} // of if ( !aaConfigEoF ) {}
 	} // of void readNextConfigLine( void ) {}
 
 
 	void ParserError( String msg ) {
-		for ( int i = 0; i < configFileLine.Size(); i++ ) console.printf( "configFileLine[ " .. i .. " ] = " .. configFileLine[ i ] );
+		for ( int i = 0; i < configFileLine.Size(); i++ )
+			console.printf( "Parser error response. configFileLine[ " .. i .. " ] = \"" .. configFileLine[ i ] .. "\";" );
 
 		console.printf( GetClassName() .. msg );
 		parserErrorFlag = true;
@@ -529,8 +576,8 @@ class AutoAmbientHandler: StaticEventHandler {
 
             aaConfigFile.ToLower();
             aaConfigFile.Replace( "\r", "\n" ); // "dos2unix", "mac2unix"...
-			//aaConfigFileLength = aaConfigFile.Length();
             aaConfigFile.Split( aaConfigLines, "\n", TOK_SKIPEMPTY );
+			//aaConfigFileLength = aaConfigFile.Length();
 
 			while ( parserLineNum < aaConfigLines.Size() && !parserErrorFlag ) {
 				parserCurBlockType = AAPB_Global;
