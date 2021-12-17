@@ -243,9 +243,14 @@ class AutoAmbientSoundActor: Actor {
 
 
 	Default {
+		+INVISIBLE;
+		//+BRIGHT;
+
 		+NOINTERACTION;
 		+NOBLOCKMAP;
-		+INVISIBLE;
+		Scale 0.2;
+		Alpha 1.0;
+		RenderStyle "STYLE_Stencil";
 	}
 
 	void Init( AutoAmbientSoundDefinition initDef ) {
@@ -280,6 +285,9 @@ class AutoAmbientSoundActor: Actor {
 
 		if ( actorInitialized ) {
 			curDelay = Random( 0, ( (playsoundMode == AASM_Looped)? 5 : maxDelay ) );
+
+			if ( !bINVISIBLE )
+				SetShade( "00 00 88" );
 		} else {
 			String soundInfo;
 
@@ -325,7 +333,7 @@ class AutoAmbientSoundActor: Actor {
 	States {
 	Spawn:
 		TNT1 A 0;
-		BAL2 A -1;
+		SPKR A -1;
 		stop;
 	}
 } // of class AutoAmbientSoundActor: Actor {}
