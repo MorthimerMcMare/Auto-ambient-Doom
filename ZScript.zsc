@@ -744,25 +744,34 @@ class AutoAmbientHandler: StaticEventHandler {
 	override void WorldLoaded( WorldEvent e ) {
 		bool dontLoadAutoAmbient = false;
 
-		if ( e.IsSaveGame || parserErrorFlag )
+		// Some checks which prevents second large part from loading:
+		if ( e.IsSaveGame || parserErrorFlag ) {
 			dontLoadAutoAmbient = true;
-
-		AutoAmbientTexture invalidTexture = FindInvalidTexture();
-
-		if ( invalidTexture ) {
+		} else if ( !groups.Size() ) {
+			console.printf( GetClassName() .. "::WorldLoaded(). No group blocks provided in the configuration file." );
 			dontLoadAutoAmbient = true;
-			console.printf( GetClassName() .. "::WorldLoaded(). ERROR: texture definition ID " .. invalidTexture.id .. " is not valid." );
-			console.printf( GetClassName() .. "::WorldLoaded(). Validate callback: " 
-							.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length() 
-							.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. !invalidTexture.groupparams.Size() 
-							.. ", addingErrorFlag=" .. invalidTexture.invalidFlag );
+		} else if ( !textures.Size() ) {
+			console.printf( GetClassName() .. "::WorldLoaded(). No texture definition blocks provided in the configuration file." );
+			dontLoadAutoAmbient = true;
+		} else {
+			AutoAmbientTexture invalidTexture = FindInvalidTexture();
+
+			if ( invalidTexture ) {
+				dontLoadAutoAmbient = true;
+				console.printf( GetClassName() .. "::WorldLoaded(). ERROR: texture definition ID " .. invalidTexture.id .. " is not valid." );
+				console.printf( GetClassName() .. "::WorldLoaded(). Validate callback: " 
+								.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length() 
+								.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. !invalidTexture.groupparams.Size() 
+								.. ", addingErrorFlag=" .. invalidTexture.invalidFlag );
+			}
 		}
-
 
 		if ( dontLoadAutoAmbient ) {
 			Super.WorldLoaded( e );
 			return;
 		}
+
+
 
 		// Static event handler may save information through levels.
 		for ( int i = 0; i < groups.Size(); i++ )
