@@ -62,6 +62,9 @@ $random AA/Computers/Boop { AABEEP1 AABEEP2 AABEEP3 AABEEP4 AABEEP5
 							AABEEP17
 }
 
+// Drips:
+AA/Drips/loop1		AADRIP1
+
 // Duct:
 AA/Duct/loopA/v1	AADUCTA1
 AA/Duct/loopA/v2	AADUCTA2
