@@ -1,0 +1,638 @@
+enum EAutoAmbientParserBlocks {
+	AAPB_Global = 0,
+	AAPB_Texture,
+	AAPB_TexParam,
+	AAPB_Group,
+	AAPB_Sound,
+
+	AAPB_TextureParam = AAPB_TexParam,
+	AAPB_TextureParameter = AAPB_TexParam,
+	AAPB_SoundActor = AAPB_Sound,
+	AAPB_SoundDef = AAPB_Sound
+};
+
+class AutoAmbientConfigParser play {
+	AutoAmbientGlobalHandler g;
+
+	String configFileName;
+	bool parserErrorFlag;
+
+	String rawConfigFile;
+	Array<String> configLines;
+	bool configEoF;
+	int parserLineNum;
+	Array<String> configFileLine; // One line from the configuration file, "readNextConfigLine()" stores the value here.
+
+	EAutoAmbientParserBlocks parserCurBlockType;
+
+	AutoAmbientTexture parserDefaultTexture, parserCurTexture;
+	AutoAmbientTextureParameter parserDefaultTextureParam, parserCurTextureParam;
+	AutoAmbientGroup parserDefaultGroup, parserCurGroup;
+	AutoAmbientSoundDefinition parserDefaultSound, parserCurSound;
+
+	AutoAmbientGroup FindGroup( String groupname ) {
+		for ( int i = 0; i < g.groups.Size(); i++ )
+			if ( g.groups[ i ].name == groupname )
+				return g.groups[ i ];
+		return NULL;
+	}
+	AutoAmbientTextureParameter FindTextureParam( String paramname ) {
+		for ( int i = 0; i < g.textureparams.Size(); i++ )
+			if ( g.textureparams[ i ].name == paramname )
+				return g.textureparams[ i ];
+		return NULL;
+	}
+	AutoAmbientSoundDefinition FindSoundDef( String sndname ) {
+		for ( int i = 0; i < g.sounddefs.Size(); i++ )
+			if ( g.sounddefs[ i ].name == sndname )
+				return g.sounddefs[ i ];
+		return NULL;
+	}
+
+	/*String readNextWord( void ) {
+		String word = "";
+		String curChar = rawConfigFile.CharAt( parserPos );
+
+		// Get rid of the empty symbols and comments before some meaningful word:
+		do {
+			// Empty chars skip ("[ \t\n]"):
+			while ( ( curChar == " " || curChar == "\t" || curChar.CharCodeAt( 0 ) == 10 ) && parserPos < rawConfigFileLength )
+				curChar = rawConfigFile.CharAt( ++parserPos );
+
+			// Comment skip ("\#.*\n"):
+			if ( curChar == "#" )
+				while ( parserPos < rawConfigFileLength && curChar.CharCodeAt( 0 ) != 10 )
+					curChar = rawConfigFile.CharAt( ++parserPos );
+
+			if ( curChar.CharCodeAt( 0 ) == 10 ) {
+				parserLineNum++;
+				curChar = rawConfigFile.CharAt( ++parserPos );
+			}
+		} while ( curChar == "#" && parserPos < rawConfigFileLength );
+		//console.printf( "pos " .. parserPos .. "/" .. rawConfigFileLength .. ", curChar == " .. curChar );
+
+		if ( parserPos < rawConfigFileLength ) {
+			bool quoted = false; // Phrase in "double quotes" is parsed as one word.
+
+			if ( rawConfigFile.CharAt( parserPos ) == '"' ) {
+				quoted = true;
+				curChar = rawConfigFile.CharAt( ++parserPos );
+			}
+
+			while ( parserPos < rawConfigFileLength && ( quoted || ( curChar != " " && curChar != "\t" && curChar.CharCodeAt( 0 ) != 10 ) ) ) {
+				console.printf( "word \"" .. word .. "\", char[ " .. parserPos .. " ] = " .. curChar.CharCodeAt( 0 ) );
+
+				if ( quoted && curChar == '"' ) {
+					quoted ^= true;
+				} else {
+					word = word .. curChar;
+				}
+
+				curChar = rawConfigFile.CharAt( ++parserPos );
+			}
+
+			if ( curChar.CharCodeAt( 0 ) == 10 )
+				parserLineNum++;
+		}
+
+		return word;
+	} // of String readNextWord( void ) {}
+	*/
+
+	void readNextConfigLine( void ) {
+		if ( !configEoF ) {
+			bool repeatFlag = true;
+			configFileLine.Clear();
+
+			while ( repeatFlag ) {
+				String tempstr = configLines[ parserLineNum ];
+				int newlinePos = tempstr.IndexOf( "#" );
+
+				if ( newlinePos != -1 )
+					tempstr = tempstr.Left( newlinePos );
+
+				//console.printf( GetClassName() .. "::readNextConfigLine(). Before parsing. tempstr: \"" .. tempstr .. "\"." );
+
+				// "String.Split()" realization with quotes check:
+				uint wordStartIndex = 0;
+				int i = 0;
+				bool quoted = false;
+				bool cutWord = false;
+
+				for ( ; i < tempstr.Length(); i++ ) {
+					int charcode = tempstr.CharCodeAt( i );
+
+					if ( charcode == 0x22 ) { // Double quote ('"').
+						if ( quoted ^= true )
+							wordStartIndex++;
+						else
+							cutWord = true;
+					} else if ( ( charcode == 0x20 || charcode == 0x09 ) && !quoted ) { // Space and tab characters.
+						cutWord = true;
+					}
+
+					if ( cutWord ) {
+						uint wordLength = i - wordStartIndex;
+
+						if ( wordLength > 0 )
+							configFileLine.Push( tempstr.Mid( wordStartIndex, wordLength ) );
+
+						wordStartIndex = i + 1;
+						cutWord = false;
+					}
+				} // of for ( int i = 0; i < tempstr.Length(); i++ ) {}
+
+				if ( i - wordStartIndex > 0 ) // Pushing the last word.
+					configFileLine.Push( tempstr.Mid( wordStartIndex ) );
+
+				if ( quoted )
+					console.printf( GetClassName() .. "::readNextConfigLine(). Warning: double quotes ('\"') not closed." );
+
+				//String debugString = "";
+				//for ( i = 0; i < configFileLine.Size(); i++ )
+				//	debugString = debugString .. " \"" .. configFileLine[ i ] .. "\"";
+				//console.printf( GetClassName() .. "::readNextConfigLine(). Parsed words: " .. debugString );
+
+
+				// Finalization. 
+				configEoF = ( ++parserLineNum >= configLines.Size() );
+
+				bool emptyStringFlag = ( configFileLine.Size() == 0 || ( configFileLine.Size() == 1 && configFileLine[ 0 ].CharCodeAt( 0 ) == 0 ) );
+
+				if ( emptyStringFlag && configEoF )
+					configFileLine.Clear();
+
+				repeatFlag = ( !configEoF && emptyStringFlag );
+			}
+
+		} // of if ( !configEoF ) {}
+	} // of void readNextConfigLine( void ) {}
+
+
+	void ParserError( String msg ) {
+		for ( int i = 0; i < configFileLine.Size(); i++ )
+			console.printf( "Parser error response. configFileLine[ " .. i .. " ] = \"" .. configFileLine[ i ] .. "\";" );
+
+		console.printf( GetClassName() .. msg );
+		g.parserErrorLine = parserLineNum;
+		g.parserErrorFilename = configFileName;
+	}
+
+	void ParseTextureBlock( void ) {
+		if ( configFileLine[ 0 ] == "group" ) {
+			if ( configFileLine.Size() == 3 || configFileLine.Size() == 4 ) {
+				AutoAmbientGroup texgroup = FindGroup( configFileLine[ 1 ] );
+
+				if ( texgroup ) {
+					if ( configFileLine.Size() == 3 ) {
+						AutoAmbientTextureParameter texparam = FindTextureParam( configFileLine[ 2 ] );
+
+						if ( texparam )
+							parserCurTexture.AddGroupParam( texgroup, texparam );
+						else
+							ParserError( "::ParseTextureBlock(). \"group\": cannot find texture parameter name \"" .. configFileLine[ 1 ] .. "\"." );
+					} else {
+						parserCurTexture.AddGroup( texgroup, ( configFileLine[ 2 ].ToDouble(), configFileLine[ 3 ].ToDouble() ) );
+					}
+				} else {
+					ParserError( "::ParseTextureBlock(). \"group\": cannot find group name \"" .. configFileLine[ 1 ] .. "\"." );
+				}
+			} else {
+				ParserError( "::ParseTextureBlock(). \"group\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <name> <x> <y> or <name> <texparam>)." );
+			} // of else of if ( configFileLine.Size() == 2 || configFileLine.Size() == 3 ) {}
+
+		} else if ( configFileLine[ 0 ] == "samelinecheck" ) {
+			ParserError( "::ParseTextureBlock(). \"samelinecheck\": not released yet." );
+		} else if ( configFileLine[ 0 ] == "actionlinecheck" ) {
+			ParserError( "::ParseTextureBlock(). \"actionlinecheck\": not released yet." );
+		} else {
+			ParserError( "::ParseTextureBlock(). Unknown keyword \"" .. configFileLine[ 0 ] .. "\"." );
+		}
+	} // of void ParseTextureBlock( void ) {}
+
+	void ParseTextureParameterBlock( void ) {
+		// Right now percentage are defined as negative float-point digits.
+		uint lineArgsAmount = configFileLine.Size();
+
+		if ( configFileLine[ 0 ] == "start" ) {
+			if ( lineArgsAmount == 3 )
+				parserCurTextureParam.start = ( configFileLine[ 1 ].ToDouble(), configFileLine[ 2 ].ToDouble() );
+			else
+				ParserError( "::ParseTextureParameterBlock(). \"start\": wrong amout of arguments (got " .. lineArgsAmount .. ", must be <x> <y>)." );
+		} else if ( configFileLine[ 0 ] == "offset" ) {
+			if ( lineArgsAmount == 3 )
+				parserCurTextureParam.offset = ( configFileLine[ 1 ].ToDouble(), configFileLine[ 2 ].ToDouble() );
+			else
+				ParserError( "::ParseTextureParameterBlock(). \"offset\": wrong amout of arguments (got " .. lineArgsAmount .. ", must be <x> <y>)." );
+		} else if ( configFileLine[ 0 ] == "random" ) {
+			switch ( lineArgsAmount ) {
+				case 2: parserCurTextureParam.spreading.x = parserCurTextureParam.spreading.y = ( configFileLine[ 1 ].ToDouble() );
+					break;
+				case 3: parserCurTextureParam.spreading = ( configFileLine[ 1 ].ToDouble(), configFileLine[ 2 ].ToDouble() );
+					break;
+				default: ParserError( "::ParseTextureParameterBlock(). \"random\": wrong amout of arguments (got " .. lineArgsAmount .. ", must be <rndxy> or <rndx> <rndy>)." );
+					break;
+			}
+		} else if ( configFileLine[ 0 ] == "chance" ) {
+			if ( lineArgsAmount == 2 )
+				parserCurTextureParam.chance = configFileLine[ 1 ].ToDouble();
+			else
+				ParserError( "::ParseTextureParameterBlock(). \"chance\": wrong amout of arguments (got " .. lineArgsAmount .. ", must be <value>)." );
+		}
+	} // of void ParseTextureParameterBlock( void ) {}
+
+	void ParseGroupBlock( void ) {
+		if ( configFileLine[ 0 ] == "mindistance" ) {
+			if ( configFileLine.Size() == 2 )
+				parserCurGroup.actorsDistance = configFileLine[ 1 ].ToDouble();
+			else
+				ParserError( "::ParseGroupBlock(). \"mindistance\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <distance>." );
+
+		} else if ( configFileLine[ 0 ] == "soundactor" ) {
+			if ( configFileLine.Size() > 1 ) {
+				for ( int i = 1; i < configFileLine.Size(); i++ ) {
+					AutoAmbientSoundDefinition gsnd = FindSoundDef( configFileLine[ i ] );
+
+					if ( gsnd ) {
+						parserCurGroup.AddSoundClass( gsnd );
+					} else {
+						ParserError( "::ParseGroupBlock(). \"soundactor\": Cannot find class \"" .. configFileLine[ i ] .. "\"." );
+						return;
+					}
+				}
+			} else {
+				ParserError( "::ParseGroupBlock(). \"soundactor\": no argument(s)." );
+			}
+
+		} else if ( configFileLine[ 0 ] == "loopedsound" ) {
+			uint lineArgsAmount = configFileLine.Size();
+
+			if ( lineArgsAmount > 1 && lineArgsAmount < 5 ) {
+				double newsndvolume = ( lineArgsAmount > 1 )? configFileLine[ 2 ].ToDouble() : 1.0;
+				double newsndattn = ( lineArgsAmount == 4 )? configFileLine[ 3 ].ToDouble() : 1.0;
+
+				parserCurGroup.AddAutoLoopedSound( configFileLine[ 1 ], newsndvolume, newsndattn );
+			} else {
+				ParserError( "::ParseGroupBlock(). \"loopedsound\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <snd> [<volume> [<attenuation>]])." );
+			} // of else of if ( configFileLine.Size() == 2 || configFileLine.Size() == 3 ) {}
+
+		} else if ( configFileLine[ 0 ] == "actor" ) {
+			if ( configFileLine.Size() > 1 ) {
+				for ( int i = 1; i < configFileLine.Size() + 1; i++ ) {
+					if ( !parserCurGroup.AddClass( configFileLine[ i ] ) ) {
+						ParserError( "::ParseGroupBlock(). \"actor\": Cannot find class \"" .. configFileLine[ i ] .. "\"." );
+						return;
+					}
+				}
+			} else {
+				ParserError( "::ParseGroupBlock(). \"actor\": no argument(s)." );
+			}
+		} else {
+			ParserError( "::ParseGroupBlock(). Unknown keyword \"" .. configFileLine[ 0 ] .. "\"." );
+		}
+	} // of void ParseGroupBlock( void ) {}
+
+	void ParseSoundActorBlock( void ) {
+		if ( configFileLine[ 0 ] == "sound" ) {
+			if ( configFileLine.Size() == 2 )
+				parserCurSound.snd = configFileLine[ 1 ];
+			else
+				ParserError( "::ParseSoundActorBlock(). \"sound\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <sound>." );
+
+		} else if ( configFileLine[ 0 ] == "mode" ) {
+			uint lineArgsAmount = configFileLine.Size();
+
+			if ( lineArgsAmount > 1 ) {
+				if ( configFileLine[ 1 ] == "looped" && lineArgsAmount == 2 ) {
+					parserCurSound.sndMode = AASM_Looped;
+				} else if ( configFileLine[ 1 ] == "fixed" && lineArgsAmount == 3 ) {
+					parserCurSound.sndMode = AASM_Fixed;
+					parserCurSound.minDelay = configFileLine[ 2 ].ToDouble();
+				} else if ( configFileLine[ 1 ] == "random" && lineArgsAmount == 4 ) {
+					parserCurSound.sndMode = AASM_Random;
+					parserCurSound.minDelay = configFileLine[ 2 ].ToDouble();
+					parserCurSound.maxDelay = configFileLine[ 3 ].ToDouble();
+				} else {
+					ParserError( "::ParseSoundActorBlock(). \"mode\": wrong arguments (must be (looped|fixed <mintics>|random <mintics> <maxtics>)." );
+				}
+			} else {
+				ParserError( "::ParseSoundActorBlock(). \"mode\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be (looped|fixed <mintics>|random <mintics> <maxtics>)." );
+			}
+
+		} else if ( configFileLine[ 0 ] == "volume" ) {
+			if ( configFileLine.Size() == 2 )
+				parserCurSound.sndVolume = configFileLine[ 1 ].ToDouble();
+			else
+				ParserError( "::ParseSoundActorBlock(). \"volume\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <sound>." );
+
+		} else if ( configFileLine[ 0 ] == "attn" ) {
+			if ( configFileLine.Size() == 2 )
+				parserCurSound.sndAttenuation = configFileLine[ 1 ].ToDouble();
+			else
+				ParserError( "::ParseSoundActorBlock(). \"attn\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <sound>." );
+
+		} else {
+			ParserError( "::ParseSoundActorBlock(). Unknown keyword \"" .. configFileLine[ 0 ] .. "\"." );
+		}
+	} // of void ParseSoundActorBlock( void ) {}
+
+
+
+	void ParseBlockHeader( void ) {
+		// Guaranted that amount of words in line is greater than 2.
+		// Second case is for using totally default parameters.
+
+		String lastWord = configFileLine[ configFileLine.Size() - 1 ];
+		bool emptyBlock = ( lastWord == "{}" || ( configFileLine[ configFileLine.Size() - 2 ] == "{" && lastWord == "}" ) );
+
+		if ( !emptyBlock && lastWord != "{" ) {
+			ParserError( "::ParseBlockHeader(). '{' after \"" .. configFileLine[ 1 ] .. "\" expected." ); // '}}' for the not clever colorer.
+			return;
+		}
+
+		int textureLastNameIndex = configFileLine.Size() - 1;
+		if ( lastWord == /*'{'*/ "}" )
+			textureLastNameIndex--;
+
+		String blockIdentifier = configFileLine[ 1 ];
+
+		//console.printf( "Block identifier (second word): " .. blockIdentifier );
+
+		if ( !emptyBlock && parserCurBlockType != AAPB_Texture )
+			readNextConfigLine();
+
+		switch ( parserCurBlockType ) {
+			case AAPB_Texture:
+				// Different handling because of not fixed amount of arguments.
+
+				Array<String> textureNames;
+
+				// Symbol-by-symbol regular expressions handling:
+				for ( int i = 1; i < textureLastNameIndex; i++ ) {
+					int regexBracketStart = configFileLine[ i ].IndexOf( "[" );
+
+					if ( regexBracketStart == -1 ) {
+						textureNames.Push( configFileLine[ i ] );
+					} else {
+						Array<String> unregexpedTextureNames;
+						String regexpedName = configFileLine[ i ];
+						uint regexPrevTexturesAmount = 0;
+						uint regexCopyableSymbolsAmount = 0; // Length of the normal symbols string.
+						bool regexCurTextureIndexOffset = false;
+
+						bool inSquareBrackets = false;
+
+						//console.printf( "regex.Length(): " .. regexpedName.Length() );
+						unregexpedTextureNames.Push( "" );
+
+						for ( int j = 0; j < regexpedName.Length(); j++ ) {
+							String curchar = regexpedName.CharAt( j );
+
+							if ( curchar == "[" ) {
+								if ( !inSquareBrackets ) {
+									inSquareBrackets = true;
+									regexPrevTexturesAmount = unregexpedTextureNames.Size();
+									regexCurTextureIndexOffset = 0;
+								} else {
+									ParserError( "::ParseBlockHeader(). Double square brackets nest in the regular expression \"" .. regexpedName .. "\"." );
+									break;
+								}
+
+							} else if ( curchar == "]" ) {
+								if ( inSquareBrackets ) {
+									inSquareBrackets = false;
+									regexCopyableSymbolsAmount++;
+								} else {
+									ParserError( "::ParseBlockHeader(). Closing bracket comes before opening in the regular expression \"" .. regexpedName .. "\"." );
+									break;
+								}
+
+							} else if ( !inSquareBrackets ) {
+								// Just copy current symbol to the end of each previous texture names.
+								for ( int k = 0; k < unregexpedTextureNames.Size(); k++ )
+									unregexpedTextureNames[ k ] = unregexpedTextureNames[ k ] .. curchar;
+								regexCopyableSymbolsAmount++;
+
+							} else {
+								// In-brackets behaviour, brute dynamical array expanding.
+								for ( int k = 0; k < regexPrevTexturesAmount; k++ ) {
+									String newUnregexpedTextureName = unregexpedTextureNames[ k ].Left( regexCopyableSymbolsAmount ) .. curchar;
+
+									if ( regexCurTextureIndexOffset )
+										unregexpedTextureNames.Push( newUnregexpedTextureName );
+									else
+										unregexpedTextureNames[ k ] = newUnregexpedTextureName;
+								}
+
+								regexCurTextureIndexOffset = true;
+							}
+						} // of for ( int j = 0; j < regexpedName.Size(); j++ ) {}
+
+						if ( parserErrorFlag )
+							break;
+
+						for ( int j = 0; j < unregexpedTextureNames.Size(); j++ ) {
+							//console.printf( "Unregexped[ " .. j .. " ]: " .. unregexpedTextureNames[ j ] );
+							textureNames.Push( unregexpedTextureNames[ j ] );
+						}
+					} // of else of if ( regexBracketStart == -1 ) {}
+
+				} // of for ( int i = 1; i < textureLastNameIndex; i++ ) {}
+
+				if ( parserErrorFlag )
+					break;
+
+				parserCurTexture = AutoAmbientTexture.CreateTemporalBase();
+				parserCurTexture.actionlineCheck = parserDefaultTexture.actionlineCheck;
+				parserCurTexture.samelineCheck = parserDefaultTexture.samelineCheck;
+
+				if ( !emptyBlock ) {
+					readNextConfigLine();
+					while ( !parserErrorFlag && ( !configFileLine.Size() ^ ( configFileLine[ 0 ] != /*'{'*/ "}" ) ) ) {
+						ParseTextureBlock();
+						readNextConfigLine();
+					}
+				} else {
+					for ( int i = 0; i < parserDefaultTexture.groups.Size(); i++ )
+						parserCurTexture.AddGroupParam( parserDefaultTexture.groups[ i ], parserDefaultTexture.groupparams[ i ] );
+
+					parserCurTexture.actionlineCheck = parserDefaultTexture.actionlineCheck;
+					parserCurTexture.samelineCheck = parserDefaultTexture.samelineCheck;
+				} // of else, of if ( !emptyBlock ) {}
+
+				for ( int i = 0; i < textureNames.Size(); i++ ) {
+					String curIdentifier = textureNames[ i ];
+					AutoAmbientTexture newTextureDef;
+
+					if ( curIdentifier == "default" ) {
+						newTextureDef = parserDefaultTexture;
+						newTextureDef.groups.Clear();
+						newTextureDef.groupparams.Clear();
+					} else {
+						newTextureDef = AutoAmbientTexture.Create( curIdentifier );
+
+						if ( !newTextureDef ) {
+							ParserError( "::ParseBlockHeader(). \"texture\": Wrong texture name \"" .. curIdentifier .. "\"." );
+							break;
+						}
+					}
+
+					if ( newTextureDef ) {
+						for ( int i = 0; i < parserCurTexture.groups.Size(); i++ )
+							newTextureDef.AddGroupParam( parserCurTexture.groups[ i ], parserCurTexture.groupparams[ i ].Copy() );
+
+						newTextureDef.actionlineCheck = parserCurTexture.actionlineCheck;
+						newTextureDef.samelineCheck = parserCurTexture.samelineCheck;
+
+						if ( newTextureDef != parserDefaultTexture )
+							g.textures.Push( newTextureDef );
+					} // of if ( parserCurTexture ) {}
+
+				} // of for ( int i = 0; i < textureNames.Size(); i++ ) {}
+				break;
+			case AAPB_TextureParameter:
+				if ( blockIdentifier == "default" )
+					parserCurTextureParam = parserDefaultTextureParam;
+				else
+					parserCurTextureParam = AutoAmbientTextureParameter.Create( blockIdentifier, parserDefaultTextureParam.start, parserDefaultTextureParam.offset, parserDefaultTextureParam.spreading, parserDefaultTextureParam.chance );
+
+				if ( !emptyBlock )
+					while ( !parserErrorFlag && ( !configFileLine.Size() ^ ( configFileLine[ 0 ] != /*'{'*/ "}" ) ) ) {
+						ParseTextureParameterBlock();
+						readNextConfigLine();
+					}
+
+				if ( parserCurTextureParam && parserCurTextureParam != parserDefaultTextureParam )
+					g.textureparams.Push( parserCurTextureParam );
+				break;
+			case AAPB_Group:
+				if ( blockIdentifier == "default" ) {
+					parserCurGroup = parserDefaultGroup;
+					parserCurGroup.classes.Clear();
+					parserCurGroup.autoclasses.Clear();
+				} else {
+					parserCurGroup = AutoAmbientGroup.Create( blockIdentifier, parserDefaultGroup.actorsDistance );
+				}
+
+				if ( !emptyBlock )
+					while ( !parserErrorFlag && ( !configFileLine.Size() ^ ( configFileLine[ 0 ] != /*'{'*/ "}" ) ) ) {
+						ParseGroupBlock();
+						readNextConfigLine();
+					}
+
+				if ( parserCurGroup && parserCurGroup != parserDefaultGroup )
+					g.groups.Push( parserCurGroup );
+				break;
+			case AAPB_SoundDef:
+				if ( blockIdentifier == "default" ) {
+					parserCurSound = parserDefaultSound;
+				} else {
+					parserCurSound = AutoAmbientSoundDefinition.Create( blockIdentifier, "null",
+							parserDefaultSound.sndMode, parserDefaultSound.sndVolume, parserDefaultSound.sndAttenuation,
+							parserDefaultSound.minDelay, parserDefaultSound.maxDelay );
+				}
+
+				if ( !emptyBlock )
+					while ( !parserErrorFlag && ( !configFileLine.Size() ^ ( configFileLine[ 0 ] != /*'{'*/ "}" ) ) ) {
+						ParseSoundActorBlock();
+						readNextConfigLine();
+					}
+
+				if ( parserCurSound && parserCurSound != parserDefaultSound )
+					g.sounddefs.Push( parserCurSound );
+				break;
+			case AAPB_Global:
+				ParserError( "::ParseBlockHeader(). Impossible parser block type \"Global\"." );
+				break;
+			default:
+				ParserError( "::ParseBlockHeader(). Unrecognized parser block type " .. parserCurBlockType .. "." );
+				break;
+		}
+
+	} // of void ParseBlockHeader( void ) {}
+
+
+
+	void ParseGlobalScope( void ) {
+		readNextConfigLine();
+		//console.printf( GetClassName() .. "::ParseGlobalScope(). Parsed line \"" .. curWord .. "\"." );
+
+		uint lineArgsAmount = configFileLine.Size();
+
+		if ( lineArgsAmount > 0 ) {
+			if ( lineArgsAmount == 2 && configFileLine[ 0 ] == "include" ) {
+				if ( g.CheckReplicateParserAmount() )
+					AutoAmbientConfigParser.Create( g ).ParseFile( configFileLine[ 1 ] );
+				else
+					console.printf( GetClassName() .. "::ParseGlobalScope(). WARNING: maximal amount of nested includes reached, file \"" .. configFileLine[ 1 ] .. "\" skipped (line " .. parserLineNum .. " in file \"" .. configFileName .. "\")." );
+			} else if ( configFileLine[ 0 ] == "texture" ) {
+				if ( lineArgsAmount > 2 ) {
+					parserCurBlockType = AAPB_Texture;
+					ParseBlockHeader();
+				} else {
+					ParserError( "::ParseGlobalScope(). Amount of words after the texture block definition must be greater than 1." );
+				}
+			} else if ( lineArgsAmount == 3 ) {
+				if ( configFileLine[ 0 ] == "textureparam" )
+					parserCurBlockType = AAPB_TextureParam;
+				else if ( configFileLine[ 0 ] == "group" )
+					parserCurBlockType = AAPB_Group;
+				else if ( configFileLine[ 0 ] == "soundactor" )
+					parserCurBlockType = AAPB_SoundDef;
+				else
+					ParserError( "::ParseGlobalScope(). Unknown global scope keyword \"" .. configFileLine[ 0 ] .. "\"." );
+
+				if ( parserCurBlockType != AAPB_Global )
+					ParseBlockHeader();
+			} else {
+				ParserError( "::ParseGlobalScope(). Incorrect global scope keyword sequence (\"" .. configFileLine[ 0 ] .. " <...>\")." );
+			}
+		} // of if ( lineArgsAmount > 0 ) {}
+	} // of void ParseGlobalScope( void ) {}
+
+
+
+	void ParseFile( String rawConfigFilename ) {
+		configFileName = rawConfigFilename;
+
+		parserDefaultTexture = AutoAmbientTexture.CreateTemporalBase();
+		parserDefaultTextureParam = AutoAmbientTextureParameter.Create( "Default texture parameter", ( -50.0, -50.0 ), ( -100.0, -100.0 ), ( 0.0, 0.0 ), 1.0 );
+		parserDefaultGroup = AutoAmbientGroup.Create( "Default group", 256 );
+		parserDefaultSound = AutoAmbientSoundDefinition.Create( "Default sound definition", "null", AASM_Looped, 1.0, 1.0, 35, 35 );
+
+		parserCurTexture = NULL;
+		parserCurTextureParam = NULL;
+		parserCurGroup = NULL;
+		parserCurSound = NULL;
+
+		int rawConfigFileHandler = Wads.FindLump( configFileName );
+
+		// Configuration file unparsing:
+        if ( rawConfigFileHandler != -1 ) {
+			console.printf( GetClassName() .. "::ParseFile(). Parsing file \"" .. configFileName .. "\"." );
+			parserLineNum = 0;
+            rawConfigFile = Wads.ReadLump( rawConfigFileHandler );
+
+            rawConfigFile.ToLower();
+            rawConfigFile.Replace( "\r", "\n" ); // "dos2unix", "mac2unix"...
+            rawConfigFile.Split( configLines, "\n", TOK_SKIPEMPTY );
+			//rawConfigFileLength = rawConfigFile.Length();
+
+			while ( parserLineNum < configLines.Size() && !parserErrorFlag ) {
+				parserCurBlockType = AAPB_Global;
+				ParseGlobalScope();
+			}
+
+        } else {
+			ParserError( "::ParseFile(). Cannot find file \"" .. configFileName .. "\"." );
+		}
+	} // of void ParseFile( void ) {}
+
+	static AutoAmbientConfigParser Create( AutoAmbientGlobalHandler globalHandler ) {
+		AutoAmbientConfigParser newParser = new( 'AutoAmbientConfigParser' );
+		newParser.g = globalHandler;
+
+		return newParser;
+	}
+
+} // of class AutoAmbientConfigParser {}
