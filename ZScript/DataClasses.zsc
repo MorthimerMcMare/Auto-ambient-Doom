@@ -124,10 +124,12 @@ class AutoAmbientTexture {
 					param.offset.x = size.x * -param.offset.x / 100.0;
 				if ( param.offset.y <= 0.0 )
 					param.offset.y = size.y * -param.offset.y / 100.0;
-			}
 
-			if ( param.spreading.y < 0.0 )
-				param.spreading.y = param.spreading.x;
+				if ( param.spreading.x <= 0.0 )
+					param.spreading.x = size.x * -param.spreading.x / 100.0;
+				if ( param.spreading.y <= 0.0 )
+					param.spreading.y = size.y * -param.spreading.y / 100.0;
+			}
 		} else {
 			invalidFlag = true;
 		}
