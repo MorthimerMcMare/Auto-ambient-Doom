@@ -146,7 +146,7 @@ AA/Hell/loop3		AAHELL3
 AA/LumeniscentLamps/loopA/v1	AALUMLA1
 AA/LumeniscentLamps/loopA/v2	AALUMLA2
 $random AA/LumeniscentLamps/loopA { AA/LumeniscentLamps/loopA/v1 AA/LumeniscentLamps/loopA/v2 }
-AA/LumeniscentLamps/loop1		AALUML1
+AA/LumeniscentLamps/loop1		AALUML1 // This sound forces libmpg123 to wail "Illegal Audio-MPEG-Header 0x00000054 at offset 79093".
 AA/LumeniscentLamps/loop2		AALUML2
 
 // Pipes:
