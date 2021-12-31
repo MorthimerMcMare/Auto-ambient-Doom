@@ -101,10 +101,10 @@ class AutoAmbientConfigParser play {
 
 	void readNextConfigLine( void ) {
 		if ( !configEoF ) {
-			bool repeatFlag = true;
 			configFileLine.Clear();
+			bool emptyStringFlag = false;
 
-			while ( repeatFlag ) {
+			do {
 				String tempstr = configLines[ parserLineNum ];
 				int newlinePos = tempstr.IndexOf( "#" );
 
@@ -151,27 +151,28 @@ class AutoAmbientConfigParser play {
 				//String debugString = "";
 				//for ( i = 0; i < configFileLine.Size(); i++ )
 				//	debugString = debugString .. " \"" .. configFileLine[ i ] .. "\"";
-				//console.printf( GetClassName() .. "::readNextConfigLine(). Parsed words: " .. debugString );
+				//console.printf( GetClassName() .. "::readNextConfigLine(). Line " .. parserLineNum .. " parsed words: " .. debugString );
 
 
 				// Finalization. 
 				configEoF = ( ++parserLineNum >= configLines.Size() );
 
-				bool emptyStringFlag = ( configFileLine.Size() == 0 || ( configFileLine.Size() == 1 && configFileLine[ 0 ].CharCodeAt( 0 ) == 0 ) );
+				emptyStringFlag = ( configFileLine.Size() == 0 || ( configFileLine.Size() == 1 && configFileLine[ 0 ].CharCodeAt( 0 ) == 0 ) );
 
 				if ( emptyStringFlag && configEoF )
 					configFileLine.Clear();
 
-				repeatFlag = ( !configEoF && emptyStringFlag );
-			}
+			} while ( !configEoF && emptyStringFlag );
 
 		} // of if ( !configEoF ) {}
 	} // of void readNextConfigLine( void ) {}
 
 
 	void ParserError( String msg ) {
+		parserErrorFlag = true;
+
 		for ( int i = 0; i < configFileLine.Size(); i++ )
-			console.printf( "Parser error response. configFileLine[ " .. i .. " ] = \"" .. configFileLine[ i ] .. "\";" );
+			console.printf( "ParserError() response. configFileLine[ " .. i .. " ] = \"" .. configFileLine[ i ] .. "\";" );
 
 		console.printf( GetClassName() .. msg );
 		g.parserErrorLine = parserLineNum;
@@ -559,7 +560,7 @@ class AutoAmbientConfigParser play {
 
 		uint lineArgsAmount = configFileLine.Size();
 
-		if ( lineArgsAmount > 0 ) {
+		if ( lineArgsAmount > 0 && !parserErrorFlag ) {
 			if ( lineArgsAmount == 2 && configFileLine[ 0 ] == "include" ) {
 				if ( g.CheckReplicateParserAmount() )
 					AutoAmbientConfigParser.Create( g ).ParseFile( configFileLine[ 1 ] );
@@ -582,12 +583,12 @@ class AutoAmbientConfigParser play {
 				else
 					ParserError( "::ParseGlobalScope(). Unknown global scope keyword \"" .. configFileLine[ 0 ] .. "\"." );
 
-				if ( parserCurBlockType != AAPB_Global )
+				if ( parserCurBlockType != AAPB_Global && !parserErrorFlag )
 					ParseBlockHeader();
 			} else {
 				ParserError( "::ParseGlobalScope(). Incorrect global scope keyword sequence (\"" .. configFileLine[ 0 ] .. " <...>\")." );
 			}
-		} // of if ( lineArgsAmount > 0 ) {}
+		} // of if ( lineArgsAmount > 0 && !parserErrorFlag ) {}
 	} // of void ParseGlobalScope( void ) {}
 
 
@@ -615,8 +616,7 @@ class AutoAmbientConfigParser play {
 
             rawConfigFile.ToLower();
             rawConfigFile.Replace( "\r", "\n" ); // "dos2unix", "mac2unix"...
-            rawConfigFile.Split( configLines, "\n", TOK_SKIPEMPTY );
-			//rawConfigFileLength = rawConfigFile.Length();
+            rawConfigFile.Split( configLines, "\n", TOK_KEEPEMPTY );
 
 			while ( parserLineNum < configLines.Size() && !parserErrorFlag ) {
 				parserCurBlockType = AAPB_Global;

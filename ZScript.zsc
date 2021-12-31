@@ -132,7 +132,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		if ( !parserErrorLine )
 			console.printf( GetClassName() .. "::OnRegister(). Loading configuration done." );
 		else
-			console.printf( GetClassName() .. "::OnRegister(). An error occured in file " .. parserErrorFilename .. " on line " .. parserErrorLine .. " during configuration file parsin" );
+			console.printf( GetClassName() .. "::OnRegister(). Error during configuration files parsing in " .. parserErrorFilename .. " on line " .. parserErrorLine .. "." );
 
 		Super.OnRegister();
 	}
