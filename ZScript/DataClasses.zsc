@@ -41,12 +41,26 @@ class AutoAmbientCacheTexture {
 } // of class AutoAmbientCacheTexture {}
 
 class AutoAmbientTextureParameter {
+	const defaultStart = -50.0;
+	const defaultOffset = -100.0;
+
 	vector2 start, offset, spreading;
 	double chance;
 	String name;
 
 	static AutoAmbientTextureParameter Create( String paramname, vector2 initStartOffset, vector2 initOffset, vector2 initSpreading, double initChance ) {
 		AutoAmbientTextureParameter newDef = new( 'AutoAmbientTextureParameter' );
+
+		// To prevent an infinite loop in actors spawning.
+		if ( initOffset.x >= 0 && initOffset.x < 1.0 ) {
+			initOffset.x = defaultOffset;
+			// Temporal solution.
+			console.printf( "AutoAmbientTextureParameter::Create(). Warning: offset X in texture parameter \"" .. paramname .. "\" is too small (" .. initOffset.x .. "), setting to the default." );
+		}
+		if ( initOffset.y >= 0 && initOffset.y < 1.0 ) {
+			initOffset.y = defaultOffset;
+			console.printf( "AutoAmbientTextureParameter::Create(). Warning: offset Y in texture parameter \"" .. paramname .. "\" is too small (" .. initOffset.y .. "), setting to the default." );
+		}
 
 		newDef.name = paramname;
 		newDef.start = initStartOffset;
@@ -58,7 +72,7 @@ class AutoAmbientTextureParameter {
 	}
 
 	// To enforce AutoAmbientTexture to recalculate offsets based on size.
-	AutoAmbientTextureParameter Copy( void ) {
+	AutoAmbientTextureParameter Copy( void ) const {
 		AutoAmbientTextureParameter copiedDef = new( 'AutoAmbientTextureParameter' );
 
 		copiedDef.name = name;
@@ -137,8 +151,14 @@ class AutoAmbientTexture {
 
 	// By default start point is in the centre of the texture and 
 	//offset is a one texture size (for both X and Y):
-	void AddGroup( AutoAmbientGroup group, vector2 xy = ( -50.0, -50.0 ) ) {
-		AddGroupParam( group, AutoAmbientTextureParameter.Create( "__auto_texparam", xy, ( -100, -100 ), ( 0, 0 ), 1.0 ) );
+	void AddGroup( AutoAmbientGroup group, vector2 xy = ( AutoAmbientTextureParameter.defaultStart, AutoAmbientTextureParameter.defaultStart ) ) {
+		AddGroupParam( group,
+			AutoAmbientTextureParameter.Create(
+					"__auto_texparam", xy,
+					( AutoAmbientTextureParameter.defaultOffset, AutoAmbientTextureParameter.defaultOffset ),
+					( 0, 0 ), 1.0
+			)
+		);
 	}
 
 	bool Validate( void ) {
