@@ -251,8 +251,27 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 					AutoAmbientTexture curtexdef = cachedTexture.texdef;
 
 					if ( curtexdef ) {
-						for ( int j = 0; j < curtexdef.groups.Size(); j++ )
-							curtexdef.groups[ j ].SpawnActor( l, curSidePos, curtexdef, j );
+						Array<AutoAmbientGroup> uniqueGroups;
+
+						for ( int j = 0; j < curtexdef.groups.Size(); j++ ) {
+							AutoAmbientGroup curGroup = curtexdef.groups[ j ];
+
+							curGroup.SpawnActor( l, curSidePos, curtexdef, j );
+
+							bool uniqueGroupFlag = true;
+							for ( int k = 0; k < uniqueGroups.Size(); k++ ) {
+								if ( curGroup == uniqueGroups[ k ] ) {
+									uniqueGroupFlag = false;
+									break;
+								}
+							}
+
+							if ( uniqueGroupFlag )
+								uniqueGroups.Push( curGroup );
+						}
+
+						for ( int j = 0; j < uniqueGroups.Size(); j++ )
+							uniqueGroups[ j ].FlushSpawnLineActors();
 					}
 
 				} // of if ( texID ) {}

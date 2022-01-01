@@ -11,6 +11,13 @@ class AutoAmbientGroup play {
 
 	Array<Actor> spawned; // All spawned on the level auto actors for this group.
 
+	Array<Actor> spawnedOnLine; // Temporal array which contain all positions
+								//to be moved to the "spawned[]" array on the
+								//next iteration. Defined for the right same
+								//line distance checks. Also, not "vector3"
+								//because "Base type for dynamic array types
+								//must be integral, but got Struct<Vector3>".
+
 	static AutoAmbientGroup Create( String groupname, double dist ) {
 		AutoAmbientGroup newGroup = new( 'AutoAmbientGroup' );
 
@@ -53,18 +60,6 @@ class AutoAmbientGroup play {
 		spawned.Clear();
 	}
 
-
-	private bool tooCloseToGrouplings( vector3 newpos, uint spawnedArrayStartIndex, uint spawnedArrayLastIndex ) {
-		for ( int j = spawnedArrayStartIndex; j < spawnedArrayLastIndex; j++ ) {
-			vector3 vecdist = newPos - spawned[ j ].pos;
-
-			if ( vecdist.Length() < actorsDistance )
-				return true;
-		}
-
-		return false;
-	} // of private bool tooCloseToGrouplings( uint spawnedArrayStartIndex, uint spawnedArrayLastIndex ) {}
-	
 
 	void SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupPos ) {
 		if ( !classes.Size() && !autoclasses.Size() )
@@ -214,10 +209,24 @@ class AutoAmbientGroup play {
 
 				// Removing position if it are not far enough away from
 				//previously spawned actors on current line and/or other lines:
-				if ( texdef.linesCheckFlags & AALCF_SelfLineDistCheck )
-					grouplingTooClose = tooCloseToGrouplings( newpos, alreadySpawnedArraySize, spawned.Size() );
-				if ( !grouplingTooClose && ( texdef.linesCheckFlags & AALCF_OtherLinesDistCheck ) )
-					grouplingTooClose = tooCloseToGrouplings( newpos, 0, alreadySpawnedArraySize );
+				if ( texdef.linesCheckFlags & AALCF_SelfLineDistCheck ) {
+					for ( int j = 0; j < spawnedOnLine.Size(); j++ ) {
+						vector3 vecdist = newPos - spawnedOnLine[ j ].pos;
+						if ( vecdist.Length() < actorsDistance ) {
+							grouplingTooClose = true;
+							break;
+						}
+					}
+				}
+				if ( !grouplingTooClose && ( texdef.linesCheckFlags & AALCF_OtherLinesDistCheck ) ) {
+					for ( int j = 0; j < alreadySpawnedArraySize; j++ ) {
+						vector3 vecdist = newPos - spawned[ j ].pos;
+						if ( vecdist.Length() < actorsDistance ) {
+							grouplingTooClose = true;
+							break;
+						}
+					}
+				}
 
 				// Adding new actor to the array if it may be created:
 				if ( !grouplingTooClose ) {
@@ -236,7 +245,7 @@ class AutoAmbientGroup play {
 					}
 
 					if ( newActor ) {
-						spawned.Push( newActor );
+						spawnedOnLine.Push( newActor );
 						console.printf( "Actor " .. newActor.GetClassName() .. " spawned on \"" .. texID .. "->" .. name .. "\" at " .. newActor.pos .. "." );
 					}
 				} // of if ( !grouplingTooClose ) {}
@@ -244,8 +253,17 @@ class AutoAmbientGroup play {
 			} // of for ( double texxy = ( texMapOffset.x + texparam.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {}
 		} // of for ( double texz = ( texMapOffset.y + texparam.start.y ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {}
 
-
 	}  // of void SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupPos ) {}
+
+	void FlushSpawnLineActors( void ) {
+		for ( int i = 0; i < spawnedOnLine.Size(); i++ )
+			spawned.Push( spawnedOnLine[ i ] );
+
+		//if ( spawnedOnLine.Size() )
+		//	console.printf( "Actors flushed." );
+
+		spawnedOnLine.Clear();
+	} // of void FlushSpawnLineActors( void ) {}
 
 } // of class AutoAmbientGroup {}
 
