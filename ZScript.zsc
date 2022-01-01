@@ -20,11 +20,25 @@ enum EAutoAmbientSamelineCheck {
 };
 
 enum EAutoAmbientActionlineCheck {
-	AAAC_Yes = 0,
-	AAAC_Ignore,
+	AAAC_On = 0,
+	AAAC_Off,
+	AAAC_Only,
 	AAAC_AlsoZeroHeight,
 
-	AAAC_Default = AAAC_Yes
+	AAAC_Default = AAAC_On
+};
+
+enum EAutoAmbientLinesCheckFlags {
+	AALCF_CommonLine			= 0x0001,
+	AALCF_CommonLineZeroHeight	= 0x0002,
+	AALCF_ActionLine			= 0x0004,
+	AALCF_ActionLineZeroHeight	= 0x0008,
+	AALCF_SelfLineDistCheck		= 0x0010,
+	AALCF_OtherLinesDistCheck	= 0x0020,
+
+	AALCF_Default = AALCF_CommonLine | AALCF_ActionLine | AALCF_SelfLineDistCheck | AALCF_OtherLinesDistCheck,
+
+	AALCF_Error = 0xFFFF
 };
 
 

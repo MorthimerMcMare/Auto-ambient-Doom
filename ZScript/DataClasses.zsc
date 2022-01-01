@@ -95,8 +95,7 @@ class AutoAmbientTexture {
 	Array<AutoAmbientGroup> groups;
 	Array<AutoAmbientTextureParameter> groupparams;
 
-	EAutoAmbientActionlineCheck actionlineCheck;
-	EAutoAmbientSamelineCheck samelineCheck;
+	EAutoAmbientLinesCheckFlags linesCheckFlags;
 
 
 	static AutoAmbientTexture Create( String textureName ) {
@@ -108,8 +107,7 @@ class AutoAmbientTexture {
 
 			newTex.id = addeeTexID;
 			newTex.size = TexMan.GetScaledSize( addeeTexID );
-			newTex.actionlineCheck = AAAC_Default;
-			newTex.samelineCheck = AASC_Default;
+			newTex.linesCheckFlags = AALCF_Default;
 			newTex.invalidFlag = false;
 		}
 
@@ -118,8 +116,9 @@ class AutoAmbientTexture {
 
 	static AutoAmbientTexture CreateTemporalBase( void ) {
 		AutoAmbientTexture newTex = new( 'AutoAmbientTexture' );
-		newTex.actionlineCheck = AAAC_Default;
-		newTex.samelineCheck = AASC_Default;
+		
+		newTex.linesCheckFlags = AALCF_Default;
+
 		return newTex;
 	}
 

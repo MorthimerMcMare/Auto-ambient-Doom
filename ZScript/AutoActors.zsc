@@ -54,6 +54,18 @@ class AutoAmbientGroup play {
 	}
 
 
+	private bool tooCloseToGrouplings( vector3 newpos, uint spawnedArrayStartIndex, uint spawnedArrayLastIndex ) {
+		for ( int j = spawnedArrayStartIndex; j < spawnedArrayLastIndex; j++ ) {
+			vector3 vecdist = newPos - spawned[ j ].pos;
+
+			if ( vecdist.Length() < actorsDistance )
+				return true;
+		}
+
+		return false;
+	} // of private bool tooCloseToGrouplings( uint spawnedArrayStartIndex, uint spawnedArrayLastIndex ) {}
+	
+
 	void SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupPos ) {
 		if ( !classes.Size() && !autoclasses.Size() )
 			return; // We cannot spawn something if we have no spawn data.
@@ -81,9 +93,15 @@ class AutoAmbientGroup play {
 		if ( !texdef )
 			return; // Return if there's no neccesary texture definition.
 
+		Line attachLine = attachSide.linedef;
+
+		//console.printf( "action: " .. attachLine.special .. ", com " .. texdef.linesCheckFlags & AALCF_CommonLine .. " / act " .. texdef.linesCheckFlags & AALCF_ActionLine );
+		if ( 	( !attachLine.special && !( texdef.linesCheckFlags & AALCF_CommonLine ) )
+			||	(  attachLine.special && !( texdef.linesCheckFlags & AALCF_ActionLine ) ) )
+			return; // Return if user denies current line (action or common) spawning.
+
 		AutoAmbientTextureParameter texparam = texdef.groupparams[ groupPos ];
 
-		Line attachLine = attachSide.linedef;
 		Side oppositeSide = ( ( attachLine.sidedef[ 0 ] == attachSide )? attachLine.sidedef[ 1 ] : attachLine.sidedef[ 0 ] );
 		double lineWidth = attachLine.delta.Length();
 		double lineHeight = 0;
@@ -141,11 +159,17 @@ class AutoAmbientGroup play {
 		} // of switch ( sidePos ) {}
 
 
-		if ( lineHeight <= 0 && !( attachLine.special & texdef.actionlineCheck == AAAC_AlsoZeroHeight ) )
+		if ( lineHeight == 0.0 && !(
+				!attachLine.special && ( texdef.linesCheckFlags & AALCF_CommonLineZeroHeight )
+			||	attachLine.special && ( texdef.linesCheckFlags & AALCF_ActionLineZeroHeight )
+			) )
 			return; // There's no point in creating an actor if the texture is not visible.
 
-		//if ( lineWidth <= texdef.size.x && lineHeight <= texdef.size.y && FRandom( 0.0, 1.0 ) > texparam.chance )
-		//	return; // Return if chance to spawn on small line failed.
+		if ( lineHeight < 0.0 ) {
+			console.printf( GetClassName() .. "::SpawnActor(). Line #" .. attachLine.Index() .. " calculated height is less than 0. It's at least extremely strange." );
+			return;
+		}
+
 
 		if ( unpeggedOffset != 0.0 )
 			unpeggedOffset = texdef.size.y - unpeggedOffset;
@@ -189,17 +213,13 @@ class AutoAmbientGroup play {
 				bool grouplingTooClose = false; // Same meaning as in word "Sibling".
 
 				// Removing position if it are not far enough away from
-				//previously spawned actors:
-				for ( int j = 0; j < alreadySpawnedArraySize; j++ ) {
-					vector2 vecdist = newPos.xy - spawned[ j ].pos.xy;
+				//previously spawned actors on current line and/or other lines:
+				if ( texdef.linesCheckFlags & AALCF_SelfLineDistCheck )
+					grouplingTooClose = tooCloseToGrouplings( newpos, alreadySpawnedArraySize, spawned.Size() );
+				if ( !grouplingTooClose && ( texdef.linesCheckFlags & AALCF_OtherLinesDistCheck ) )
+					grouplingTooClose = tooCloseToGrouplings( newpos, 0, alreadySpawnedArraySize );
 
-					if ( vecdist.Length() < actorsDistance ) {
-						grouplingTooClose = true;
-						break;
-					}
-				}
-
-				// Adding to the an actor if it may be created:
+				// Adding new actor to the array if it may be created:
 				if ( !grouplingTooClose ) {
 					Actor newActor = NULL;
 
@@ -212,7 +232,7 @@ class AutoAmbientGroup play {
 						newActor = Actor.Spawn( "AutoAmbientSoundActor", newPos );
 						AutoAmbientSoundActor( newActor ).Init( autoclasses[ rnd - classesArraySize ] );
 					} else {
-						console.printf( "Warning: random getter " .. rnd .. " is out-of-bounds of classes[ " .. classesArraySize .. " ] and autoclasses[ " .. autoclasses.Size() .. " ]." );
+						console.printf( "Warning: random value " .. rnd .. " is out-of-bounds of classes[ " .. classesArraySize .. " ] and autoclasses[ " .. autoclasses.Size() .. " ]." );
 					}
 
 					if ( newActor ) {
@@ -223,6 +243,7 @@ class AutoAmbientGroup play {
 
 			} // of for ( double texxy = ( texMapOffset.x + texparam.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {}
 		} // of for ( double texz = ( texMapOffset.y + texparam.start.y ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {}
+
 
 	}  // of void SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupPos ) {}
 

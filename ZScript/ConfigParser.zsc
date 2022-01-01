@@ -179,6 +179,28 @@ class AutoAmbientConfigParser play {
 		g.parserErrorFilename = configFileName;
 	}
 
+
+	private EAutoAmbientLinesCheckFlags getLineChecksFlagByWord( String configWord ) const {
+		EAutoAmbientLinesCheckFlags outFlags = AALCF_Error;
+
+		if ( configWord == "common" )
+			outFlags = AALCF_CommonLine;
+		else if ( configWord == "commonzeroheight" )
+			outFlags = AALCF_CommonLineZeroHeight;
+		else if ( configWord == "action" )
+			outFlags = AALCF_ActionLine;
+		else if ( configWord == "actionzeroheight" )
+			outFlags = AALCF_ActionLineZeroHeight;
+		else if ( configWord == "anyzeroheight" )
+			outFlags = AALCF_CommonLineZeroHeight | AALCF_ActionLineZeroHeight;
+		else if ( configWord == "checksamedist" )
+			outFlags = AALCF_SelfLineDistCheck;
+		else if ( configWord == "checkotherdist" )
+			outFlags = AALCF_OtherLinesDistCheck;
+
+		return outFlags;
+	}
+
 	void ParseTextureBlock( void ) {
 		if ( configFileLine[ 0 ] == "group" ) {
 			if ( configFileLine.Size() == 3 || configFileLine.Size() == 4 ) {
@@ -202,10 +224,33 @@ class AutoAmbientConfigParser play {
 				ParserError( "::ParseTextureBlock(). \"group\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <name> <x> <y> or <name> <texparam>)." );
 			} // of else of if ( configFileLine.Size() == 2 || configFileLine.Size() == 3 ) {}
 
-		} else if ( configFileLine[ 0 ] == "samelinecheck" ) {
-			ParserError( "::ParseTextureBlock(). \"samelinecheck\": not released yet." );
-		} else if ( configFileLine[ 0 ] == "actionlinecheck" ) {
-			ParserError( "::ParseTextureBlock(). \"actionlinecheck\": not released yet." );
+		} else if ( configFileLine[ 0 ] == "setlinecheckflag" || configFileLine[ 0 ] == "+lc" ) {
+			if ( configFileLine.Size() == 2 ) {
+				EAutoAmbientLinesCheckFlags setflags = 0;
+
+				if ( configFileLine[ 1 ] == "default" ) {
+					parserCurTexture.linesCheckFlags = 0x0000;
+					setflags = AALCF_Default;
+				} else if ( AALCF_Error == ( setflags = getLineChecksFlagByWord( configFileLine[ 1 ] ) ) ) {
+					ParserError( "::ParseTextureBlock(). \"setlinecheckflag\": unknown flag \"" .. configFileLine[ 1 ] .. "\"." );
+				}
+
+				if ( !parserErrorFlag )
+					parserCurTexture.linesCheckFlags |= setflags;
+			} else {
+				ParserError( "::ParseTextureBlock(). \"setlinecheckflag\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be one)." );
+			}
+		} else if ( configFileLine[ 0 ] == "resetlinecheckflag" || configFileLine[ 0 ] == "-lc" ) {
+			if ( configFileLine.Size() == 2 ) {
+				EAutoAmbientLinesCheckFlags resetflags = 0;
+
+				if ( AALCF_Error != ( resetflags = getLineChecksFlagByWord( configFileLine[ 1 ] ) ) )
+					parserCurTexture.linesCheckFlags &= ~resetflags;
+				else
+					ParserError( "::ParseTextureBlock(). \"resetlinecheckflag\": unknown flag \"" .. configFileLine[ 1 ] .. "\"." );
+			} else {
+				ParserError( "::ParseTextureBlock(). \"resetlinecheckflag\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be one)." );
+			}
 		} else {
 			ParserError( "::ParseTextureBlock(). Unknown keyword \"" .. configFileLine[ 0 ] .. "\"." );
 		}
@@ -275,7 +320,7 @@ class AutoAmbientConfigParser play {
 				parserCurGroup.AddAutoLoopedSound( configFileLine[ 1 ], newsndvolume, newsndattn );
 			} else {
 				ParserError( "::ParseGroupBlock(). \"loopedsound\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <snd> [<volume> [<attenuation>]])." );
-			} // of else of if ( configFileLine.Size() == 2 || configFileLine.Size() == 3 ) {}
+			} // of else of if if ( lineArgsAmount > 1 && lineArgsAmount < 5 ) {}
 
 		} else if ( configFileLine[ 0 ] == "actor" ) {
 			if ( configFileLine.Size() > 1 ) {
@@ -317,7 +362,7 @@ class AutoAmbientConfigParser play {
 					ParserError( "::ParseSoundActorBlock(). \"mode\": wrong arguments (must be (looped|fixed <mintics>|random <mintics> <maxtics>)." );
 				}
 			} else {
-				ParserError( "::ParseSoundActorBlock(). \"mode\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be (looped|fixed <mintics>|random <mintics> <maxtics>)." );
+				ParserError( "::ParseSoundActorBlock(). \"mode\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be (looped|fixed <mintics>|random <mintics> <maxtics>))." );
 			}
 
 		} else if ( configFileLine[ 0 ] == "volume" ) {
@@ -444,8 +489,7 @@ class AutoAmbientConfigParser play {
 					break;
 
 				parserCurTexture = AutoAmbientTexture.CreateTemporalBase();
-				parserCurTexture.actionlineCheck = parserDefaultTexture.actionlineCheck;
-				parserCurTexture.samelineCheck = parserDefaultTexture.samelineCheck;
+				parserCurTexture.linesCheckFlags = parserDefaultTexture.linesCheckFlags;
 
 				if ( !emptyBlock ) {
 					readNextConfigLine();
@@ -456,9 +500,6 @@ class AutoAmbientConfigParser play {
 				} else {
 					for ( int i = 0; i < parserDefaultTexture.groups.Size(); i++ )
 						parserCurTexture.AddGroupParam( parserDefaultTexture.groups[ i ], parserDefaultTexture.groupparams[ i ] );
-
-					parserCurTexture.actionlineCheck = parserDefaultTexture.actionlineCheck;
-					parserCurTexture.samelineCheck = parserDefaultTexture.samelineCheck;
 				} // of else, of if ( !emptyBlock ) {}
 
 				for ( int i = 0; i < textureNames.Size(); i++ ) {
@@ -482,8 +523,7 @@ class AutoAmbientConfigParser play {
 						for ( int i = 0; i < parserCurTexture.groups.Size(); i++ )
 							newTextureDef.AddGroupParam( parserCurTexture.groups[ i ], parserCurTexture.groupparams[ i ].Copy() );
 
-						newTextureDef.actionlineCheck = parserCurTexture.actionlineCheck;
-						newTextureDef.samelineCheck = parserCurTexture.samelineCheck;
+						newTextureDef.linesCheckFlags = parserCurTexture.linesCheckFlags;
 
 						if ( newTextureDef != parserDefaultTexture )
 							g.textures.Push( newTextureDef );
