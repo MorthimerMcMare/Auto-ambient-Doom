@@ -116,7 +116,7 @@ class AutoAmbientTexture {
 
 	static AutoAmbientTexture CreateTemporalBase( void ) {
 		AutoAmbientTexture newTex = new( 'AutoAmbientTexture' );
-		
+
 		newTex.linesCheckFlags = AALCF_Default;
 
 		return newTex;
