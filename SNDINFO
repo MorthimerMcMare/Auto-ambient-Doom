@@ -13,6 +13,11 @@ $random AA/Acid/loopA { AA/Acid/loopA/v1 AA/Acid/loopA/v2 AA/Acid/loopA/v3 AA/Ac
 // Blood pipes:
 AA/BloodPipes/loop1	AABLPIP1
 
+// Blazing:
+AA/Blazing/loop1	AABLAZE1
+AA/Blazing/loop2	AABLAZE2
+AA/Blazing/loop3	AABLAZE3
+
 // Computers:
 AABOOP1		AABOOP1
 AABOOP2		AABOOP2
@@ -76,6 +81,11 @@ $random AA/Duct/loopA { AA/Duct/loopA/v1 AA/Duct/loopA/v2 AA/Duct/loopA/v3 AA/Du
 // Electro (unused):
 AA/Electro/loop1	AAELZAP1
 AA/Electro/loop2	AAELZAP2
+
+// Flame:
+AA/Flame/loop1		AAFLAME1
+AA/Flame/loop2		AAFLAME2
+AA/Flame/loop3		AAFLAME3
 
 // Hell:
 AASCRM00	AASCRM00
