@@ -10,13 +10,16 @@ AA/Acid/loopA/v4	AAACIDA4
 AA/Acid/loopA/v5	AAACIDA5
 $random AA/Acid/loopA { AA/Acid/loopA/v1 AA/Acid/loopA/v2 AA/Acid/loopA/v3 AA/Acid/loopA/v4 AA/Acid/loopA/v5 }
 
-// Blood pipes:
-AA/BloodPipes/loop1	AABLPIP1
-
 // Blazing:
 AA/Blazing/loop1	AABLAZE1
 AA/Blazing/loop2	AABLAZE2
 AA/Blazing/loop3	AABLAZE3
+
+// Blood pipes:
+AA/BloodPipes/loop1	AABLPIP1
+
+// Breathing:
+AA/Breathing/loop1	AABRETH1
 
 // Computers:
 AABOOP1		AABOOP1
