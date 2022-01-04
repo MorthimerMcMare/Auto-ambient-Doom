@@ -34,12 +34,6 @@ class AutoAmbientSoundDefinition {
 } // of class AutoAmbientSoundDefinition {}
 
 
-class AutoAmbientCacheTexture {
-	TextureID texID;
-	AutoAmbientTexture texdef;
-	uint frequency;
-} // of class AutoAmbientCacheTexture {}
-
 class AutoAmbientTextureParameter {
 	const defaultStart = -50.0;
 	const defaultOffset = -100.0;

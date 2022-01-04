@@ -1,5 +1,6 @@
 version "2.4.0"
 
+#include "ZScript/DListTexCache.zsc"
 #include "ZScript/DataClasses.zsc"
 #include "ZScript/AutoActors.zsc"
 #include "ZScript/ConfigParser.zsc"
@@ -56,8 +57,6 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	Array<AutoAmbientTextureParameter> textureparams;
 	Array<AutoAmbientSoundDefinition> sounddefs;
 
-	Array<AutoAmbientCacheTexture> texcache; // Just a list which must be ordered by level use frequency.
-
 	static AutoAmbientGlobalHandler Get( void ) {
 		return AutoAmbientGlobalHandler( StaticEventHandler.Find( "AutoAmbientGlobalHandler" ) );
 	}
@@ -90,8 +89,6 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		groups.Clear(); 
 		textureparams.Clear();
 		sounddefs.Clear();
-
-		texcache.Clear();
 
 		/*lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "Pipe", 256 ) );
 		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Pipes", vol: 0.4, attn: 4.5 );
@@ -198,59 +195,31 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		}*/
 
 
+		AutoAmbientCacheTextureKeeper cachedTextures = AutoAmbientCacheTextureKeeper.CreateKeeper( self );
+
+
 		// A-a-argh! Seven nested "for" cycles in worst case!..
 		//(Alright, it's non-exponential dependence, most of them has from one 
 		//to three iterations).
+
+		// All sides cycle:
 		for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {
 			Side l = level.Sides[ curSideIndex ];
 
+			// Top/middle/bottom texture on line cycle:
 			for ( int curSidePos = Side.top; curSidePos <= Side.bottom; curSidePos++ ) {
 				TextureID texID = l.GetTexture( curSidePos );
 
 				if ( texID ) {
-					//console.printf( "Texture \"" .. TexMan.GetName( texID ) .. "\"." );
-					AutoAmbientCacheTexture cachedTexture = NULL;
-
-					// Here must be a use frequency list, really.
-
-					// Attempt to find texture in cache array:
-					for ( int j = 0; j < texcache.Size(); j++ ) {
-						if ( texcache[ j ].texID == texID ) {
-							cachedTexture = texcache[ j ];
-							texcache[ j ].frequency++;
-
-							// Ordering by use frequency:
-							/*if ( j > 0 && groupcache[ j ].frequency > groupcache[ j - 1 ].frequency ) {
-								// Really slow executing caused by universality.
-								//Moreover, lines below will swap only neighbour
-								//elements ("2, 1, 1, 2" -> "2, 1, 2, 1").
-								groupcache.Insert( j - 1, groupcache[ j ] );
-								groupcache.Delete( j + 1, 1 );
-							} */
-							break;
-						}
-					} // of for ( int j = 0; j < groupcache.Size(); j++ ) {}
-
-					// Creating new texture cache if necessary:
-					if ( !cachedTexture ) {
-						cachedTexture = new( 'AutoAmbientCacheTexture' );
-						cachedTexture.texID = texID;
-						cachedTexture.frequency = 1;
-						cachedTexture.texdef = NULL; // Texture may has no defined ambient actors.
-
-						for ( int j = 0; j < textures.Size(); j++ )
-							if ( textures[ j ].id == texID ) {
-								cachedTexture.texdef = textures[ j ];
-								break;
-							}
-
-						texcache.Push( cachedTexture );
-					}
+					// Finding texture in cache array or creating it there:
+					AutoAmbientCacheTexture cachedTexture = cachedTextures.Update( texID );
 
 					// Spawning actor(s) according to the cached groups:
 					AutoAmbientTexture curtexdef = cachedTexture.texdef;
-
 					if ( curtexdef ) {
+						// Storing actors spawned on one line to flush them at
+						//once later. May look illogical, but it saves about
+						//2-13% of time (see Doom 2 MAP24).
 						Array<AutoAmbientGroup> uniqueGroups;
 
 						for ( int j = 0; j < curtexdef.groups.Size(); j++ ) {
@@ -270,9 +239,10 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 								uniqueGroups.Push( curGroup );
 						}
 
+						// Move all actors spawned on line to the general array:
 						for ( int j = 0; j < uniqueGroups.Size(); j++ )
 							uniqueGroups[ j ].FlushSpawnLineActors();
-					}
+					} // of if ( curtexdef ) {}
 
 				} // of if ( texID ) {}
 
@@ -280,6 +250,26 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 		} // of for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {}
 
+
+		/*
+		console.printf( "AutoAmbientCacheTextureKeeper. Head " .. cachedTextures.head .. " <<->> tail " .. cachedTextures.tail .. "." );
+		AutoAmbientCacheTexture debugTexCache = cachedTextures.head;
+		uint debugTotalTexCacheAmount = 0;
+
+		while ( debugTexCache ) {
+			String debugTexCacheName = String.Format( "%8s", TexMan.GetName( debugTexCache.texID ) );
+			console.printf( "|- Texture " .. debugTexCacheName .. " freq " .. debugTexCache.frequency .. ": (" .. debugTexCache.prev .. ")<p " .. debugTexCache .. " n>(" .. debugTexCache.next .. ")" );
+			debugTexCache = debugTexCache.next;
+			debugTotalTexCacheAmount++;
+		}
+
+		console.printf( "AutoAmbientCacheTextureKeeper. Total texture cache nodes amount: " .. debugTotalTexCacheAmount .. "." );
+		/* */
+
+
+		// Yes, I know perfectly well that garbage collector will successfully 
+		//destroy an array.
+		cachedTextures.Clear();
 
 		Super.WorldLoaded( e );
 	} // of override void WorldLoaded( WorldEvent e ) {}
