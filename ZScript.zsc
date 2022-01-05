@@ -30,14 +30,15 @@ enum EAutoAmbientActionlineCheck {
 };
 
 enum EAutoAmbientLinesCheckFlags {
-	AALCF_CommonLine			= 0x0001,
-	AALCF_CommonLineZeroHeight	= 0x0002,
-	AALCF_ActionLine			= 0x0004,
-	AALCF_ActionLineZeroHeight	= 0x0008,
-	AALCF_SelfLineDistCheck		= 0x0010,
-	AALCF_OtherLinesDistCheck	= 0x0020,
+	AALCF_HandleCommonLines		= 0x0001,
+	//AALCF_CommonLineZeroHeight	= 0x0002,	// Are they necessary?
+	AALCF_HandleActionLines		= 0x0004,
+	//AALCF_ActionLineZeroHeight	= 0x0008,
+	AALCF_SelfLineDistMultipl	= 0x0010,
+	AALCF_OtherLinesDistMultipl	= 0x0020,
+	//AALCF_NoPreCache			= 0x0040,	// Don't save this texture to the texcache.
 
-	AALCF_Default = AALCF_CommonLine | AALCF_ActionLine | AALCF_SelfLineDistCheck | AALCF_OtherLinesDistCheck,
+	AALCF_Default = AALCF_HandleCommonLines | AALCF_HandleActionLines,
 
 	AALCF_Error = 0xFFFF
 };
@@ -197,6 +198,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 		AutoAmbientCacheTextureKeeper cachedTextures = AutoAmbientCacheTextureKeeper.CreateKeeper( self );
 
+		int totalAutoAmbientActorsSpawned = 0;
 
 		// A-a-argh! Seven nested "for" cycles in worst case!..
 		//(Alright, it's non-exponential dependence, most of them has from one 
@@ -225,7 +227,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 						for ( int j = 0; j < curtexdef.groups.Size(); j++ ) {
 							AutoAmbientGroup curGroup = curtexdef.groups[ j ];
 
-							curGroup.SpawnActor( l, curSidePos, curtexdef, j );
+							totalAutoAmbientActorsSpawned += curGroup.SpawnActor( l, curSidePos, curtexdef, j );
 
 							bool uniqueGroupFlag = true;
 							for ( int k = 0; k < uniqueGroups.Size(); k++ ) {
@@ -250,6 +252,8 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 		} // of for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {}
 
+
+		console.printf( GetClassName() .. "::WorldLoaded(). Total ambient actors spawned: " .. totalAutoAmbientActorsSpawned .. "." );
 
 		/*
 		console.printf( "AutoAmbientCacheTextureKeeper. Head " .. cachedTextures.head .. " <<->> tail " .. cachedTextures.tail .. "." );

@@ -61,9 +61,49 @@ class AutoAmbientGroup play {
 	}
 
 
-	void SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupPos ) {
+	private bool checkSpawnDistance( vector3 posToCheck, Array<Actor> arrayToCheck, bool useDistMultipl, double lineDistSpawnChance ) {
+		bool grouplingTooClose = false;
+
+		//( texdef.linesCheckFlags & AALCF_SelfLineDistMultipl );
+		double nextChance = FRandom( 0.0, 1.0 );
+		vector3 vecdist;
+
+		// To prevent the in-cycle check with the same result I'd prefer to 
+		//split the cycles. Seriously.
+		if ( useDistMultipl ) {
+			for ( int j = 0; j < arrayToCheck.Size(); j++ ) {
+				vecdist = posToCheck - arrayToCheck[ j ].pos;
+
+				if ( vecdist.Length() < actorsDistance ) {
+					if ( nextChance > lineDistSpawnChance ) {
+						nextChance = FRandom( 0.0, 1.0 );
+					} else {
+						grouplingTooClose = true;
+						break;
+					}
+				}
+			} // of for ( int j = 0; j < spawnedOnLine.Size(); j++ ) {}
+		} else {
+			for ( int j = 0; j < arrayToCheck.Size(); j++ ) {
+				vecdist = posToCheck - arrayToCheck[ j ].pos;
+
+				if ( vecdist.Length() < actorsDistance ) {
+					if ( useDistMultipl && nextChance > lineDistSpawnChance * vecdist.Length() / actorsDistance ) {
+						nextChance = FRandom( 0.0, 1.0 );
+					} else {
+						grouplingTooClose = true;
+						break;
+					}
+				}
+			} // of for ( int j = 0; j < spawnedOnLine.Size(); j++ ) {}
+		} // of else of if ( useDistMultipl ) {}
+
+		return grouplingTooClose;
+	}
+
+	int SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupPos ) {
 		if ( !classes.Size() && !autoclasses.Size() )
-			return; // We cannot spawn something if we have no spawn data.
+			return 0; // We cannot spawn something if we have no spawn data.
 
 		// Locate a texture definition:
 		TextureID texID = attachSide.GetTexture( sidePos );
@@ -86,14 +126,14 @@ class AutoAmbientGroup play {
 		//console.printf( name .. "/\"" ..  TexMan.GetName( texID ) .. "\". TextureDef: " .. texdef );
 
 		if ( !texdef )
-			return; // Return if there's no neccesary texture definition.
+			return 0; // Return if there's no neccesary texture definition.
 
 		Line attachLine = attachSide.linedef;
 
 		//console.printf( "action: " .. attachLine.special .. ", com " .. texdef.linesCheckFlags & AALCF_CommonLine .. " / act " .. texdef.linesCheckFlags & AALCF_ActionLine );
-		if ( 	( !attachLine.special && !( texdef.linesCheckFlags & AALCF_CommonLine ) )
-			||	(  attachLine.special && !( texdef.linesCheckFlags & AALCF_ActionLine ) ) )
-			return; // Return if user denies current line (action or common) spawning.
+		if ( 	( !attachLine.special && !( texdef.linesCheckFlags & AALCF_HandleCommonLines ) )
+			||	(  attachLine.special && !( texdef.linesCheckFlags & AALCF_HandleActionLines ) ) )
+			return 0; // Return if user denies current line (action or common) spawning.
 
 		AutoAmbientTextureParameter texparam = texdef.groupparams[ groupPos ];
 
@@ -145,7 +185,7 @@ class AutoAmbientGroup play {
 
 					if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
 						unpeggedOffset = lineHeight - texdef.size.y;
-					else 
+					else
 						unpeggedOffset = ( ac - af ) % texdef.size.y;
 				}
 				break;
@@ -154,15 +194,19 @@ class AutoAmbientGroup play {
 		} // of switch ( sidePos ) {}
 
 
-		if ( lineHeight == 0.0 && !(
+		if ( lineHeight == 0.0 || lineWidth == 0.0 )
+			return 0; // There's no point in creating an actor if the texture is not visible.
+
+		/*if ( lineHeight == 0.0 && !(
 				!attachLine.special && ( texdef.linesCheckFlags & AALCF_CommonLineZeroHeight )
 			||	attachLine.special && ( texdef.linesCheckFlags & AALCF_ActionLineZeroHeight )
 			) )
 			return; // There's no point in creating an actor if the texture is not visible.
+		*/
 
-		if ( lineHeight < 0.0 ) {
-			console.printf( GetClassName() .. "::SpawnActor(). Line #" .. attachLine.Index() .. " calculated height is less than 0. It's at least extremely strange." );
-			return;
+		if ( lineHeight < 0.0 || lineWidth < 0.0 ) {
+			console.printf( GetClassName() .. "::SpawnActor(). Line #" .. attachLine.Index() .. " calculated height/width (" .. lineHeight .. "/" .. lineWidth .. ") is less than 0. It's at least extremely strange." );
+			return 0;
 		}
 
 
@@ -189,7 +233,7 @@ class AutoAmbientGroup play {
 			for ( double texxy = ( texparam.start.x - attachSide.GetTextureXOffset( sidePos ) % texdef.size.x ) % texdef.size.x; texxy < lineWidth / ( texparam.offset.x / texdef.size.x ); texxy += texparam.offset.x ) {
 
 				if ( texparam.chance != 0.0 && FRandom( 0.0, 1.0 ) > texparam.chance )
-					continue; // Skip spawning if chance to spawn failed.
+					continue; // Skip spawning if texture parameter chance to spawn failed.
 
 				double texxyRandomized = texxy + FRandom( -texparam.spreading.x, texparam.spreading.x );
 				double texzRandomized = texz + FRandom( -texparam.spreading.y, texparam.spreading.y );
@@ -209,24 +253,11 @@ class AutoAmbientGroup play {
 
 				// Removing position if it are not far enough away from
 				//previously spawned actors on current line and/or other lines:
-				if ( texdef.linesCheckFlags & AALCF_SelfLineDistCheck ) {
-					for ( int j = 0; j < spawnedOnLine.Size(); j++ ) {
-						vector3 vecdist = newPos - spawnedOnLine[ j ].pos;
-						if ( vecdist.Length() < actorsDistance ) {
-							grouplingTooClose = true;
-							break;
-						}
-					}
-				}
-				if ( !grouplingTooClose && ( texdef.linesCheckFlags & AALCF_OtherLinesDistCheck ) ) {
-					for ( int j = 0; j < alreadySpawnedArraySize; j++ ) {
-						vector3 vecdist = newPos - spawned[ j ].pos;
-						if ( vecdist.Length() < actorsDistance ) {
-							grouplingTooClose = true;
-							break;
-						}
-					}
-				}
+				if ( texdef.sameLineDistSpawnChance < 1.0 && spawnedOnLine.Size() )
+					grouplingTooClose = checkSpawnDistance( newPos, spawnedOnLine, texdef.linesCheckFlags & AALCF_SelfLineDistMultipl, texdef.sameLineDistSpawnChance );
+
+				if ( texdef.otherLineDistSpawnChance < 1.0 && !grouplingTooClose )
+					grouplingTooClose = checkSpawnDistance( newPos, spawned, texdef.linesCheckFlags & AALCF_OtherLinesDistMultipl, texdef.otherLineDistSpawnChance );
 
 				// Adding new actor to the array if it may be created:
 				if ( !grouplingTooClose ) {
@@ -253,6 +284,7 @@ class AutoAmbientGroup play {
 			} // of for ( double texxy = ( texMapOffset.x + texparam.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {}
 		} // of for ( double texz = ( texMapOffset.y + texparam.start.y ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {}
 
+		return spawnedOnLine.Size();
 	}  // of void SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupPos ) {}
 
 	void FlushSpawnLineActors( void ) {
@@ -278,7 +310,7 @@ class AutoAmbientSoundActor: Actor {
 
 
 	Default {
-		+INVISIBLE;
+		//+INVISIBLE;
 		+BRIGHT;
 
 		+NOINTERACTION;

@@ -183,20 +183,22 @@ class AutoAmbientConfigParser play {
 	private EAutoAmbientLinesCheckFlags getLineChecksFlagByWord( String configWord ) const {
 		EAutoAmbientLinesCheckFlags outFlags = AALCF_Error;
 
-		if ( configWord == "common" )
-			outFlags = AALCF_CommonLine;
-		else if ( configWord == "commonzeroheight" )
-			outFlags = AALCF_CommonLineZeroHeight;
-		else if ( configWord == "action" )
-			outFlags = AALCF_ActionLine;
-		else if ( configWord == "actionzeroheight" )
-			outFlags = AALCF_ActionLineZeroHeight;
-		else if ( configWord == "anyzeroheight" )
-			outFlags = AALCF_CommonLineZeroHeight | AALCF_ActionLineZeroHeight;
-		else if ( configWord == "checksamedist" )
-			outFlags = AALCF_SelfLineDistCheck;
-		else if ( configWord == "checkotherdist" )
-			outFlags = AALCF_OtherLinesDistCheck;
+		if ( configWord == "handlecommonlines" )
+			outFlags = AALCF_HandleCommonLines;
+		//else if ( configWord == "commonzeroheight" )
+		//	outFlags = AALCF_CommonLineZeroHeight;
+		else if ( configWord == "handleactionlines" )
+			outFlags = AALCF_HandleActionLines;
+		//else if ( configWord == "actionzeroheight" )
+		//	outFlags = AALCF_ActionLineZeroHeight;
+		//else if ( configWord == "anyzeroheight" )
+		//	outFlags = AALCF_CommonLineZeroHeight | AALCF_ActionLineZeroHeight;
+		else if ( configWord == "samelinedistmultipl" || configWord == "selfdistmultipl" )
+			outFlags = AALCF_SelfLineDistMultipl;
+		else if ( configWord == "otherlinesdistmultipl" || configWord == "othersdistmultipl" )
+			outFlags = AALCF_OtherLinesDistMultipl;
+		else if ( configWord == "alllinesdistmultipl" || configWord == "usedistmultipl" )
+			outFlags = AALCF_SelfLineDistMultipl | AALCF_OtherLinesDistMultipl;
 
 		return outFlags;
 	}
@@ -224,7 +226,14 @@ class AutoAmbientConfigParser play {
 				ParserError( "::ParseTextureBlock(). \"group\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <name> <x> <y> or <name> <texparam>)." );
 			} // of else of if ( configFileLine.Size() == 2 || configFileLine.Size() == 3 ) {}
 
-		} else if ( configFileLine[ 0 ] == "setlinecheckflag" || configFileLine[ 0 ] == "+lc" ) {
+		} else if ( configFileLine[ 0 ] == "belowdistchance" ) {
+			if ( configFileLine.Size() == 3 ) {
+				parserCurTexture.sameLineDistSpawnChance = configFileLine[ 1 ].ToDouble();
+				parserCurTexture.otherLineDistSpawnChance = configFileLine[ 2 ].ToDouble();
+			} else {
+				ParserError( "::ParseTextureBlock(). \"belowdistchance\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <samelinechance> <otherlineschance>)." );
+			}
+		} else if ( configFileLine[ 0 ] == "setflag" || configFileLine[ 0 ] == "+f" ) {
 			if ( configFileLine.Size() == 2 ) {
 				EAutoAmbientLinesCheckFlags setflags = 0;
 
@@ -232,24 +241,24 @@ class AutoAmbientConfigParser play {
 					parserCurTexture.linesCheckFlags = 0x0000;
 					setflags = AALCF_Default;
 				} else if ( AALCF_Error == ( setflags = getLineChecksFlagByWord( configFileLine[ 1 ] ) ) ) {
-					ParserError( "::ParseTextureBlock(). \"setlinecheckflag\": unknown flag \"" .. configFileLine[ 1 ] .. "\"." );
+					ParserError( "::ParseTextureBlock(). \"setflag\": unknown flag \"" .. configFileLine[ 1 ] .. "\"." );
 				}
 
 				if ( !parserErrorFlag )
 					parserCurTexture.linesCheckFlags |= setflags;
 			} else {
-				ParserError( "::ParseTextureBlock(). \"setlinecheckflag\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be one)." );
+				ParserError( "::ParseTextureBlock(). \"setflag\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be one)." );
 			}
-		} else if ( configFileLine[ 0 ] == "resetlinecheckflag" || configFileLine[ 0 ] == "-lc" ) {
+		} else if ( configFileLine[ 0 ] == "resetflag" || configFileLine[ 0 ] == "-f" ) {
 			if ( configFileLine.Size() == 2 ) {
 				EAutoAmbientLinesCheckFlags resetflags = 0;
 
 				if ( AALCF_Error != ( resetflags = getLineChecksFlagByWord( configFileLine[ 1 ] ) ) )
 					parserCurTexture.linesCheckFlags &= ~resetflags;
 				else
-					ParserError( "::ParseTextureBlock(). \"resetlinecheckflag\": unknown flag \"" .. configFileLine[ 1 ] .. "\"." );
+					ParserError( "::ParseTextureBlock(). \"resetflag\": unknown flag \"" .. configFileLine[ 1 ] .. "\"." );
 			} else {
-				ParserError( "::ParseTextureBlock(). \"resetlinecheckflag\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be one)." );
+				ParserError( "::ParseTextureBlock(). \"resetflag\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be one)." );
 			}
 		} else {
 			ParserError( "::ParseTextureBlock(). Unknown keyword \"" .. configFileLine[ 0 ] .. "\"." );
@@ -490,6 +499,8 @@ class AutoAmbientConfigParser play {
 
 				parserCurTexture = AutoAmbientTexture.CreateTemporalBase();
 				parserCurTexture.linesCheckFlags = parserDefaultTexture.linesCheckFlags;
+				parserCurTexture.sameLineDistSpawnChance = parserDefaultTexture.sameLineDistSpawnChance;
+				parserCurTexture.otherLineDistSpawnChance = parserDefaultTexture.otherLineDistSpawnChance;
 
 				if ( !emptyBlock ) {
 					readNextConfigLine();

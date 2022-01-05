@@ -5,13 +5,9 @@ class AutoAmbientSoundDefinition {
 	double sndVolume, sndAttenuation;
 	uint minDelay, maxDelay;
 
-	double minRadius, minHeight;
+	//double minRadius, minHeight;
 
-	Array<AutoAmbientGroup> groups;
-
-	/*uint workDistance;
-	Sound workSound;
-	double workSoundVolume, workSoundAttenuation;*/
+	//Array<AutoAmbientGroup> groups;
 
 	static AutoAmbientSoundDefinition Create( String initName, Sound initSnd, EAutoAmbientSoundModes initMode, double initVolume, double initAttn, uint initMinDelay, uint initMaxDelay ) {
 		AutoAmbientSoundDefinition newDef = new( 'AutoAmbientSoundDefinition' );
@@ -24,10 +20,7 @@ class AutoAmbientSoundDefinition {
 		newDef.minDelay = initMinDelay;
 		newDef.maxDelay = initMaxDelay;
 
-		newDef.minRadius = newDef.minHeight = 0.0;
-		/*newDef.workDistance = -1;
-		newDef.workSoundVolume = newDef.workSoundAttenuation = 1.0;
-		newDef.workSound = "";*/
+		//newDef.minRadius = newDef.minHeight = 0.0;
 
 		return newDef;
 	}
@@ -90,6 +83,7 @@ class AutoAmbientTexture {
 	Array<AutoAmbientTextureParameter> groupparams;
 
 	EAutoAmbientLinesCheckFlags linesCheckFlags;
+	double sameLineDistSpawnChance, otherLineDistSpawnChance; // Chance to spawn closer than the group mindistance.
 
 
 	static AutoAmbientTexture Create( String textureName ) {
@@ -103,6 +97,7 @@ class AutoAmbientTexture {
 			newTex.size = TexMan.GetScaledSize( addeeTexID );
 			newTex.linesCheckFlags = AALCF_Default;
 			newTex.invalidFlag = false;
+			newTex.sameLineDistSpawnChance = newTex.otherLineDistSpawnChance = 0.0;
 		}
 
 		return newTex;
