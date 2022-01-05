@@ -535,6 +535,8 @@ class AutoAmbientConfigParser play {
 							newTextureDef.AddGroupParam( parserCurTexture.groups[ i ], parserCurTexture.groupparams[ i ].Copy() );
 
 						newTextureDef.linesCheckFlags = parserCurTexture.linesCheckFlags;
+						newTextureDef.sameLineDistSpawnChance = parserCurTexture.sameLineDistSpawnChance;
+						newTextureDef.otherLineDistSpawnChance = parserCurTexture.otherLineDistSpawnChance;
 
 						if ( newTextureDef != parserDefaultTexture )
 							g.textures.Push( newTextureDef );

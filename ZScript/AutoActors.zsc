@@ -64,20 +64,23 @@ class AutoAmbientGroup play {
 	private bool checkSpawnDistance( vector3 posToCheck, Array<Actor> arrayToCheck, bool useDistMultipl, double lineDistSpawnChance ) {
 		bool grouplingTooClose = false;
 
-		//( texdef.linesCheckFlags & AALCF_SelfLineDistMultipl );
 		double nextChance = FRandom( 0.0, 1.0 );
 		vector3 vecdist;
 
 		// To prevent the in-cycle check with the same result I'd prefer to 
 		//split the cycles. Seriously.
-		if ( useDistMultipl ) {
+		if ( !useDistMultipl ) {
 			for ( int j = 0; j < arrayToCheck.Size(); j++ ) {
 				vecdist = posToCheck - arrayToCheck[ j ].pos;
 
+				//console.printf( "vec.len " .. vecdist.Length() .. ", actorsDist " .. actorsDistance .. ", array.Size() " .. arrayToCheck.Size() );
+
 				if ( vecdist.Length() < actorsDistance ) {
-					if ( nextChance > lineDistSpawnChance ) {
+					if ( nextChance < lineDistSpawnChance ) {
+						//console.printf( "     nextChance (" .. nextChance .. ") < lineDistSpawnChance (" .. lineDistSpawnChance .. ")" );
 						nextChance = FRandom( 0.0, 1.0 );
 					} else {
+						//console.printf( " BRK nextChance (" .. nextChance .. ") >= lineDistSpawnChance (" .. lineDistSpawnChance .. ")" );
 						grouplingTooClose = true;
 						break;
 					}
@@ -88,7 +91,7 @@ class AutoAmbientGroup play {
 				vecdist = posToCheck - arrayToCheck[ j ].pos;
 
 				if ( vecdist.Length() < actorsDistance ) {
-					if ( useDistMultipl && nextChance > lineDistSpawnChance * vecdist.Length() / actorsDistance ) {
+					if ( useDistMultipl && nextChance < lineDistSpawnChance * vecdist.Length() / actorsDistance ) {
 						nextChance = FRandom( 0.0, 1.0 );
 					} else {
 						grouplingTooClose = true;
@@ -310,7 +313,7 @@ class AutoAmbientSoundActor: Actor {
 
 
 	Default {
-		//+INVISIBLE;
+		+INVISIBLE;
 		+BRIGHT;
 
 		+NOINTERACTION;
