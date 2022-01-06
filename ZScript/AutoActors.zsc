@@ -9,20 +9,22 @@ class AutoAmbientGroup play {
 	//AutoAmbientTexture cachedTextureDefinition;
 	//Array<AutoAmbientTextureDefinition> textures;
 
-	Array<Actor> spawned; // All spawned on the level auto actors for this group.
+	// All spawned on the level auto actors for this group:
+	AutoAmbientListSpawnedKeeper spawned;
 
-	Array<Actor> spawnedOnLine; // Temporal array which contain all positions
-								//to be moved to the "spawned[]" array on the
-								//next iteration. Defined for the right same
-								//line distance checks. Also, not "vector3"
-								//because "Base type for dynamic array types
-								//must be integral, but got Struct<Vector3>".
+	// Temporal array which contain all positions to be moved to the "spawned[]"
+	//array on the next iteration. Defined for the quick same line distance
+	//checks.
+	AutoAmbientListSpawnedKeeper spawnedOnLine;
 
 	static AutoAmbientGroup Create( String groupname, double dist ) {
 		AutoAmbientGroup newGroup = new( 'AutoAmbientGroup' );
 
 		newGroup.name = groupname;
 		newGroup.actorsDistance = dist;
+
+		newGroup.spawned = new( 'AutoAmbientListSpawnedKeeper' );
+		newGroup.spawnedOnLine = new( 'AutoAmbientListSpawnedKeeper' );
 
 		return newGroup;
 	} // of static AutoAmbientGroup Create( String groupname, double dist, double spreading ) {}
@@ -57,11 +59,12 @@ class AutoAmbientGroup play {
 
 
 	void ClearSpawned( void ) {
-		spawned.Clear();
+		if ( spawned )
+			spawned.Clear();
 	}
 
 
-	private bool checkSpawnDistance( vector3 posToCheck, Array<Actor> arrayToCheck, bool useDistMultipl, double lineDistSpawnChance ) {
+	private bool checkSpawnDistance( vector3 posToCheck, AutoAmbientListSpawnedKeeper listToCheck, bool useDistMultipl, double lineDistSpawnChance ) {
 		bool grouplingTooClose = false;
 
 		double nextChance = FRandom( 0.0, 1.0 );
@@ -70,10 +73,10 @@ class AutoAmbientGroup play {
 		// To prevent the in-cycle check with the same result I'd prefer to 
 		//split the cycles. Seriously.
 		if ( !useDistMultipl ) {
-			for ( int j = 0; j < arrayToCheck.Size(); j++ ) {
-				vecdist = posToCheck - arrayToCheck[ j ].pos;
+			Actor actoriter = listToCheck.ActorIteratorBegin();
 
-				//console.printf( "vec.len " .. vecdist.Length() .. ", actorsDist " .. actorsDistance .. ", array.Size() " .. arrayToCheck.Size() );
+			while ( actoriter ) {
+				vecdist = posToCheck - actoriter.pos;
 
 				if ( vecdist.Length() < actorsDistance ) {
 					if ( nextChance < lineDistSpawnChance ) {
@@ -85,47 +88,42 @@ class AutoAmbientGroup play {
 						break;
 					}
 				}
-			} // of for ( int j = 0; j < spawnedOnLine.Size(); j++ ) {}
+
+				actoriter = listToCheck.ActorIteratorNext();
+			} // of while ( actoriter ) {}
+
 		} else {
-			for ( int j = 0; j < arrayToCheck.Size(); j++ ) {
-				vecdist = posToCheck - arrayToCheck[ j ].pos;
+			Actor actoriter = listToCheck.ActorIteratorBegin();
+
+			while ( actoriter ) {
+				vecdist = posToCheck - actoriter.pos;
 
 				if ( vecdist.Length() < actorsDistance ) {
-					if ( useDistMultipl && nextChance < lineDistSpawnChance * vecdist.Length() / actorsDistance ) {
+					if ( nextChance < lineDistSpawnChance * vecdist.Length() / actorsDistance ) {
 						nextChance = FRandom( 0.0, 1.0 );
 					} else {
 						grouplingTooClose = true;
 						break;
 					}
 				}
-			} // of for ( int j = 0; j < spawnedOnLine.Size(); j++ ) {}
+
+				actoriter = listToCheck.ActorIteratorNext();
+			} // of while ( actoriter ) {}
+
 		} // of else of if ( useDistMultipl ) {}
 
 		return grouplingTooClose;
-	}
+	} // of private bool checkSpawnDistance( vector3 posToCheck, AutoAmbientListSpawnedKeeper listToCheck, bool useDistMultipl, double lineDistSpawnChance ) {}
+
 
 	int SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupPos ) {
+
 		if ( !classes.Size() && !autoclasses.Size() )
 			return 0; // We cannot spawn something if we have no spawn data.
 
 		// Locate a texture definition:
 		TextureID texID = attachSide.GetTexture( sidePos );
 
-		//console.printf( GetClassName() .. "::SpawnActor(). \"" .. texID .. "\" handle." );
-
-		// See GZDoom source code, "/src/common/textures/textureid.h"
-		//("class FTextureID"). TextureID comparing is really much faster 
-		//than same for String. Also cache may help in speeding up at least 
-		//something, about 5-20% in my opinion.
-		/*if ( cachedTextureDefinition && texID == cachedTextureDefinition.id ) {
-			texdef = cachedTextureDefinition;
-		} else {
-			for ( int i = 0; i < textures.Size(); i++ )
-				if ( textures[ i ].id == texID ) {
-					cachedTextureDefinition = texdef = textures[ i ];
-					break;
-				}
-		}*/
 		//console.printf( name .. "/\"" ..  TexMan.GetName( texID ) .. "\". TextureDef: " .. texdef );
 
 		if ( !texdef )
@@ -223,7 +221,8 @@ class AutoAmbientGroup play {
 		);
 
 		uint classesArraySize = classes.Size();
-		uint alreadySpawnedArraySize = spawned.Size();
+
+		int totalSpawnedOnLine = 0;
 
 		//String debugTextureName = TexMan.GetName( texID );
 		//if ( debugTextureName == "BIGBRIK3" ) {
@@ -256,7 +255,7 @@ class AutoAmbientGroup play {
 
 				// Removing position if it are not far enough away from
 				//previously spawned actors on current line and/or other lines:
-				if ( texdef.sameLineDistSpawnChance < 1.0 && spawnedOnLine.Size() )
+				if ( texdef.sameLineDistSpawnChance < 1.0 && !spawnedOnLine.Empty() )
 					grouplingTooClose = checkSpawnDistance( newPos, spawnedOnLine, texdef.linesCheckFlags & AALCF_SelfLineDistMultipl, texdef.sameLineDistSpawnChance );
 
 				if ( texdef.otherLineDistSpawnChance < 1.0 && !grouplingTooClose )
@@ -279,7 +278,8 @@ class AutoAmbientGroup play {
 					}
 
 					if ( newActor ) {
-						spawnedOnLine.Push( newActor );
+						spawnedOnLine.AppendSpawnedActor( newActor );
+						totalSpawnedOnLine++;
 						console.printf( "Actor " .. newActor.GetClassName() .. " spawned on \"" .. texID .. "->" .. name .. "\" at " .. newActor.pos .. "." );
 					}
 				} // of if ( !grouplingTooClose ) {}
@@ -287,20 +287,20 @@ class AutoAmbientGroup play {
 			} // of for ( double texxy = ( texMapOffset.x + texparam.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {}
 		} // of for ( double texz = ( texMapOffset.y + texparam.start.y ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {}
 
-		return spawnedOnLine.Size();
+		return totalSpawnedOnLine;
 	}  // of void SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupPos ) {}
 
 	void FlushSpawnLineActors( void ) {
-		for ( int i = 0; i < spawnedOnLine.Size(); i++ )
-			spawned.Push( spawnedOnLine[ i ] );
+		spawnedOnLine.AppendMoveListTo( spawned );
 
-		//if ( spawnedOnLine.Size() )
+		//if ( !spawnedOnLine.Empty() )
 		//	console.printf( "Actors flushed." );
 
 		spawnedOnLine.Clear();
 	} // of void FlushSpawnLineActors( void ) {}
 
 } // of class AutoAmbientGroup {}
+
 
 
 class AutoAmbientSoundActor: Actor {

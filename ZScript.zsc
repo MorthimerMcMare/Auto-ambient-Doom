@@ -1,6 +1,8 @@
 version "2.4.0"
 
 #include "ZScript/DListTexCache.zsc"
+#include "ZScript/SListSpawned.zsc"
+
 #include "ZScript/DataClasses.zsc"
 #include "ZScript/AutoActors.zsc"
 #include "ZScript/ConfigParser.zsc"
@@ -180,8 +182,6 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 			return;
 		}
 
-
-
 		// Static event handler may save information through levels.
 		for ( int i = 0; i < groups.Size(); i++ )
 			groups[ i ].ClearSpawned();
@@ -244,6 +244,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 						// Move all actors spawned on line to the general array:
 						for ( int j = 0; j < uniqueGroups.Size(); j++ )
 							uniqueGroups[ j ].FlushSpawnLineActors();
+
 					} // of if ( curtexdef ) {}
 
 				} // of if ( texID ) {}

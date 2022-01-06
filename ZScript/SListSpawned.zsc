@@ -1,0 +1,71 @@
+// Single-linked list of spawned actors.
+
+class AutoAmbientListSpawnedNode {
+	Actor thing;
+
+	AutoAmbientListSpawnedNode next;
+}
+
+class AutoAmbientListSpawnedKeeper {
+	AutoAmbientListSpawnedNode head, tail;
+
+	// Shared iterator, avoid having more than one iterator user at once!
+	AutoAmbientListSpawnedNode curiter;
+
+
+	void AppendSpawnedActor( Actor spawned ) {
+		AutoAmbientListSpawnedNode newNode = new( 'AutoAmbientListSpawnedNode' );
+		newNode.thing = spawned;
+
+		if ( head ) {
+			tail.next = newNode;
+			tail = newNode;
+		} else {
+			head = tail = newNode;
+		}
+	} // of void AddSpawnedActor( Actor spawned ) {}
+
+	void AppendMoveListTo( AutoAmbientListSpawnedKeeper otherKeeper ) {
+		if ( head ) {
+			if ( otherKeeper.head )
+				otherKeeper.tail.next = head;
+			else
+				otherKeeper.head = head;
+
+			otherKeeper.tail = tail;
+			head = tail = NULL;
+		}
+	} // of void AppendMoveListTo( AutoAmbientListSpawnedKeeper otherKeeper ) {}
+
+	bool Empty( void ) {
+		return !head;
+	}
+
+
+	Actor ActorIteratorBegin( void ) {
+		if ( Empty() )
+			return NULL;
+
+		curiter = head;
+		return curiter.thing;
+	}
+
+	Actor ActorIteratorNext( void ) {
+		curiter = curiter.next;
+
+		return ( curiter? curiter.thing : NULL );
+	}
+
+
+	void Clear( void ) {
+		AutoAmbientListSpawnedNode curNode = head;
+		AutoAmbientListSpawnedNode prevNode;
+
+		while ( curNode ) {
+			prevNode = curNode;
+			curNode = curNode.next;
+			prevNode.Destroy();
+		}
+	} // of void Clear( void ) {}
+
+} // of AutoAmbientListSpawnedKeeper {}
