@@ -1,0 +1,13 @@
+//
+
+OptionMenu "mcm_AutoAmbientControl" {
+    Title "ZChecker control"
+    StaticText " "
+	Command "Show automatic actors", "netevent mcm_autoambient_actors_visibility 1"
+	Command "Hide automatic actors", "netevent mcm_autoambient_actors_visibility 0"
+}
+
+AddOptionMenu "OptionsMenu" {
+	StaticText  " "
+	Submenu     "Auto-ambient control", "mcm_AutoAmbientControl"
+}

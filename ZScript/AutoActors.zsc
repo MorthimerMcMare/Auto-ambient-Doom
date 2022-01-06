@@ -356,8 +356,7 @@ class AutoAmbientSoundActor: Actor {
 		if ( actorInitialized ) {
 			curDelay = Random( 0, ( (playsoundMode == AASM_Looped)? 5 : maxDelay ) );
 
-			if ( !bINVISIBLE )
-				SetShade( "00 00 88" );
+			SetShade( "00 00 88" );
 		} else {
 			String soundInfo;
 

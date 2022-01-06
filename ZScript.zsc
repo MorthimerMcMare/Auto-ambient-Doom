@@ -279,4 +279,23 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		Super.WorldLoaded( e );
 	} // of override void WorldLoaded( WorldEvent e ) {}
 
+
+	override void NetworkProcess( ConsoleEvent e ) {
+		if ( e.name == "mcm_autoambient_actors_visibility" ) {
+			bool setInvisibleFlag = ( e.args[ 0 ] == 0 );
+
+			for ( int i = 0; i < groups.Size(); i++ ) {
+				AutoAmbientListSpawnedKeeper spawnedKeeper = groups[ i ].spawned;
+				Actor curspawned = spawnedKeeper.ActorIteratorBegin();
+
+				while ( curspawned ) {
+					curspawned.bINVISIBLE = setInvisibleFlag;
+					curspawned = spawnedKeeper.ActorIteratorNext();
+				}
+			} // of for ( int i = 0; i < groups.Size(); i++ ) {}
+
+		} // of if ( e.name == "mcm_autoambient_actors_visibility" ) {}
+
+	} // of override void NetworkProcess( ConsoleEvent e ) {}
+
 } // of class AmbientHandler: EventHandler {}
