@@ -297,6 +297,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 		} // of if ( e.name == "mcm_autoambient_actors_visibility" ) {}
 
+		Super.NetworkProcess( e );
 	} // of override void NetworkProcess( ConsoleEvent e ) {}
 
 } // of class AmbientHandler: EventHandler {}
