@@ -280,7 +280,7 @@ class AutoAmbientGroup play {
 					if ( newActor ) {
 						spawnedOnLine.AppendSpawnedActor( newActor );
 						totalSpawnedOnLine++;
-						console.printf( "Actor " .. newActor.GetClassName() .. " spawned on \"" .. texID .. "->" .. name .. "\" at " .. newActor.pos .. "." );
+						//console.printf( "Actor " .. newActor.GetClassName() .. " spawned on \"" .. texID .. "->" .. name .. "\" at " .. newActor.pos .. "." );
 					}
 				} // of if ( !grouplingTooClose ) {}
 
