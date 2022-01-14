@@ -615,10 +615,12 @@ class AutoAmbientConfigParser play {
 
 		if ( lineArgsAmount > 0 && !parserErrorFlag ) {
 			if ( lineArgsAmount == 2 && configFileLine[ 0 ] == "include" ) {
-				if ( g.CheckReplicateParserAmount() )
+				if ( g.CheckReplicateParserAmount() ) {
 					AutoAmbientConfigParser.Create( g ).ParseFile( configFileLine[ 1 ] );
-				else
+				} else {
+					g.replicateParserAmount--; // Fixme...
 					console.printf( GetClassName() .. "::ParseGlobalScope(). WARNING: maximal amount of nested includes reached, file \"" .. configFileLine[ 1 ] .. "\" skipped (line " .. parserLineNum .. " in file \"" .. configFileName .. "\")." );
+				}
 			} else if ( configFileLine[ 0 ] == "texture" ) {
 				if ( lineArgsAmount > 2 ) {
 					parserCurBlockType = AAPB_Texture;
@@ -649,21 +651,22 @@ class AutoAmbientConfigParser play {
 	void ParseFile( String rawConfigFilename ) {
 		configFileName = rawConfigFilename;
 
-		parserDefaultTexture = AutoAmbientTexture.CreateTemporalBase();
-		parserDefaultTextureParam = AutoAmbientTextureParameter.Create( "Default texture parameter", ( -50.0, -50.0 ), ( -100.0, -100.0 ), ( 0.0, 0.0 ), 1.0 );
-		parserDefaultGroup = AutoAmbientGroup.Create( "Default group", 256 );
-		parserDefaultSound = AutoAmbientSoundDefinition.Create( "Default sound definition", "null", AASM_Looped, 1.0, 1.0, 35, 35 );
-
-		parserCurTexture = NULL;
-		parserCurTextureParam = NULL;
-		parserCurGroup = NULL;
-		parserCurSound = NULL;
-
-		int rawConfigFileHandler = Wads.FindLump( configFileName );
+		int rawConfigFileHandler = Wads.CheckNumForFullName( configFileName );
 
 		// Configuration file unparsing:
         if ( rawConfigFileHandler != -1 ) {
 			console.printf( GetClassName() .. "::ParseFile(). Parsing file \"" .. configFileName .. "\"." );
+
+			parserDefaultTexture = AutoAmbientTexture.CreateTemporalBase();
+			parserDefaultTextureParam = AutoAmbientTextureParameter.Create( "Default texture parameter", ( -50.0, -50.0 ), ( -100.0, -100.0 ), ( 0.0, 0.0 ), 1.0 );
+			parserDefaultGroup = AutoAmbientGroup.Create( "Default group", 256 );
+			parserDefaultSound = AutoAmbientSoundDefinition.Create( "Default sound definition", "null", AASM_Looped, 1.0, 1.0, 35, 35 );
+
+			parserCurTexture = NULL;
+			parserCurTextureParam = NULL;
+			parserCurGroup = NULL;
+			parserCurSound = NULL;
+
 			parserLineNum = 0;
             rawConfigFile = Wads.ReadLump( rawConfigFileHandler );
 

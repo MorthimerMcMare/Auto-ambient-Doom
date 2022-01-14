@@ -60,6 +60,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	Array<AutoAmbientTextureParameter> textureparams;
 	Array<AutoAmbientSoundDefinition> sounddefs;
 
+	// Dangerous function, actually...
 	static AutoAmbientGlobalHandler Get( void ) {
 		return AutoAmbientGlobalHandler( StaticEventHandler.Find( "AutoAmbientGlobalHandler" ) );
 	}
@@ -68,7 +69,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	bool CheckReplicateParserAmount( void ) {
 		bool outValue = false;
 
-		if ( replicateParserMaxAmount < replicateParserMaxAmount ) {
+		if ( replicateParserAmount < replicateParserMaxAmount ) {
 			replicateParserAmount++;
 			outValue = true;
 		}
