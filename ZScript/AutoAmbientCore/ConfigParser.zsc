@@ -362,11 +362,11 @@ class AutoAmbientConfigParser play {
 					parserCurSound.sndMode = AASM_Looped;
 				} else if ( configFileLine[ 1 ] == "fixed" && lineArgsAmount == 3 ) {
 					parserCurSound.sndMode = AASM_Fixed;
-					parserCurSound.minDelay = configFileLine[ 2 ].ToDouble();
+					parserCurSound.minDelay = configFileLine[ 2 ].ToInt();
 				} else if ( configFileLine[ 1 ] == "random" && lineArgsAmount == 4 ) {
 					parserCurSound.sndMode = AASM_Random;
-					parserCurSound.minDelay = configFileLine[ 2 ].ToDouble();
-					parserCurSound.maxDelay = configFileLine[ 3 ].ToDouble();
+					parserCurSound.minDelay = configFileLine[ 2 ].ToInt();
+					parserCurSound.maxDelay = configFileLine[ 3 ].ToInt();
 				} else {
 					ParserError( "::ParseSoundActorBlock(). \"mode\": wrong arguments (must be (looped|fixed <mintics>|random <mintics> <maxtics>)." );
 				}
@@ -515,7 +515,7 @@ class AutoAmbientConfigParser play {
 
 				for ( int i = 0; i < textureNames.Size(); i++ ) {
 					String curIdentifier = textureNames[ i ];
-					AutoAmbientTexture newTextureDef;
+					AutoAmbientTexture newTextureDef = NULL;
 
 					if ( curIdentifier == "default" ) {
 						newTextureDef = parserDefaultTexture;
