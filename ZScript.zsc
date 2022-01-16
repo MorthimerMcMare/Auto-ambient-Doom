@@ -1,11 +1,11 @@
 version "2.4.0"
 
-#include "ZScript/DListTexCache.zsc"
-#include "ZScript/SListSpawned.zsc"
+#include "ZScript/AutoAmbientCore/DListTexCache.zsc"
+#include "ZScript/AutoAmbientCore/SListSpawned.zsc"
 
-#include "ZScript/DataClasses.zsc"
-#include "ZScript/AutoActors.zsc"
-#include "ZScript/ConfigParser.zsc"
+#include "ZScript/AutoAmbientCore/DataClasses.zsc"
+#include "ZScript/AutoAmbientCore/AutoActors.zsc"
+#include "ZScript/AutoAmbientCore/ConfigParser.zsc"
 
 
 enum EAutoAmbientSoundModes {
