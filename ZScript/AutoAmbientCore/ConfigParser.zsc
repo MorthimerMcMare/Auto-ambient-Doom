@@ -14,7 +14,7 @@ enum EAutoAmbientParserBlocks {
 class AutoAmbientConfigParser play {
 	AutoAmbientGlobalHandler g;
 
-	String configFileName;
+	String configFilename;
 	bool parserErrorFlag;
 
 	String rawConfigFile;
@@ -176,7 +176,7 @@ class AutoAmbientConfigParser play {
 
 		console.printf( GetClassName() .. msg );
 		g.parserErrorLine = parserLineNum;
-		g.parserErrorFilename = configFileName;
+		g.parserErrorFilename = configFilename;
 	}
 
 
@@ -616,10 +616,10 @@ class AutoAmbientConfigParser play {
 		if ( lineArgsAmount > 0 && !parserErrorFlag ) {
 			if ( lineArgsAmount == 2 && configFileLine[ 0 ] == "include" ) {
 				if ( g.CheckReplicateParserAmount() ) {
-					AutoAmbientConfigParser.Create( g ).ParseFile( configFileLine[ 1 ] );
+					parserErrorFlag = AutoAmbientConfigParser.Create( g ).ParseFile( configFileLine[ 1 ] );
 				} else {
 					g.replicateParserAmount--; // Fixme...
-					console.printf( GetClassName() .. "::ParseGlobalScope(). WARNING: maximal amount of nested includes reached, file \"" .. configFileLine[ 1 ] .. "\" skipped (line " .. parserLineNum .. " in file \"" .. configFileName .. "\")." );
+					console.printf( GetClassName() .. "::ParseGlobalScope(). WARNING: maximal amount of nested includes reached, file \"" .. configFileLine[ 1 ] .. "\" skipped (line " .. parserLineNum .. " in file \"" .. configFilename .. "\")." );
 				}
 			} else if ( configFileLine[ 0 ] == "texture" ) {
 				if ( lineArgsAmount > 2 ) {
@@ -648,14 +648,15 @@ class AutoAmbientConfigParser play {
 
 
 
-	void ParseFile( String rawConfigFilename ) {
-		configFileName = rawConfigFilename;
+	bool ParseFile( String rawConfigFilename ) {
+		parserErrorFlag = false;
+		configFilename = rawConfigFilename;
 
-		int rawConfigFileHandler = Wads.CheckNumForFullName( configFileName );
+		int rawConfigFileHandler = Wads.CheckNumForFullName( configFilename );
 
 		// Configuration file unparsing:
         if ( rawConfigFileHandler != -1 ) {
-			console.printf( GetClassName() .. "::ParseFile(). Parsing file \"" .. configFileName .. "\"." );
+			console.printf( GetClassName() .. "::ParseFile(). Parsing file \"" .. configFilename .. "\"." );
 
 			parserDefaultTexture = AutoAmbientTexture.CreateTemporalBase();
 			parserDefaultTextureParam = AutoAmbientTextureParameter.Create( "Default texture parameter", ( -50.0, -50.0 ), ( -100.0, -100.0 ), ( 0.0, 0.0 ), 1.0 );
@@ -680,9 +681,11 @@ class AutoAmbientConfigParser play {
 			}
 
         } else {
-			ParserError( "::ParseFile(). Cannot find file \"" .. configFileName .. "\"." );
+			ParserError( "::ParseFile(). Cannot find file \"" .. configFilename .. "\"." );
 		}
-	} // of void ParseFile( void ) {}
+
+		return parserErrorFlag;
+	} // of bool ParseFile( String rawConfigFilename ) {}
 
 	static AutoAmbientConfigParser Create( AutoAmbientGlobalHandler globalHandler ) {
 		AutoAmbientConfigParser newParser = new( 'AutoAmbientConfigParser' );
