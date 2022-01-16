@@ -1,15 +1,3 @@
-enum EAutoAmbientParserBlocks {
-	AAPB_Global = 0,
-	AAPB_Texture,
-	AAPB_TexParam,
-	AAPB_Group,
-	AAPB_Sound,
-
-	AAPB_TextureParam = AAPB_TexParam,
-	AAPB_TextureParameter = AAPB_TexParam,
-	AAPB_SoundActor = AAPB_Sound,
-	AAPB_SoundDef = AAPB_Sound
-};
 
 class AutoAmbientConfigParser play {
 	AutoAmbientGlobalHandler g;

@@ -140,9 +140,12 @@ class AutoAmbientTexture {
 	// By default start point is in the centre of the texture and 
 	//offset is a one texture size (for both X and Y):
 	void AddGroup( AutoAmbientGroup group, vector2 xy = ( AutoAmbientTextureParameter.defaultStart, AutoAmbientTextureParameter.defaultStart ) ) {
+		// It's real to use same names for different texture parameters... At least, now.
+
 		AddGroupParam( group,
 			AutoAmbientTextureParameter.Create(
-					"__auto_texparam", xy,
+					String.Format( "#auto_texparam_%08x%08x", Random( 0, 0x7FFFFFFF ), Random( 0, 0x7FFFFFFF ) ),
+					xy,
 					( AutoAmbientTextureParameter.defaultOffset, AutoAmbientTextureParameter.defaultOffset ),
 					( 0, 0 ), 1.0
 			)

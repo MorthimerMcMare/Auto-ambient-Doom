@@ -1,0 +1,65 @@
+//
+
+class AutoAmbientLogger: Thinker {
+	const LLCOLOR_DEBUG = TEXTCOLOR_DARKGRAY;
+	const LLCOLOR_EMERGENCY = TEXTCOLOR_FIRE;
+
+	int aaCurLogLevel;
+
+	static void UpdateLogLevel( void ) {
+		AutoAmbientLogger.Get().aaCurLogLevel = CVar.FindCVar( "mcm_aambient_loglevel" ).GetInt();
+	}
+
+	static play AutoAmbientLogger Get( void ) {
+		AutoAmbientLogger it = AutoAmbientLogger( ThinkerIterator.Create( "AutoAmbientLogger", STAT_STATIC ).Next() );
+
+		if ( !it ) {
+			// Creating and initializating a singleton global object:
+			it = new( "AutoAmbientLogger" );
+			it.ChangeStatNum( STAT_STATIC );
+			it.UpdateLogLevel(); // This one calls "Get()" again, yeah...
+		}
+
+		return it;
+	} // of static play AutoAmbientLogger Get( void ) {}
+
+
+	// Prints well-decorated information string. "LL_NoPrefix" also disables
+	//default color mark:
+	static clearscope void ClearscopeLog( EAAmbientLogLevels loglevel, String text ) {
+		String logPrefix = "";
+
+		if ( !( loglevel & LL_NoPrefix ) ) {
+			switch ( loglevel & LL__No_Flags_Mask ) {
+				case LL_Debug:
+					logPrefix = LLCOLOR_DEBUG .. "[AA Debug] ";
+					break;
+				case LL_Emergency:
+					logPrefix = TEXTCOLOR_RED .. "[AutoAmbient emergency] " .. LLCOLOR_EMERGENCY;
+					break;
+				default:
+					logPrefix = TEXTCOLOR_GRAY .. "[AA] \c-";
+					break;
+			}
+		} // of if ( !( loglevel & LL_NoPrefix ) ) {}
+
+		String lastSymbol = text.Mid( text.Length() - 1 );
+		bool extraDot = !( lastSymbol == "." || lastSymbol == "!" || lastSymbol == "?" || lastSymbol == ";" || lastSymbol == ":" );
+
+		console.printf( logPrefix .. text .. ( extraDot? "." : "" ) );
+	} // of static clearscope void ClearscopeLog( EAAmbientLogLevels loglevel, String text ) {}
+
+	// A play-scope wrapper around a data-scope method (mostly used):
+	static play void Log( EAAmbientLogLevels loglevel, String text ) {
+		if ( AutoAmbientLogger.Get().aaCurLogLevel >= ( loglevel & LL__No_Flags_Mask ) )
+			ClearscopeLog( loglevel, text );
+	}
+
+} // of class AutoAmbientLogger: Thinker {}
+
+
+class AutoAmbientUtil {
+    static String squeezeVector3( vector3 vec ) {
+        return "(" .. int( vec.x ) .. ", " .. int( vec.y ) .. ", " .. int( vec.z ) .. ")";
+    }
+} // of class AutoAmbientUtil {}

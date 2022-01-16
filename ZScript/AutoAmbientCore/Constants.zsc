@@ -1,0 +1,65 @@
+//
+
+enum EAutoAmbientSoundModes {
+	AASM_Looped = 0,
+	AASM_Fixed,
+	AASM_Random
+};
+
+enum EAutoAmbientSamelineCheck {
+	AASC_On,
+	AASC_Off,
+	AASC_Only,
+
+	AASC_Default = AASC_On
+};
+
+enum EAutoAmbientActionlineCheck {
+	AAAC_On = 0,
+	AAAC_Off,
+	AAAC_Only,
+	AAAC_AlsoZeroHeight,
+
+	AAAC_Default = AAAC_On
+};
+
+enum EAutoAmbientLinesCheckFlags {
+	AALCF_HandleCommonLines		= 0x0001,
+	//AALCF_CommonLineZeroHeight	= 0x0002,	// Are they necessary?
+	AALCF_HandleActionLines		= 0x0004,
+	//AALCF_ActionLineZeroHeight	= 0x0008,
+	AALCF_SelfLineDistMultipl	= 0x0010,
+	AALCF_OtherLinesDistMultipl	= 0x0020,
+	//AALCF_NoPreCache			= 0x0040,	// Don't save this texture to the texcache.
+
+	AALCF_Default = AALCF_HandleCommonLines | AALCF_HandleActionLines,
+
+	AALCF_Error = 0xFFFF
+};
+
+enum EAutoAmbientParserBlocks {
+	AAPB_Global = 0,
+	AAPB_Texture,
+	AAPB_TexParam,
+	AAPB_Group,
+	AAPB_Sound,
+
+	AAPB_TextureParam = AAPB_TexParam,
+	AAPB_TextureParameter = AAPB_TexParam,
+	AAPB_SoundActor = AAPB_Sound,
+	AAPB_SoundDef = AAPB_Sound
+};
+
+enum EAAmbientLogLevels {
+	LL_Emergency = 0,
+	LL_General = 1,
+	LL_Detailed,
+	LL_Debug,
+
+	LL_Normal = LL_General,
+	LL_Main = LL_General,
+	LL_Extended = LL_Detailed,
+
+	LL__No_Flags_Mask = 0x000F,
+	LL_NoPrefix = 0x8000
+}
