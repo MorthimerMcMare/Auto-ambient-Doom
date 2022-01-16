@@ -1,11 +1,26 @@
 //
 
 OptionMenu "mcm_AutoAmbientControl" {
-    Title "ZChecker control"
+    Title "AutoAmbient control"
     StaticText " "
-	Option "Log level", "mcm_aambient_loglevel", "mcm_aambient_LogLevels"
-	Command "Show automatic actors", "netevent mcm_autoambient_actors_visibility 1"
-	Command "Hide automatic actors", "netevent mcm_autoambient_actors_visibility 0"
+    StaticText "Automatic ambient sound actors"
+    Command "Show automatic actors", "netevent mcm_autoambient_actors_visibility 1"
+    Command "Hide automatic actors", "netevent mcm_autoambient_actors_visibility 0"
+    StaticText " "
+    StaticText "Logging"
+    Option "Log level", "mcm_aambient_loglevel", "mcm_aambient_LogLevels"
+    StaticText "Emergency only mode:", "Gray"
+    StaticText "shows fatal errors and not more.", "DarkGray"
+    StaticText " "
+    StaticText "Main (default mode):", "Gray"
+    StaticText "also gives info about non-critical errors and warnings.", "DarkGray"
+    StaticText " "
+    StaticText "Detailed mode:", "Gray"
+    StaticText "also provides useful statistics for mapping/modding process.", "DarkGray"
+    StaticText " "
+    StaticText "Debug mode:", "Gray"
+    StaticText "implies all previous and also shows some internal information.", "DarkGray"
+    StaticText " "
 }
 
 AddOptionMenu "OptionsMenu" {
