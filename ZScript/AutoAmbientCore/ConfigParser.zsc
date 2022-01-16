@@ -13,6 +13,7 @@ enum EAutoAmbientParserBlocks {
 
 class AutoAmbientConfigParser play {
 	AutoAmbientGlobalHandler g;
+	AutoAmbientLogger logger;
 
 	String configFilename;
 	bool parserErrorFlag;
@@ -146,7 +147,7 @@ class AutoAmbientConfigParser play {
 					configFileLine.Push( tempstr.Mid( wordStartIndex ) );
 
 				if ( quoted )
-					console.printf( GetClassName() .. "::readNextConfigLine(). Warning: double quotes ('\"') not closed." );
+					logger.Log( LL_Main, GetClassName() .. "::readNextConfigLine(). " .. logger.LLCOLOR_EMERGENCY .. "Warning\c-: double quotes ('\"') not closed." );
 
 				//String debugString = "";
 				//for ( i = 0; i < configFileLine.Size(); i++ )
@@ -172,9 +173,9 @@ class AutoAmbientConfigParser play {
 		parserErrorFlag = true;
 
 		for ( int i = 0; i < configFileLine.Size(); i++ )
-			console.printf( "ParserError() response. configFileLine[ " .. i .. " ] = \"" .. configFileLine[ i ] .. "\";" );
+			logger.Log( LL_Detailed, GetClassName() .. ":ParserError() response. configFileLine[ " .. i .. " ] = \"" .. configFileLine[ i ] .. "\";" );
 
-		console.printf( GetClassName() .. msg );
+		logger.Log( LL_Emergency, GetClassName() .. msg );
 		g.parserErrorLine = parserLineNum;
 		g.parserErrorFilename = configFilename;
 	}
@@ -411,8 +412,6 @@ class AutoAmbientConfigParser play {
 
 		String blockIdentifier = configFileLine[ 1 ];
 
-		//console.printf( "Block identifier (second word): " .. blockIdentifier );
-
 		if ( !emptyBlock && parserCurBlockType != AAPB_Texture )
 			readNextConfigLine();
 
@@ -487,7 +486,9 @@ class AutoAmbientConfigParser play {
 							break;
 
 						for ( int j = 0; j < unregexpedTextureNames.Size(); j++ ) {
-							//console.printf( "Unregexped[ " .. j .. " ]: " .. unregexpedTextureNames[ j ] );
+							if ( logger.aaCurLogLevel >= LL_Debug )
+								logger.Log( LL_Debug, GetClassName() .. "::ParseBlockHeader(). Word \"" .. regexpedName .. "\" -> unregexped[ " .. j .. " ]: \"" .. unregexpedTextureNames[ j ] .. "\"" );
+
 							textureNames.Push( unregexpedTextureNames[ j ] );
 						}
 					} // of else of if ( regexBracketStart == -1 ) {}
@@ -609,7 +610,6 @@ class AutoAmbientConfigParser play {
 
 	void ParseGlobalScope( void ) {
 		readNextConfigLine();
-		//console.printf( GetClassName() .. "::ParseGlobalScope(). Parsed line \"" .. curWord .. "\"." );
 
 		uint lineArgsAmount = configFileLine.Size();
 
@@ -619,7 +619,7 @@ class AutoAmbientConfigParser play {
 					parserErrorFlag = AutoAmbientConfigParser.Create( g ).ParseFile( configFileLine[ 1 ] );
 				} else {
 					g.replicateParserAmount--; // Fixme...
-					console.printf( GetClassName() .. "::ParseGlobalScope(). WARNING: maximal amount of nested includes reached, file \"" .. configFileLine[ 1 ] .. "\" skipped (line " .. parserLineNum .. " in file \"" .. configFilename .. "\")." );
+					logger.Log( LL_Emergency, GetClassName() .. "::ParseGlobalScope(). WARNING: maximal amount of nested includes reached, file \"" .. configFileLine[ 1 ] .. "\" skipped (line " .. parserLineNum .. " in file \"" .. configFilename .. "\")." );
 				}
 			} else if ( configFileLine[ 0 ] == "texture" ) {
 				if ( lineArgsAmount > 2 ) {
@@ -656,7 +656,7 @@ class AutoAmbientConfigParser play {
 
 		// Configuration file unparsing:
         if ( rawConfigFileHandler != -1 ) {
-			console.printf( GetClassName() .. "::ParseFile(). Parsing file \"" .. configFilename .. "\"." );
+			logger.Log( LL_Detailed, GetClassName() .. "::ParseFile(). Parsing file \"" .. configFilename .. "\"." );
 
 			parserDefaultTexture = AutoAmbientTexture.CreateTemporalBase();
 			parserDefaultTextureParam = AutoAmbientTextureParameter.Create( "Default texture parameter", ( -50.0, -50.0 ), ( -100.0, -100.0 ), ( 0.0, 0.0 ), 1.0 );
@@ -684,12 +684,16 @@ class AutoAmbientConfigParser play {
 			ParserError( "::ParseFile(). Cannot find file \"" .. configFilename .. "\"." );
 		}
 
+		logger.Log( LL_Detailed, GetClassName() .. "::ParseFile(). File \"" .. configFilename .. "\" parsing " .. ( parserErrorFlag? TEXTCOLOR_DARKRED .. "terminated" : TEXTCOLOR_GREEN .. "complete" ) .. "\c-." );
+
 		return parserErrorFlag;
 	} // of bool ParseFile( String rawConfigFilename ) {}
 
 	static AutoAmbientConfigParser Create( AutoAmbientGlobalHandler globalHandler ) {
 		AutoAmbientConfigParser newParser = new( 'AutoAmbientConfigParser' );
 		newParser.g = globalHandler;
+
+		newParser.logger = AutoAmbientLogger.Get();
 
 		return newParser;
 	}

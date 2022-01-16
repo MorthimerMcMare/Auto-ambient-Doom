@@ -3,6 +3,7 @@
 OptionMenu "mcm_AutoAmbientControl" {
     Title "ZChecker control"
     StaticText " "
+	Option "Log level", "mcm_aambient_loglevel", "mcm_aambient_LogLevels"
 	Command "Show automatic actors", "netevent mcm_autoambient_actors_visibility 1"
 	Command "Hide automatic actors", "netevent mcm_autoambient_actors_visibility 0"
 }
@@ -10,4 +11,11 @@ OptionMenu "mcm_AutoAmbientControl" {
 AddOptionMenu "OptionsMenu" {
 	StaticText  " "
 	Submenu     "Auto-ambient control", "mcm_AutoAmbientControl"
+}
+
+OptionValue "mcm_aambient_LogLevels" {
+	0, "Emergency only"
+	1, "Main"
+	2, "Detailed"
+	3, "Debug mode"
 }

@@ -117,6 +117,7 @@ class AutoAmbientGroup play {
 
 
 	int SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupPos ) {
+		AutoAmbientLogger logger = AutoAmbientLogger.Get();
 
 		if ( !classes.Size() && !autoclasses.Size() )
 			return 0; // We cannot spawn something if we have no spawn data.
@@ -206,7 +207,7 @@ class AutoAmbientGroup play {
 		*/
 
 		if ( lineHeight < 0.0 || lineWidth < 0.0 ) {
-			console.printf( GetClassName() .. "::SpawnActor(). Line #" .. attachLine.Index() .. " calculated height/width (" .. lineHeight .. "/" .. lineWidth .. ") is less than 0. It's at least extremely strange." );
+			logger.Log( LL_Emergency, GetClassName() .. "::SpawnActor(). Line #" .. attachLine.Index() .. " calculated height " .. lineHeight .. "/width " .. lineWidth .. " is less than 0. It's at least extremely strange." );
 			return 0;
 		}
 
@@ -274,13 +275,14 @@ class AutoAmbientGroup play {
 						newActor = Actor.Spawn( "AutoAmbientSoundActor", newPos );
 						AutoAmbientSoundActor( newActor ).Init( autoclasses[ rnd - classesArraySize ] );
 					} else {
-						console.printf( "Warning: random value " .. rnd .. " is out-of-bounds of classes[ " .. classesArraySize .. " ] and autoclasses[ " .. autoclasses.Size() .. " ]." );
+						logger.Log( LL_Emergency, GetClassName() .. "::SpawnActor(). Warning: random value " .. rnd .. " is out-of-bounds of classes[ " .. classesArraySize .. " ] and autoclasses[ " .. autoclasses.Size() .. " ]." );
 					}
 
 					if ( newActor ) {
 						spawnedOnLine.AppendSpawnedActor( newActor );
 						totalSpawnedOnLine++;
-						//console.printf( "Actor " .. newActor.GetClassName() .. " spawned on \"" .. texID .. "->" .. name .. "\" at " .. newActor.pos .. "." );
+						if ( logger.aaCurLogLevel >= LL_Detailed )
+							logger.Log( LL_Detailed, TEXTCOLOR_GRAY .. "Actor \c-" .. newActor.GetClassName() .. TEXTCOLOR_GRAY .. " spawned on \"\c-" .. texID .. "->" .. name .. TEXTCOLOR_GRAY .. "\" at " .. AutoAmbientUtil.squeezeVector3( newActor.pos ) .. "." );
 					}
 				} // of if ( !grouplingTooClose ) {}
 
@@ -293,8 +295,8 @@ class AutoAmbientGroup play {
 	void FlushSpawnLineActors( void ) {
 		spawnedOnLine.AppendMoveListTo( spawned );
 
-		//if ( !spawnedOnLine.Empty() )
-		//	console.printf( "Actors flushed." );
+		//if ( !spawnedOnLine.Empty() && AutoAmbientLogger.Get().aaCurLogLevel >= LL_Debug )
+		//	AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::FlushSpawnLineActors(). Actors flushed." );
 
 		spawnedOnLine.Clear();
 	} // of void FlushSpawnLineActors( void ) {}
@@ -342,12 +344,12 @@ class AutoAmbientSoundActor: Actor {
 					maxDelay = def.maxDelay;
 					break;
 				default:
-					console.printf( "Error: cannot init actor, sound mode " .. playsoundMode .. " isn't recognized." );
+					AutoAmbientLogger.Get().Log( LL_Main, "Error: cannot init " .. GetClassName() .. " at " .. AutoAmbientUtil.squeezeVector3( pos ) .. ", sound mode " .. playsoundMode .. " isn't recognized." );
 					actorInitialized = false;
 					break;
 			}
 		}
-	} // of void Init( EAutoAmbientSoundModes mode, Sound soundToPlay, double volume = 1.0, double attn = 1.0, uint delay1 = 0, uint delay2 = 0 ) {}
+	} // of void Init( AutoAmbientSoundDefinition initDef ) {}
 
 
 	override void PostBeginPlay() {
@@ -367,7 +369,7 @@ class AutoAmbientSoundActor: Actor {
 			else
 				soundInfo = "with sound \"" .. def.snd .. "\"";
 
-			console.printf( GetClassName() .. " at " .. pos .. " " .. soundInfo .. " not initialized and thus destroyed." );
+			AutoAmbientLogger.Get().Log( LL_Main, GetClassName() .. " at " .. AutoAmbientUtil.squeezeVector3( pos ) .. " " .. soundInfo .. " not initialized and thus destroyed." );
 			Destroy();
 		}
 	} // of override void PostBeginPlay() {}

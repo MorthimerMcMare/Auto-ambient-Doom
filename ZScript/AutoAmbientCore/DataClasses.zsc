@@ -41,7 +41,7 @@ class AutoAmbientTextureParameter {
 		// To prevent an infinite loop in actors spawning.
 		if ( initOffset.x >= 0 && initOffset.x < 1.0 ) {
 			initOffset.x = defaultOffset;
-			// Temporal solution.
+			// Temporal solution. And it seems like it isn't works...
 			console.printf( "AutoAmbientTextureParameter::Create(). Warning: offset X in texture parameter \"" .. paramname .. "\" is too small (" .. initOffset.x .. "), setting to the default." );
 		}
 		if ( initOffset.y >= 0 && initOffset.y < 1.0 ) {

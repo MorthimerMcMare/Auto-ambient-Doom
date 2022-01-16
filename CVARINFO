@@ -1,0 +1,4 @@
+//
+
+server int mcm_aambient_loglevel			= 1;
+

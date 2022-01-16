@@ -45,6 +45,82 @@ enum EAutoAmbientLinesCheckFlags {
 	AALCF_Error = 0xFFFF
 };
 
+enum EAAmbientLogLevels {
+	LL_Emergency = 0,
+	LL_General = 1,
+	LL_Detailed,
+	LL_Debug,
+
+	LL_Normal = LL_General,
+	LL_Main = LL_General,
+	LL_Extended = LL_Detailed,
+
+	LL__No_Flags_Mask = 0x000F,
+	LL_NoPrefix = 0x8000
+}
+
+class AutoAmbientLogger: Thinker {
+	const LLCOLOR_DEBUG = TEXTCOLOR_DARKGRAY;
+	const LLCOLOR_EMERGENCY = TEXTCOLOR_FIRE;
+
+	int aaCurLogLevel;
+
+	static void UpdateLogLevel( void ) {
+		AutoAmbientLogger.Get().aaCurLogLevel = CVar.FindCVar( "mcm_aambient_loglevel" ).GetInt();
+	}
+
+	static play AutoAmbientLogger Get( void ) {
+		AutoAmbientLogger it = AutoAmbientLogger( ThinkerIterator.Create( "AutoAmbientLogger", STAT_STATIC ).Next() );
+
+		if ( !it ) {
+			// Creating and initializating a singleton global object:
+			it = new( "AutoAmbientLogger" );
+			it.ChangeStatNum( STAT_STATIC );
+			it.UpdateLogLevel(); // This one calls "Get()" again, yeah...
+		}
+
+		return it;
+	} // of static play AutoAmbientLogger Get( void ) {}
+
+	// Prints well-decorated information string. "LL_NoPrefix" also disables 
+	//the default color mark:
+	static clearscope void ClearscopeLog( EAAmbientLogLevels loglevel, String text ) {
+		String logPrefix = "";
+
+		if ( !( loglevel & LL_NoPrefix ) ) {
+			switch ( loglevel & LL__No_Flags_Mask ) {
+				case LL_Debug:
+					logPrefix = LLCOLOR_DEBUG .. "[AA Debug] ";
+					break;
+				case LL_Emergency:
+					logPrefix = TEXTCOLOR_RED .. "[AutoAmbient emergency] " .. LLCOLOR_EMERGENCY;
+					break;
+				default:
+					logPrefix = TEXTCOLOR_GRAY .. "[AA] \c-";
+					break;
+			} // of switch ( loglevel & ~LL_NoPrefix ) {}
+		} // of if ( !( loglevel & LL_NoPrefix ) ) {}
+
+		String lastSymbol = text.Mid( text.Length() - 1 );
+		bool extraDot = !( lastSymbol == "." || lastSymbol == "!" || lastSymbol == "?" || lastSymbol == ";" || lastSymbol == ":" );
+
+		console.printf( logPrefix .. text .. ( extraDot? "." : "" ) );
+	} // of static clearscope void ClearscopeLog( EAAmbientLogLevels loglevel, String text ) {}
+
+	// A play-scope wrapper around a data-scope method (mostly used):
+	static play void Log( EAAmbientLogLevels loglevel, String text ) {
+		if ( AutoAmbientLogger.Get().aaCurLogLevel >= ( loglevel & LL__No_Flags_Mask ) )
+			ClearscopeLog( loglevel, text );
+	}
+
+} // of class AutoAmbientLogger: Thinker {}
+
+
+class AutoAmbientUtil {
+    static String squeezeVector3( vector3 vec ) {
+        return "(" .. int( vec.x ) .. ", " .. int( vec.y ) .. ", " .. int( vec.z ) .. ")";
+    }
+} // of class AutoAmbientUtil {}
 
 
 class AutoAmbientGlobalHandler: StaticEventHandler {
@@ -87,6 +163,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 	// Configuration init/file parser:
 	override void OnRegister() {
+		AutoAmbientLogger logger = AutoAmbientLogger.Get();
 		SetOrder( AutoAmbientHandlerOrder );
 
 		textures.Clear();
@@ -144,10 +221,11 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 		AutoAmbientConfigParser.Create( self ).ParseFile( "aambient.cfg" );
 
+
 		if ( !parserErrorLine )
-			console.printf( GetClassName() .. "::OnRegister(). Loading configuration done." );
+			logger.Log( LL_Main | LL_NoPrefix, GetClassName() .. "::OnRegister(). Loading configuration done." );
 		else
-			console.printf( GetClassName() .. "::OnRegister(). Error during configuration files parsing in " .. parserErrorFilename .. " on line " .. parserErrorLine .. "." );
+			logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Error during configuration files parsing in " .. parserErrorFilename .. " on line " .. parserErrorLine .. "." );
 
 		Super.OnRegister();
 	}
@@ -155,25 +233,26 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 	override void WorldLoaded( WorldEvent e ) {
 		bool dontLoadAutoAmbient = false;
+		AutoAmbientLogger logger = AutoAmbientLogger.Get();
 
 		// Some checks which prevents second large part from loading:
 		if ( e.IsSaveGame || ( parserErrorLine != 0 ) ) {
 			dontLoadAutoAmbient = true;
 		} else if ( !groups.Size() ) {
-			console.printf( GetClassName() .. "::WorldLoaded(). No group blocks provided in the configuration file." );
+			logger.Log( LL_Emergency, GetClassName() .. "::WorldLoaded(). No group blocks provided in the configuration file." );
 			dontLoadAutoAmbient = true;
 		} else if ( !textures.Size() ) {
-			console.printf( GetClassName() .. "::WorldLoaded(). No texture definition blocks provided in the configuration file." );
+			logger.Log( LL_Emergency, GetClassName() .. "::WorldLoaded(). No texture definition blocks provided in the configuration file." );
 			dontLoadAutoAmbient = true;
 		} else {
 			AutoAmbientTexture invalidTexture = FindInvalidTexture();
 
 			if ( invalidTexture ) {
 				dontLoadAutoAmbient = true;
-				console.printf( GetClassName() .. "::WorldLoaded(). ERROR: texture definition ID " .. invalidTexture.id .. " is not valid." );
-				console.printf( GetClassName() .. "::WorldLoaded(). Validate callback: " 
+				logger.Log( LL_Emergency, GetClassName() .. "::WorldLoaded(). Texture definition ID " .. invalidTexture.id .. " is not valid." );
+				logger.Log( LL_Main, GetClassName() .. "::WorldLoaded(). Validate callback: " 
 								.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length() 
-								.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. !invalidTexture.groupparams.Size() 
+								.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. invalidTexture.groupparams.Size() 
 								.. ", addingErrorFlag=" .. invalidTexture.invalidFlag );
 			}
 		}
@@ -254,23 +333,23 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 		} // of for ( int curSideIndex = 0; curSideIndex < level.Sides.Size(); curSideIndex++ ) {}
 
+		logger.Log( LL_Detailed, GetClassName() .. "::WorldLoaded(). Total ambient actors spawned: " .. totalAutoAmbientActorsSpawned .. "." );
 
-		//console.printf( GetClassName() .. "::WorldLoaded(). Total ambient actors spawned: " .. totalAutoAmbientActorsSpawned .. "." );
 
-		/*
-		console.printf( "AutoAmbientCacheTextureKeeper. Head " .. cachedTextures.head .. " <<->> tail " .. cachedTextures.tail .. "." );
-		AutoAmbientCacheTexture debugTexCache = cachedTextures.head;
-		uint debugTotalTexCacheAmount = 0;
+		if ( logger.aaCurLogLevel >= LL_Debug ) {
+			logger.Log( LL_Debug, "AutoAmbientCacheTextureKeeper. Head " .. cachedTextures.head .. " <<->> tail " .. cachedTextures.tail .. "." );
+			AutoAmbientCacheTexture debugTexCache = cachedTextures.head;
+			uint debugTotalTexCacheAmount = 0;
 
-		while ( debugTexCache ) {
-			String debugTexCacheName = String.Format( "%8s", TexMan.GetName( debugTexCache.texID ) );
-			console.printf( "|- Texture " .. debugTexCacheName .. " freq " .. debugTexCache.frequency .. ": (" .. debugTexCache.prev .. ")<p " .. debugTexCache .. " n>(" .. debugTexCache.next .. ")" );
-			debugTexCache = debugTexCache.next;
-			debugTotalTexCacheAmount++;
+			while ( debugTexCache ) {
+				String debugTexCacheName = String.Format( "%8s", TexMan.GetName( debugTexCache.texID ) );
+				logger.Log( LL_Debug, "|- Texture " .. debugTexCacheName .. " freq " .. debugTexCache.frequency .. ": (" .. debugTexCache.prev .. ")<p " .. debugTexCache .. " n>(" .. debugTexCache.next .. ")" );
+				debugTexCache = debugTexCache.next;
+				debugTotalTexCacheAmount++;
+			}
+
+			logger.Log( LL_Debug, "AutoAmbientCacheTextureKeeper. Total texture cache nodes amount: " .. debugTotalTexCacheAmount .. "." );
 		}
-
-		console.printf( "AutoAmbientCacheTextureKeeper. Total texture cache nodes amount: " .. debugTotalTexCacheAmount .. "." );
-		/* */
 
 
 		// Yes, I know perfectly well that garbage collector will successfully 
@@ -295,6 +374,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 				}
 			} // of for ( int i = 0; i < groups.Size(); i++ ) {}
 
+			AutoAmbientLogger.Get().Log( LL_Detailed, "Changed automatic actors visibility to " .. !setInvisibleFlag );
 		} // of if ( e.name == "mcm_autoambient_actors_visibility" ) {}
 
 		Super.NetworkProcess( e );
