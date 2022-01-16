@@ -25,6 +25,7 @@ OptionMenu "mcm_AutoAmbientControl" {
 }
 
 AddOptionMenu "OptionsMenu" {
+	StaticText " "
 	Submenu		"Auto-ambient control", "mcm_AutoAmbientControl"
 }
 
