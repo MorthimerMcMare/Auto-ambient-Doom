@@ -352,6 +352,11 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		}
 
 
+		CVar optionCVar = CVar.GetCVar( "mcm_aambient_showactorsatstart" );
+
+		if ( optionCVar && optionCVar.GetBool() )
+			EventHandler.SendNetworkEvent( "mcm_autoambient_actors_visibility", 1 );
+
 		// Yes, I know perfectly well that garbage collector will successfully 
 		//destroy an array.
 		cachedTextures.Clear();

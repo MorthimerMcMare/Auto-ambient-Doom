@@ -1,4 +1,4 @@
 //
 
 server int mcm_aambient_loglevel			= 1;
-
+server bool mcm_aambient_showactorsatstart	= false;
