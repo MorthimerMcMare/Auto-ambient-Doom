@@ -172,7 +172,7 @@ class AutoAmbientGroup play {
 			case Side.mid:
 				lineHeight = max( 0, ac - af );
 
-				// Cannot recognize now what must be here...
+				// TODO: cannot recognize now what must be here...
 				//if ( lineHeight > 0 )
 				//	lineHeight = min( lineHeight, oc - of );
 
