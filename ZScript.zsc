@@ -31,7 +31,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	}
 
 
-	bool CheckReplicateParserAmount( void ) {
+	bool DescendIncludeFileLevel( void ) {
 		bool outValue = false;
 
 		if ( replicateParserAmount < replicateParserMaxAmount ) {
@@ -40,6 +40,17 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		}
 
 		return outValue;
+	}
+
+	void AscendIncludeFileLevel( void ) {
+		if ( replicateParserAmount > 0 )
+			replicateParserAmount--;
+		else
+			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "AscendIncludeFileLevel(). Tried to ascend over the first level." );
+	}
+
+	String GetFormattedIncludeFileLevel( void ) {
+		return TEXTCOLOR_GRAY .. ( ( replicateParserAmount == 0 )? "top" : "nested level " .. replicateParserAmount .. "\c-" );
 	}
 
 	AutoAmbientTexture FindInvalidTexture( void ) {

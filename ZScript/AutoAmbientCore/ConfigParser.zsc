@@ -161,7 +161,7 @@ class AutoAmbientConfigParser play {
 		parserErrorFlag = true;
 
 		for ( int i = 0; i < configFileLine.Size(); i++ )
-			logger.Log( LL_Detailed, GetClassName() .. ":ParserError() response. configFileLine[ " .. i .. " ] = \"" .. configFileLine[ i ] .. "\";" );
+			logger.Log( LL_Detailed, GetClassName() .. "::ParserError() response. configFileLine[ " .. i .. " ] = \"" .. configFileLine[ i ] .. "\";" );
 
 		logger.Log( LL_Emergency, GetClassName() .. msg );
 		g.parserErrorLine = parserLineNum;
@@ -603,12 +603,17 @@ class AutoAmbientConfigParser play {
 
 		if ( lineArgsAmount > 0 && !parserErrorFlag ) {
 			if ( lineArgsAmount == 2 && configFileLine[ 0 ] == "include" ) {
-				if ( g.CheckReplicateParserAmount() ) {
+				if ( g.DescendIncludeFileLevel() ) {
 					parserErrorFlag = AutoAmbientConfigParser.Create( g ).ParseFile( configFileLine[ 1 ] );
+
+					if ( !parserErrorFlag )
+						logger.Log( LL_Detailed, GetClassName() .. "::ParseGlobalScope( \"" .. TEXTCOLOR_TEAL .. configFilename .. "\c-\" ). Continue parsing file." );
+
+					g.AscendIncludeFileLevel(); // Up to one level.
 				} else {
-					g.replicateParserAmount--; // Fixme...
-					logger.Log( LL_Emergency, GetClassName() .. "::ParseGlobalScope(). WARNING: maximal amount of nested includes reached, file \"" .. configFileLine[ 1 ] .. "\" skipped (line " .. parserLineNum .. " in file \"" .. configFilename .. "\")." );
+					logger.Log( LL_Emergency, GetClassName() .. "::ParseGlobalScope(). " .. logger.LLCOLOR_EMERGENCY .. "WARNING\c-: maximal amount of nested includes reached, file \"" .. configFileLine[ 1 ] .. "\" skipped (line " .. parserLineNum .. " in file \"" .. TEXTCOLOR_TEAL .. configFilename .. "\c-\")." );
 				}
+
 			} else if ( configFileLine[ 0 ] == "texture" ) {
 				if ( lineArgsAmount > 2 ) {
 					parserCurBlockType = AAPB_Texture;
@@ -644,7 +649,7 @@ class AutoAmbientConfigParser play {
 
 		// Configuration file unparsing:
         if ( rawConfigFileHandler != -1 ) {
-			logger.Log( LL_Detailed, GetClassName() .. "::ParseFile(). Parsing file \"" .. configFilename .. "\"." );
+			logger.Log( LL_Detailed, GetClassName() .. "::ParseFile( \"" .. TEXTCOLOR_TEAL .. configFilename .. "\c-\" ). Parsing file >>> (" .. g.GetFormattedIncludeFileLevel() .. ")" );
 
 			parserDefaultTexture = AutoAmbientTexture.CreateTemporalBase();
 			parserDefaultTextureParam = AutoAmbientTextureParameter.Create( "Default texture parameter", ( -50.0, -50.0 ), ( -100.0, -100.0 ), ( 0.0, 0.0 ), 1.0 );
@@ -669,10 +674,10 @@ class AutoAmbientConfigParser play {
 			}
 
         } else {
-			ParserError( "::ParseFile(). Cannot find file \"" .. configFilename .. "\"." );
+			ParserError( "::ParseFile( \"" .. TEXTCOLOR_TEAL .. configFilename .. "\c-\" ). " .. logger.LLCOLOR_EMERGENCY .. "Cannot find file >>> (" .. g.GetFormattedIncludeFileLevel() .. ")" );
 		}
 
-		logger.Log( LL_Detailed, GetClassName() .. "::ParseFile(). File \"" .. configFilename .. "\" parsing " .. ( parserErrorFlag? TEXTCOLOR_DARKRED .. "terminated" : TEXTCOLOR_GREEN .. "complete" ) .. "\c-." );
+		logger.Log( LL_Detailed, GetClassName() .. "::ParseFile( \"" .. TEXTCOLOR_TEAL .. configFilename .. "\c-\" ). File parsing " .. ( parserErrorFlag? TEXTCOLOR_DARKRED .. "terminated" : TEXTCOLOR_GREEN .. "complete" ) .. "\c- <<< (" .. g.GetFormattedIncludeFileLevel() .. ")" );
 
 		return parserErrorFlag;
 	} // of bool ParseFile( String rawConfigFilename ) {}
