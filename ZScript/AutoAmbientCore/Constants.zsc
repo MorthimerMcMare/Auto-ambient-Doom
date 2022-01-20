@@ -62,4 +62,4 @@ enum EAAmbientLogLevels {
 
 	LL__No_Flags_Mask = 0x000F,
 	LL_NoPrefix = 0x8000
-}
+};
