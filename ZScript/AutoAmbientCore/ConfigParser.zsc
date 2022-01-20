@@ -282,6 +282,8 @@ class AutoAmbientConfigParser play {
 				parserCurTextureParam.chance = configFileLine[ 1 ].ToDouble();
 			else
 				ParserError( "::ParseTextureParameterBlock(). \"chance\": wrong amout of arguments (got " .. lineArgsAmount .. ", must be <value>)." );
+		} else {
+			ParserError( "::ParseTextureParameterBlock(). Unknown keyword \"" .. configFileLine[ 0 ] .. "\"." );
 		}
 	} // of void ParseTextureParameterBlock( void ) {}
 
