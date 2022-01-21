@@ -13,7 +13,7 @@ version "2.4.0"
 
 
 class AutoAmbientGlobalHandler: StaticEventHandler {
-	const AutoAmbientHandlerOrder = 0x7FAA0004;
+	const AutoAmbientHandlerOrder = 0x7FAA0004; // ZChecker: 0x7FAA0005 and 0x7FAA0006.
 
 	const replicateParserMaxAmount = 16;
 	int replicateParserAmount; // To prevent infinite recursive including loop.
