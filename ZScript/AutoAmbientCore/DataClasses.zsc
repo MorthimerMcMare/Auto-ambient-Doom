@@ -156,3 +156,63 @@ class AutoAmbientTexture {
 		return ( id && size.Length() && groups.Size() && !invalidFlag );
 	}
 } // of class AutoAmbientTexture {}
+
+
+class AutoAmbientMapsData {
+	String mapname, maphash;
+	Array<AutoAmbientTexture> textures;
+
+	// Add textures over the defaults ("false") or set them from zero ("true").
+	bool restrictDefaultTextures;
+} // of class AutoAmbientMapsData {}
+
+class AutoAmbientMapSet play {
+	Array<AutoAmbientMapsData> maps;
+	uint lastMapIndex;
+
+	// Searches the map in the internal array:
+	uint FindMap( String mapname = "", String maphash = "" ) {
+		uint foundMap = -1;
+		uint mapsSize = maps.Size();
+
+		if ( mapsSize > lastMapIndex ) {
+			if ( maps[ lastMapIndex ].mapname == mapname || maps[ lastMapIndex ].maphash == maphash ) {
+				foundMap = lastMapIndex;
+			} else {
+				for ( uint i = 0; i < mapsSize; i++ ) {
+					if ( maps[ i ].mapname == mapname || maps[ i ].maphash == maphash ) {
+						foundMap = lastMapIndex = i;
+						break;
+					}
+				}
+			}
+		} else {
+			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::FindMap(). Cached last map index (" .. lastMapIndex .. ") is greater than array size (" .. mapsSize .. "). " );
+		}
+
+		return foundMap;
+	}
+
+	void AddToMap( AutoAmbientTexture texture, String mapname = "", String maphash = "" ) {
+		if ( texture != NULL && texture.id ) {
+			if ( mapname != "" || maphash != "" ) {
+				int mapindex = FindMap( mapname, maphash );
+
+				if ( mapindex == -1 ) {
+					// Creating a new map data record if it isn't exists.
+					AutoAmbientMapsData newmapdata = new( 'AutoAmbientMapsData' );
+					newmapdata.mapname = mapname;
+					newmapdata.maphash = maphash;
+					lastMapIndex = mapindex = maps.Push( newmapdata );
+				}
+
+				maps[ mapindex ].textures.Push( texture );
+			} else {
+				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::AddToMap(). Both map name and map hash parameters are omitted (texture \"" .. texture.id .. "\")." );
+			}
+		} else {
+			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::AddToMap(). Wrong texture <" .. texture .. "> (method args: mapname \"" .. mapname .. "\", maphash \"" .. maphash .. "\"." );
+		}
+	}
+
+} // of class AutoAmbientMapSet {}
