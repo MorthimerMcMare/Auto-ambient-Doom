@@ -103,13 +103,15 @@ class AutoAmbientTexture {
 		return newTex;
 	} // of static AutoAmbientTexture Create( String textureName ) {}
 
-	static AutoAmbientTexture CreateTemporalBase( void ) {
-		AutoAmbientTexture newTex = new( 'AutoAmbientTexture' );
+	static AutoAmbientTextureWithMaps CreateTemporalWithMaps( void ) {
+		AutoAmbientTextureWithMaps newTex = new( 'AutoAmbientTextureWithMaps' );
 
 		newTex.linesCheckFlags = AALCF_Default;
+		newTex.restrictDefaultTextures = false;
 
 		return newTex;
-	}
+	} // of static AutoAmbientTextureWithMaps CreateTemporalBase( void ) {}
+
 
 	void AddGroupParam( AutoAmbientGroup group, AutoAmbientTextureParameter param ) {
 		if ( group && param ) {
@@ -157,6 +159,14 @@ class AutoAmbientTexture {
 	}
 } // of class AutoAmbientTexture {}
 
+class AutoAmbientTextureWithMaps: AutoAmbientTexture {
+	Array<String> mapnames;
+	Array<String> maphashes;
+
+	bool restrictDefaultTextures;
+} // of class AutoAmbientTextureWithMaps: AutoAmbientTexture {}
+
+
 
 class AutoAmbientMapsData {
 	String mapname, maphash;
@@ -169,6 +179,10 @@ class AutoAmbientMapsData {
 class AutoAmbientMapSet play {
 	Array<AutoAmbientMapsData> maps;
 	uint lastMapIndex;
+
+	static AutoAmbientMapSet Create( void ) {
+		return new( 'AutoAmbientMapSet' );
+	}
 
 	// Searches the map in the internal array:
 	uint FindMap( String mapname = "", String maphash = "" ) {

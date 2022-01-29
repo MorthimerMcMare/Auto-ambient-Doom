@@ -20,6 +20,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	int parserErrorLine;
 	String parserErrorFilename;
 
+	AutoAmbientMapSet maptextures;
 	Array<AutoAmbientTexture> textures;
 	Array<AutoAmbientGroup> groups;
 	Array<AutoAmbientTextureParameter> textureparams;
@@ -67,6 +68,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		AutoAmbientLogger logger = AutoAmbientLogger.Get();
 		SetOrder( AutoAmbientHandlerOrder );
 
+		maptextures = AutoAmbientMapSet.Create();
 		textures.Clear();
 		groups.Clear(); 
 		textureparams.Clear();

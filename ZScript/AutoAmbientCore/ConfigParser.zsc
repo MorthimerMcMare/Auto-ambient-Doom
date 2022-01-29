@@ -2,22 +2,26 @@
 class AutoAmbientConfigParser play {
 	AutoAmbientGlobalHandler g;
 	AutoAmbientLogger logger;
-
-	String configFilename;
 	bool parserErrorFlag;
 
-	String rawConfigFile;
-	Array<String> configLines;
+	String configFilename;
+	Array<String> configLines; // All configuration file lines.
 	bool configEoF;
 	int parserLineNum;
 	Array<String> configFileLine; // One line from the configuration file, "readNextConfigLine()" stores the value here.
 
 	EAutoAmbientParserBlocks parserCurBlockType;
 
-	AutoAmbientTexture parserDefaultTexture, parserCurTexture;
+	AutoAmbientTextureWithMaps parserDefaultTexture, parserCurTexture;
 	AutoAmbientTextureParameter parserDefaultTextureParam, parserCurTextureParam;
 	AutoAmbientGroup parserDefaultGroup, parserCurGroup;
 	AutoAmbientSoundDefinition parserDefaultSound, parserCurSound;
+
+	// Optional (see "DataClasses.zsc:AutoAmbientMapsData"). Variables resets
+	//to zero/false at start of the new texture definition.
+	Array<String> curTextureMapNames, curTextureMapHashes;
+	bool curTextureMapRestrictDefault;
+
 
 	AutoAmbientGroup FindGroup( String groupname ) {
 		for ( int i = 0; i < g.groups.Size(); i++ )
@@ -193,6 +197,7 @@ class AutoAmbientConfigParser play {
 	}
 
 	void ParseTextureBlock( void ) {
+		// General.
 		if ( configFileLine[ 0 ] == "group" ) {
 			if ( configFileLine.Size() == 3 || configFileLine.Size() == 4 ) {
 				AutoAmbientGroup texgroup = FindGroup( configFileLine[ 1 ] );
@@ -214,7 +219,6 @@ class AutoAmbientConfigParser play {
 			} else {
 				ParserError( "::ParseTextureBlock(). \"group\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <name> <x> <y> or <name> <texparam>)." );
 			} // of else of if ( configFileLine.Size() == 2 || configFileLine.Size() == 3 ) {}
-
 		} else if ( configFileLine[ 0 ] == "belowdistchance" ) {
 			if ( configFileLine.Size() == 3 ) {
 				parserCurTexture.sameLineDistSpawnChance = configFileLine[ 1 ].ToDouble();
@@ -222,6 +226,8 @@ class AutoAmbientConfigParser play {
 			} else {
 				ParserError( "::ParseTextureBlock(). \"belowdistchance\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be <samelinechance> <otherlineschance>)." );
 			}
+
+		// Flags handling.
 		} else if ( configFileLine[ 0 ] == "setflag" || configFileLine[ 0 ] == "+f" ) {
 			if ( configFileLine.Size() == 2 ) {
 				EAutoAmbientLinesCheckFlags setflags = 0;
@@ -249,6 +255,27 @@ class AutoAmbientConfigParser play {
 			} else {
 				ParserError( "::ParseTextureBlock(). \"resetflag\": wrong amount of arguments (got " .. configFileLine.Size() .. ", must be one)." );
 			}
+
+		// Maps linking.
+		} else if ( configFileLine[ 0 ] == "onmaps" ) {
+			if ( configFileLine.Size() > 1 ) {
+				for ( int i = 1; i < configFileLine.Size(); i++ )
+					curTextureMapNames.Push( configFileLine[ i ] );
+			} else {
+				ParserError( "::ParseTextureBlock(). \"onmaps\": no argument(s)." );
+			}
+		} else if ( configFileLine[ 0 ] == "onmaphashes" ) {
+			if ( configFileLine.Size() > 1 ) {
+				for ( int i = 1; i < configFileLine.Size(); i++ )
+					curTextureMapHashes.Push( configFileLine[ i ] );
+			} else {
+				ParserError( "::ParseTextureBlock(). \"onmaphashes\": no argument(s)." );
+			}
+		} else if ( configFileLine[ 0 ] == "denygeneraltexture" ) { // Temporal flag placement.
+			parserCurTexture.restrictDefaultTextures = true;
+		} else if ( configFileLine[ 0 ] == "allowgeneraltexture" ) { // Temporal flag placement.
+			parserCurTexture.restrictDefaultTextures = false;
+
 		} else {
 			ParserError( "::ParseTextureBlock(). Unknown keyword \"" .. configFileLine[ 0 ] .. "\"." );
 		}
@@ -407,11 +434,12 @@ class AutoAmbientConfigParser play {
 
 		switch ( parserCurBlockType ) {
 			case AAPB_Texture:
-				// Different handling because of not fixed amount of arguments.
+				// Different handling of the block because of not fixed
+				//amount of arguments and some regular expressions.
 
 				Array<String> textureNames;
 
-				// Symbol-by-symbol regular expressions handling:
+				// Symbol-by-symbol regular expressions handling (if any):
 				for ( int i = 1; i < textureLastNameIndex; i++ ) {
 					int regexBracketStart = configFileLine[ i ].IndexOf( "[" );
 
@@ -470,7 +498,7 @@ class AutoAmbientConfigParser play {
 
 								regexCurTextureIndexOffset = true;
 							}
-						} // of for ( int j = 0; j < regexpedName.Size(); j++ ) {}
+						} // of for ( int j = 0; j < regexpedName.Length(); j++ ) {}
 
 						if ( parserErrorFlag )
 							break;
@@ -488,11 +516,17 @@ class AutoAmbientConfigParser play {
 				if ( parserErrorFlag )
 					break;
 
-				parserCurTexture = AutoAmbientTexture.CreateTemporalBase();
+				// Creating a placeholder which will recieve all properties:
+				parserCurTexture = AutoAmbientTexture.CreateTemporalWithMaps();
 				parserCurTexture.linesCheckFlags = parserDefaultTexture.linesCheckFlags;
 				parserCurTexture.sameLineDistSpawnChance = parserDefaultTexture.sameLineDistSpawnChance;
 				parserCurTexture.otherLineDistSpawnChance = parserDefaultTexture.otherLineDistSpawnChance;
 
+				parserCurTexture.mapnames.Copy( parserDefaultTexture.mapnames );
+				parserCurTexture.maphashes.Copy( parserDefaultTexture.maphashes );
+				parserCurTexture.restrictDefaultTextures = parserDefaultTexture.restrictDefaultTextures;
+
+				// Parsing properties to the placeholder:
 				if ( !emptyBlock ) {
 					readNextConfigLine();
 					while ( !parserErrorFlag && ( !configFileLine.Size() ^ ( configFileLine[ 0 ] != /*'{'*/ "}" ) ) ) {
@@ -504,6 +538,7 @@ class AutoAmbientConfigParser play {
 						parserCurTexture.AddGroupParam( parserDefaultTexture.groups[ i ], parserDefaultTexture.groupparams[ i ] );
 				} // of else, of if ( !emptyBlock ) {}
 
+				// Extracting saved properties to the real texture definitions:
 				for ( int i = 0; i < textureNames.Size(); i++ ) {
 					String curIdentifier = textureNames[ i ];
 					AutoAmbientTexture newTextureDef = NULL;
@@ -512,6 +547,8 @@ class AutoAmbientConfigParser play {
 						newTextureDef = parserDefaultTexture;
 						newTextureDef.groups.Clear();
 						newTextureDef.groupparams.Clear();
+						AutoAmbientTextureWithMaps( newTextureDef ).mapnames.Clear();
+						AutoAmbientTextureWithMaps( newTextureDef ).maphashes.Clear();
 					} else {
 						newTextureDef = AutoAmbientTexture.Create( curIdentifier );
 
@@ -521,17 +558,28 @@ class AutoAmbientConfigParser play {
 						}
 					}
 
-					if ( newTextureDef ) {
-						for ( int i = 0; i < parserCurTexture.groups.Size(); i++ )
-							newTextureDef.AddGroupParam( parserCurTexture.groups[ i ], parserCurTexture.groupparams[ i ].Copy() );
+					if ( newTextureDef && !parserErrorFlag ) {
+						for ( int j = 0; j < parserCurTexture.groups.Size(); j++ )
+							newTextureDef.AddGroupParam( parserCurTexture.groups[ j ], parserCurTexture.groupparams[ j ].Copy() );
 
 						newTextureDef.linesCheckFlags = parserCurTexture.linesCheckFlags;
 						newTextureDef.sameLineDistSpawnChance = parserCurTexture.sameLineDistSpawnChance;
 						newTextureDef.otherLineDistSpawnChance = parserCurTexture.otherLineDistSpawnChance;
 
-						if ( newTextureDef != parserDefaultTexture )
-							g.textures.Push( newTextureDef );
-					} // of if ( parserCurTexture ) {}
+						if ( newTextureDef != parserDefaultTexture ) {
+							if ( parserCurTexture.mapnames.Size() || parserCurTexture.maphashes.Size() ) {
+								for ( int j = 0; j < parserCurTexture.mapnames.Size(); j++ )
+									g.maptextures.AddToMap( newTextureDef, parserCurTexture.mapnames[ j ], "" );
+								for ( int j = 0; j < parserCurTexture.maphashes.Size(); j++ )
+									g.maptextures.AddToMap( newTextureDef, "", parserCurTexture.maphashes[ j ] );
+							} else {
+								g.textures.Push( newTextureDef );
+							}
+						} else {
+							AutoAmbientTextureWithMaps( newTextureDef ).mapnames.Copy( parserCurTexture.mapnames );
+							AutoAmbientTextureWithMaps( newTextureDef ).maphashes.Copy( parserCurTexture.maphashes );
+						}
+					} // of if ( newTextureDef && !parserErrorFlag ) {}
 
 				} // of for ( int i = 0; i < textureNames.Size(); i++ ) {}
 				break;
@@ -585,9 +633,6 @@ class AutoAmbientConfigParser play {
 
 				if ( parserCurSound && parserCurSound != parserDefaultSound )
 					g.sounddefs.Push( parserCurSound );
-				break;
-			case AAPB_Global:
-				ParserError( "::ParseBlockHeader(). Impossible parser block type \"Global\"." );
 				break;
 			default:
 				ParserError( "::ParseBlockHeader(). Unrecognized parser block type " .. parserCurBlockType .. "." );
@@ -653,7 +698,7 @@ class AutoAmbientConfigParser play {
         if ( rawConfigFileHandler != -1 ) {
 			logger.Log( LL_Detailed, GetClassName() .. "::ParseFile( \"" .. TEXTCOLOR_TEAL .. configFilename .. "\c-\" ). Parsing file >>> (" .. g.GetFormattedIncludeFileLevel() .. ")" );
 
-			parserDefaultTexture = AutoAmbientTexture.CreateTemporalBase();
+			parserDefaultTexture = AutoAmbientTexture.CreateTemporalWithMaps();
 			parserDefaultTextureParam = AutoAmbientTextureParameter.Create( "Default texture parameter", ( -50.0, -50.0 ), ( -100.0, -100.0 ), ( 0.0, 0.0 ), 1.0 );
 			parserDefaultGroup = AutoAmbientGroup.Create( "Default group", 256 );
 			parserDefaultSound = AutoAmbientSoundDefinition.Create( "Default sound definition", "null", AASM_Looped, 1.0, 1.0, 35, 35 );
@@ -664,7 +709,7 @@ class AutoAmbientConfigParser play {
 			parserCurSound = NULL;
 
 			parserLineNum = 0;
-            rawConfigFile = Wads.ReadLump( rawConfigFileHandler );
+            String rawConfigFile = Wads.ReadLump( rawConfigFileHandler );
 
             rawConfigFile.ToLower();
             rawConfigFile.Replace( "\r", "\n" ); // "dos2unix", "mac2unix"...
