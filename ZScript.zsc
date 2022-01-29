@@ -131,96 +131,9 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 			logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Error during configuration files parsing in " .. parserErrorFilename .. " on line " .. parserErrorLine .. "." );
 
 
-		if ( logger.aaCurLogLevel >= LL_Debug ) {
-			// You cannot call a function with an Array<> argument type in some
-			//old versions of the engine.
-			logger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Sound definitions (total " .. sounddefs.Size() .. ")" .. logger.LLCOLOR_DEBUG .. ":" );
-			for ( int i = 0; i < sounddefs.Size(); i++ ) {
-				if ( sounddefs[ i ] )
-					logger.Log( LL_Debug, "SND #" .. i .. " \"" .. sounddefs[ i ].name .. "\": snd " .. sounddefs[ i ].snd .. " vol " .. sounddefs[ i ].sndVolume .. " attn " .. sounddefs[ i ].sndAttenuation .. ", mode " .. sounddefs[ i ].sndMode .. " " .. sounddefs[ i ].minDelay .. " " .. sounddefs[ i ].maxDelay );
-				else
-					logger.Log( LL_Debug, "SND #" .. i .. ": NULL!!!" );
-			} // of for ( int i = 0; i < sounddefs.Size(); i++ ) {}
-
-			logger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Texture parameters (total " .. textureparams.Size() .. ")" .. logger.LLCOLOR_DEBUG .. ":" );
-			for ( int i = 0; i < textureparams.Size(); i++ ) {
-				if ( textureparams[ i ] )
-					logger.Log( LL_Debug, "TPM #" .. i .. " \"" .. textureparams[ i ].name .. "\": " .. textureparams[ i ].start .. "++" .. textureparams[ i ].offset .. " rnd " .. textureparams[ i ].spreading .. " chnc " .. textureparams[ i ].chance );
-				else
-					logger.Log( LL_Debug, "TPM #" .. i .. ": NULL!!!" );
-			} // of for ( int i = 0; i < textureparams.Size(); i++ ) {}
-
-			logger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Groups (total " .. groups.Size() .. ")" .. logger.LLCOLOR_DEBUG .. ":" );
-			for ( int i = 0; i < groups.Size(); i++ ) {
-				AutoAmbientGroup curgroup = groups[ i ];
-
-				if ( curgroup ) {
-					logger.Log( LL_Debug, "GRP #" .. i .. " \"" .. curgroup.name .. "\": mindist " .. curgroup.actorsDistance .. ", &spawned: " .. curgroup.spawned .. ", &spawnedOnLine: " .. curgroup.spawnedOnLine .. ", classes:" );
-					String debugStr = "";
-
-					for ( int j = 0; j < curgroup.classes.Size(); j++ ) {
-						debugStr = debugStr .. " (" .. TEXTCOLOR_GRAY;
-
-						if ( !curgroup.classes[ j ] )
-							debugStr = debugStr .. " (" .. logger.LLCOLOR_EMERGENCY .. "Class #" .. j .. " is NULL!";
-						else
-							debugStr = debugStr .. curgroup.classes[ j ].GetClassName();
-
-						debugStr = debugStr .. logger.LLCOLOR_DEBUG .. ")";
-					}
-
-					for ( int j = 0; j < curgroup.autoclasses.Size(); j++ ) {
-						debugStr = debugStr .. " (" .. TEXTCOLOR_GRAY;
-
-						if ( !curgroup.autoclasses[ j ] )
-							debugStr = debugStr .. " (" .. logger.LLCOLOR_EMERGENCY .. "Autoclass #" .. j .. " is NULL!";
-						else
-							debugStr = debugStr .. "Auto:" .. curgroup.autoclasses[ j ].name;
-
-						debugStr = debugStr .. logger.LLCOLOR_DEBUG .. ")";
-					}
-
-					if ( debugStr == "" )
-						debugStr = TEXTCOLOR_YELLOW .. " No classes defined";
-
-					logger.Log( LL_Debug, " \\_" .. debugStr );
-				} else {
-					logger.Log( LL_Debug, "GRP #" .. i .. ": NULL!!!" );
-				}
-			} // of for ( int i = 0; i < groups.Size(); i++ ) {}
-
-			logger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Textures (total " .. textures.Size() .. ")" .. logger.LLCOLOR_DEBUG .. ":" );
-			for ( int i = 0; i < textures.Size(); i++ ) {
-				AutoAmbientTexture curtex = textures[ i ];
-
-				if ( curtex ) {
-					logger.Log( LL_Debug, "TEX #" .. i .. " \"" .. curtex.id .. "\": size " .. curtex.size .. ", flags " .. curtex.linesCheckFlags .. ", spawnchances same:" .. curtex.sameLineDistSpawnChance .. " other:" .. curtex.otherLineDistSpawnChance .. ", groups:" );
-					String debugStr = "";
-
-					for ( int j = 0; j < curtex.groups.Size(); j++ ) {
-						debugStr = debugStr .. " (" .. TEXTCOLOR_GRAY;
-
-						if ( !curtex.groups[ j ] )
-							debugStr = debugStr .. logger.LLCOLOR_EMERGENCY .. "Group #" .. j .. " is NULL!";
-						else if ( !curtex.groupparams[ j ] )
-							debugStr = debugStr .. logger.LLCOLOR_EMERGENCY .. "Group \"" .. curtex.groups[ j ].name .. "\" (#" .. j .. ")'s texparam is NULL!!!";
-						else
-							debugStr = debugStr .. curtex.groups[ j ].name .. " at " .. curtex.groupparams[ j ].name;
-
-						debugStr = debugStr .. logger.LLCOLOR_DEBUG .. ")";
-					}
-
-					if ( debugStr == "" )
-						debugStr = TEXTCOLOR_YELLOW .. " No groups defined";
-
-					logger.Log( LL_Debug, " \\_" .. debugStr );
-				} else {
-					logger.Log( LL_Debug, "TEX #" .. i .. ": NULL!!!" );
-				}
-			} // of for ( int i = 0; i < textures.Size(); i++ ) {}
-
-		} // of if ( logger.aaCurLogLevel >= LL_Debug ) {}
-
+		// See "Utils.zsc" -> "extend class AutoAmbientGlobalHandler".
+		if ( logger.aaCurLogLevel >= LL_Debug )
+			OnRegisterDebugFullOutput( logger );
 
 		Super.OnRegister();
 	} // of override void OnRegister() {}
