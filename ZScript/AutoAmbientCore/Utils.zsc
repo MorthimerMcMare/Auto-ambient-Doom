@@ -65,6 +65,7 @@ class AutoAmbientUtil {
 } // of class AutoAmbientUtil {}
 
 
+
 extend class AutoAmbientGlobalHandler {
 
 	private void OnRegisterDebugFullOutput( AutoAmbientLogger logger ) {

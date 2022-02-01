@@ -189,19 +189,21 @@ class AutoAmbientMapSet play {
 		uint foundMap = -1;
 		uint mapsSize = maps.Size();
 
-		if ( mapsSize > lastMapIndex ) {
-			if ( maps[ lastMapIndex ].mapname == mapname || maps[ lastMapIndex ].maphash == maphash ) {
-				foundMap = lastMapIndex;
-			} else {
-				for ( uint i = 0; i < mapsSize; i++ ) {
-					if ( maps[ i ].mapname == mapname || maps[ i ].maphash == maphash ) {
-						foundMap = lastMapIndex = i;
-						break;
+		if ( mapsSize != 0 ) {
+			if ( lastMapIndex < mapsSize ) {
+				if ( maps[ lastMapIndex ].mapname == mapname || maps[ lastMapIndex ].maphash == maphash ) {
+					foundMap = lastMapIndex;
+				} else {
+					for ( uint i = 0; i < mapsSize; i++ ) {
+						if ( maps[ i ].mapname == mapname || maps[ i ].maphash == maphash ) {
+							foundMap = lastMapIndex = i;
+							break;
+						}
 					}
 				}
+			} else {
+				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::FindMap(). Cached last map index (" .. lastMapIndex .. ") is greater than array size (" .. mapsSize .. ")." );
 			}
-		} else {
-			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::FindMap(). Cached last map index (" .. lastMapIndex .. ") is greater than array size (" .. mapsSize .. "). " );
 		}
 
 		return foundMap;
@@ -229,4 +231,7 @@ class AutoAmbientMapSet play {
 		}
 	}
 
+	uint Size( void ) {
+		return maps.Size();
+	}
 } // of class AutoAmbientMapSet {}

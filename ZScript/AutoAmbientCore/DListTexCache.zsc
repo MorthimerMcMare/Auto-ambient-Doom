@@ -8,15 +8,19 @@ class AutoAmbientCacheTexture {
 	AutoAmbientCacheTexture next, prev;
 } // of class AutoAmbientCacheTexture {}
 
-class AutoAmbientCacheTextureKeeper {
+class AutoAmbientCacheTextureKeeper play {
 	AutoAmbientCacheTexture head, tail, prevFound;
 	AutoAmbientGlobalHandler g;
+	AutoAmbientMapsData mapData;
+	bool mustCheckForMapData;
 
 	static AutoAmbientCacheTextureKeeper CreateKeeper( AutoAmbientGlobalHandler globalHandler ) {
 		AutoAmbientCacheTextureKeeper newKeeper = new( 'AutoAmbientCacheTextureKeeper' );
 
 		newKeeper.g = globalHandler;
 		newKeeper.head = newKeeper.tail = NULL;
+		newKeeper.mapData = NULL;
+		newKeeper.mustCheckForMapData = true;
 
 		return newKeeper;
 	} // of static AutoAmbientCacheTextureKeeper CreateKeeper( AutoAmbientGlobalHandler globalHandler ) {}
@@ -30,11 +34,37 @@ class AutoAmbientCacheTextureKeeper {
 		newTextureCache.texdef = NULL; // Texture may has no defined ambient actors.
 		newTextureCache.next = NULL;
 
-		for ( int j = 0; j < g.textures.Size(); j++ )
-			if ( g.textures[ j ].id == texID ) {
-				newTextureCache.texdef = g.textures[ j ];
-				break;
+		// Locating new texture in map definition (if any) and in global scope.
+		// Map texture definition:
+		if ( !mapData && mustCheckForMapData ) {
+			mapData = NULL;
+
+			uint mapDataIndex = g.maptextures.FindMap( level.mapname, level.getChecksum() );
+
+			if ( mapDataIndex != -1 )
+				mapData = g.maptextures.maps[ mapDataIndex ];
+
+			mustCheckForMapData = false;
+		}
+
+		if ( mapData ) {
+			for ( int j = 0; j < mapData.textures.Size(); j++ ) {
+				if ( mapData.textures[ j ].id == texID ) {
+					newTextureCache.texdef = mapData.textures[ j ];
+					break;
+				}
 			}
+		} // of if ( mapData ) {}
+
+		// Global texture definitions:
+		if ( !mapData || ( !newTextureCache.texdef && !mapData.restrictDefaultTextures ) ) {
+			for ( int j = 0; j < g.textures.Size(); j++ ) {
+				if ( g.textures[ j ].id == texID ) {
+					newTextureCache.texdef = g.textures[ j ];
+					break;
+				}
+			}
+		} // of if ( !newTextureCache && ( mapData && !mapData.restrictDefaultTextures ) ) {}
 
 		if ( !head ) {
 			head = tail = newTextureCache;
