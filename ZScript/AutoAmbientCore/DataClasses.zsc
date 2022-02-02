@@ -178,7 +178,7 @@ class AutoAmbientMapsData {
 
 class AutoAmbientMapSet play {
 	Array<AutoAmbientMapsData> maps;
-	uint lastMapIndex;
+	uint prevMapIndex;
 
 	static AutoAmbientMapSet Create( void ) {
 		return new( 'AutoAmbientMapSet' );
@@ -190,19 +190,19 @@ class AutoAmbientMapSet play {
 		uint mapsSize = maps.Size();
 
 		if ( mapsSize != 0 ) {
-			if ( lastMapIndex < mapsSize ) {
-				if ( maps[ lastMapIndex ].mapname == mapname || maps[ lastMapIndex ].maphash == maphash ) {
-					foundMap = lastMapIndex;
+			if ( prevMapIndex < mapsSize ) {
+				if ( maps[ prevMapIndex ].mapname == mapname || maps[ prevMapIndex ].maphash == maphash ) {
+					foundMap = prevMapIndex;
 				} else {
 					for ( uint i = 0; i < mapsSize; i++ ) {
 						if ( maps[ i ].mapname == mapname || maps[ i ].maphash == maphash ) {
-							foundMap = lastMapIndex = i;
+							foundMap = prevMapIndex = i;
 							break;
 						}
 					}
 				}
 			} else {
-				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::FindMap(). Cached last map index (" .. lastMapIndex .. ") is greater than array size (" .. mapsSize .. ")." );
+				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::FindMap(). Cached last map index (" .. prevMapIndex .. ") is greater than array size (" .. mapsSize .. ")." );
 			}
 		}
 
@@ -219,7 +219,7 @@ class AutoAmbientMapSet play {
 					AutoAmbientMapsData newmapdata = new( 'AutoAmbientMapsData' );
 					newmapdata.mapname = mapname;
 					newmapdata.maphash = maphash;
-					lastMapIndex = mapindex = maps.Push( newmapdata );
+					prevMapIndex = mapindex = maps.Push( newmapdata );
 				}
 
 				maps[ mapindex ].textures.Push( texture );

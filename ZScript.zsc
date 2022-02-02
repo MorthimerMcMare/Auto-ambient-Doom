@@ -133,7 +133,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 		// See "Utils.zsc" -> "extend class AutoAmbientGlobalHandler".
 		if ( logger.aaCurLogLevel >= LL_Debug )
-			OnRegisterDebugFullOutput( logger );
+			OnRegisterDebugFullOutput();
 
 		Super.OnRegister();
 	} // of override void OnRegister() {}
