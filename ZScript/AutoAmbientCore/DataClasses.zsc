@@ -191,11 +191,11 @@ class AutoAmbientMapSet play {
 
 		if ( mapsSize != 0 ) {
 			if ( prevMapIndex < mapsSize ) {
-				if ( maps[ prevMapIndex ].mapname == mapname || maps[ prevMapIndex ].maphash == maphash ) {
+				if ( ( mapname != "" && maps[ prevMapIndex ].mapname == mapname ) || ( maphash != "" && maps[ prevMapIndex ].maphash == maphash ) ) {
 					foundMap = prevMapIndex;
 				} else {
 					for ( uint i = 0; i < mapsSize; i++ ) {
-						if ( maps[ i ].mapname == mapname || maps[ i ].maphash == maphash ) {
+						if ( ( mapname != "" && maps[ i ].mapname == mapname ) || ( maphash != "" && maps[ i ].maphash == maphash ) ) {
 							foundMap = prevMapIndex = i;
 							break;
 						}
@@ -216,6 +216,8 @@ class AutoAmbientMapSet play {
 
 				if ( mapindex == -1 ) {
 					// Creating a new map data record if it isn't exists.
+					AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::AddToMap(). Creating new map named \"" .. mapname .. "\"/hashed \"" .. maphash .. "\" for texture \"" .. texture.id .. "\"." );
+
 					AutoAmbientMapsData newmapdata = new( 'AutoAmbientMapsData' );
 					newmapdata.mapname = mapname;
 					newmapdata.maphash = maphash;

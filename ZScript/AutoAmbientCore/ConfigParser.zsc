@@ -261,6 +261,9 @@ class AutoAmbientConfigParser play {
 			if ( configFileLine.Size() > 1 ) {
 				for ( int i = 1; i < configFileLine.Size(); i++ )
 					curTextureMapNames.Push( configFileLine[ i ] );
+
+				for ( int i = 0; i < curTextureMapNames.Size(); i++ )
+					console.printf( "curTextureMapNames[ " .. i .. " ]: " .. curTextureMapNames[ i ] );
 			} else {
 				ParserError( "::ParseTextureBlock(). \"onmaps\": no argument(s)." );
 			}
@@ -526,6 +529,9 @@ class AutoAmbientConfigParser play {
 				parserCurTexture.maphashes.Copy( parserDefaultTexture.maphashes );
 				parserCurTexture.restrictDefaultTextures = parserDefaultTexture.restrictDefaultTextures;
 
+				curTextureMapNames.Clear();
+				curTextureMapHashes.Clear();
+
 				// Parsing properties to the placeholder:
 				if ( !emptyBlock ) {
 					readNextConfigLine();
@@ -533,10 +539,21 @@ class AutoAmbientConfigParser play {
 						ParseTextureBlock();
 						readNextConfigLine();
 					}
+
+					if ( parserErrorFlag )
+						break;
+
+					if ( curTextureMapNames.Size() || curTextureMapHashes.Size() ) {
+						parserCurTexture.mapnames.Append( curTextureMapNames );
+						parserCurTexture.maphashes.Append( curTextureMapHashes );
+					}
 				} else {
 					for ( int i = 0; i < parserDefaultTexture.groups.Size(); i++ )
 						parserCurTexture.AddGroupParam( parserDefaultTexture.groups[ i ], parserDefaultTexture.groupparams[ i ] );
 				} // of else, of if ( !emptyBlock ) {}
+
+				if ( parserErrorFlag )
+					break;
 
 				// Extracting saved properties to the real texture definitions:
 				for ( int i = 0; i < textureNames.Size(); i++ ) {

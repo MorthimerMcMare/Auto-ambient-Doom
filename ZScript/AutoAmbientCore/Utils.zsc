@@ -72,8 +72,8 @@ extend class AutoAmbientGlobalHandler {
 
 	private void printDebugTextureData( uint texindex, AutoAmbientTexture curtex ) {
 		if ( curtex ) {
-			debugLogger.Log( LL_Debug, debugTextureDataPrefix .. "TEX #" .. texindex .. " \"" .. curtex.id .. "\": size " .. curtex.size .. ", flags " .. curtex.linesCheckFlags .. ", spawnchances same:" .. curtex.sameLineDistSpawnChance .. " other:" .. curtex.otherLineDistSpawnChance .. ", groups:" );
-			String debugStr = debugTextureDataPrefix;
+			debugLogger.Log( LL_Debug, debugTextureDataPrefix .. "TEX #" .. texindex .. " \"" .. TEXTCOLOR_TEAL .. curtex.id .. AutoAmbientLogger.LLCOLOR_DEBUG .. "\": size " .. curtex.size .. ", flags " .. curtex.linesCheckFlags .. ", spawnchances same:" .. curtex.sameLineDistSpawnChance .. " other:" .. curtex.otherLineDistSpawnChance .. ", groups:" );
+			String debugStr = "";
 
 			for ( int j = 0; j < curtex.groups.Size(); j++ ) {
 				debugStr = debugStr .. " (" .. TEXTCOLOR_GRAY;
@@ -91,9 +91,9 @@ extend class AutoAmbientGlobalHandler {
 			if ( debugStr == "" )
 				debugStr = TEXTCOLOR_YELLOW .. " No groups defined";
 
-			debugLogger.Log( LL_Debug, " \\_" .. debugStr );
+			debugLogger.Log( LL_Debug, debugTextureDataPrefix .. " \\_" .. debugStr );
 		} else {
-			debugLogger.Log( LL_Debug, debugTextureDataPrefix .. "TEX #" .. texindex .. ": NULL!!!" );
+			debugLogger.Log( LL_Emergency, debugTextureDataPrefix .. "TEX #" .. texindex .. ": NULL!!!" );
 		}
 	}
 
@@ -108,7 +108,7 @@ extend class AutoAmbientGlobalHandler {
 			if ( sounddefs[ i ] )
 				debugLogger.Log( LL_Debug, "SND #" .. i .. " \"" .. sounddefs[ i ].name .. "\": snd " .. sounddefs[ i ].snd .. " vol " .. sounddefs[ i ].sndVolume .. " attn " .. sounddefs[ i ].sndAttenuation .. ", mode " .. sounddefs[ i ].sndMode .. " " .. sounddefs[ i ].minDelay .. " " .. sounddefs[ i ].maxDelay );
 			else
-				debugLogger.Log( LL_Debug, "SND #" .. i .. ": NULL!!!" );
+				debugLogger.Log( LL_Emergency, "SND #" .. i .. ": NULL!!!" );
 		} // of for ( int i = 0; i < sounddefs.Size(); i++ ) {}
 
 		debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Texture parameters (total " .. textureparams.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
@@ -116,7 +116,7 @@ extend class AutoAmbientGlobalHandler {
 			if ( textureparams[ i ] )
 				debugLogger.Log( LL_Debug, "TPM #" .. i .. " \"" .. textureparams[ i ].name .. "\": " .. textureparams[ i ].start .. "++" .. textureparams[ i ].offset .. " rnd " .. textureparams[ i ].spreading .. " chnc " .. textureparams[ i ].chance );
 			else
-				debugLogger.Log( LL_Debug, "TPM #" .. i .. ": NULL!!!" );
+				debugLogger.Log( LL_Emergency, "TPM #" .. i .. ": NULL!!!" );
 		} // of for ( int i = 0; i < textureparams.Size(); i++ ) {}
 
 		debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Groups (total " .. groups.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
@@ -154,7 +154,7 @@ extend class AutoAmbientGlobalHandler {
 
 				debugLogger.Log( LL_Debug, " \\_" .. debugStr );
 			} else {
-				debugLogger.Log( LL_Debug, "GRP #" .. i .. ": NULL!!!" );
+				debugLogger.Log( LL_Emergency, "GRP #" .. i .. ": NULL!!!" );
 			}
 		} // of for ( int i = 0; i < groups.Size(); i++ ) {}
 
@@ -165,16 +165,21 @@ extend class AutoAmbientGlobalHandler {
 			printDebugTextureData( i, textures[ i ] );
 
 		if ( maptextures.Size() ) {
-			debugTextureDataPrefix = TEXTCOLOR_SAPPHIRE .. "> \c-";
+			bool isMapColor2 = false;
 
 			debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Map defines (total " .. maptextures.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
 
 			for ( int i = 0; i < maptextures.Size(); i++ ) {
+				String mapColor2 = ( isMapColor2? TEXTCOLOR_PURPLE : TEXTCOLOR_DARKGREEN );
+				debugTextureDataPrefix = mapColor2 .. "> " .. AutoAmbientLogger.LLCOLOR_DEBUG;
+
 				AutoAmbientMapsData curmap = maptextures.maps[ i ];
-				debugLogger.Log( LL_Debug, "MAP #" .. i .. ": name \"" .. TEXTCOLOR_BLUE .. curmap.mapname .. "\c-\"/hash \"" .. TEXTCOLOR_BLUE .. curmap.maphash .. "\c-\", no dflt tex: " .. curmap.restrictDefaultTextures .. ", textures:" );
+				debugLogger.Log( LL_Debug, mapColor2 .. "MAP #" .. i .. AutoAmbientLogger.LLCOLOR_DEBUG .. ": name \"" .. mapColor2 .. curmap.mapname .. AutoAmbientLogger.LLCOLOR_DEBUG .. "\"/hash \"" .. mapColor2 .. curmap.maphash .. AutoAmbientLogger.LLCOLOR_DEBUG .. "\", no dflt tex: " .. curmap.restrictDefaultTextures .. ", textures:" );
 
 				for ( int j = 0; j < curmap.textures.Size(); j++ )
 					printDebugTextureData( j, curmap.textures[ j ] );
+
+				isMapColor2 = !isMapColor2;
 			}
 		} else {
 			debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). No map defines." );
