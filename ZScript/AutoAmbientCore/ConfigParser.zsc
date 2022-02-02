@@ -257,17 +257,37 @@ class AutoAmbientConfigParser play {
 			}
 
 		// Maps linking.
-		} else if ( configFileLine[ 0 ] == "onmaps" ) {
+		} else if ( configFileLine[ 0 ] == "onmaps" || configFileLine[ 0 ] == "onmap" ) {
 			if ( configFileLine.Size() > 1 ) {
 				for ( int i = 1; i < configFileLine.Size(); i++ )
 					curTextureMapNames.Push( configFileLine[ i ] );
 			} else {
 				ParserError( "::ParseTextureBlock(). \"onmaps\": no argument(s)." );
 			}
-		} else if ( configFileLine[ 0 ] == "onmaphashes" ) {
+		} else if ( configFileLine[ 0 ] == "onmaphashes" || configFileLine[ 0 ] == "onhash" ) {
 			if ( configFileLine.Size() > 1 ) {
-				for ( int i = 1; i < configFileLine.Size(); i++ )
+				for ( int i = 1; i < configFileLine.Size(); i++ ) {
+					String nextHashStr = configFileLine[ i ];
+					int wrongHashsumPos = !!( nextHashStr.Length() != 32 );
+
+					if ( wrongHashsumPos == 0 ) {
+						for ( int j = 0; ( wrongHashsumPos == 0 ) && ( j < nextHashStr.Length() ); j++ ) {
+							int hashstrChar = nextHashStr.CharCodeAt( j );
+
+							if ( ( hashstrChar < 0x30 || hashstrChar > 0x39 ) && ( hashstrChar < 0x61 || hashstrChar > 0x66 ) )
+								wrongHashsumPos = j + 1;
+						}
+
+						String tempHashStr = nextHashStr.Left( wrongHashsumPos - 1 ) .. logger.LLCOLOR_EMERGENCY .. nextHashStr.CharAt( wrongHashsumPos - 1 ) .. "\c-" .. nextHashStr.Mid( wrongHashsumPos );
+
+						if ( wrongHashsumPos != 0 )
+							logger.Log( LL_Detailed, GetClassName() .. "::ParseTextureBlock(). " .. logger.LLCOLOR_EMERGENCY .. "Warning\c-: wrong map hash in symbol " .. wrongHashsumPos .. " (got \"" .. tempHashStr .. "\c-\", must be 32 hex digits). Saving anyway." );
+					} else {
+						logger.Log( LL_Detailed, GetClassName() .. "::ParseTextureBlock(). " .. logger.LLCOLOR_EMERGENCY .. "Warning\c-: wrong map hash length (got \"" .. nextHashStr .. "\c-\" with length " .. nextHashStr.Length() .. ", must be 32 hex digits). Saving anyway." );
+					}
+
 					curTextureMapHashes.Push( configFileLine[ i ] );
+				}
 			} else {
 				ParserError( "::ParseTextureBlock(). \"onmaphashes\": no argument(s)." );
 			}
