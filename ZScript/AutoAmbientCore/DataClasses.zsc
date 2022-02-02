@@ -178,24 +178,24 @@ class AutoAmbientMapsData {
 
 class AutoAmbientMapSet play {
 	Array<AutoAmbientMapsData> maps;
-	uint prevMapIndex;
+	int prevMapIndex;
 
 	static AutoAmbientMapSet Create( void ) {
 		return new( 'AutoAmbientMapSet' );
 	}
 
 	// Searches the map in the internal array:
-	uint FindMap( String mapname = "", String maphash = "" ) {
-		uint foundMap = -1;
+	int FindMap( String mapname = "", String maphash = "" ) {
+		int foundMap = -1;
 		uint mapsSize = maps.Size();
 
 		if ( mapsSize != 0 ) {
 			if ( prevMapIndex < mapsSize ) {
-				if ( ( mapname != "" && maps[ prevMapIndex ].mapname == mapname ) || ( maphash != "" && maps[ prevMapIndex ].maphash == maphash ) ) {
+				if ( prevMapIndex != -1 && ( ( mapname != "" && maps[ prevMapIndex ].mapname ~== mapname ) || ( maphash != "" && maps[ prevMapIndex ].maphash ~== maphash ) ) ) {
 					foundMap = prevMapIndex;
 				} else {
 					for ( uint i = 0; i < mapsSize; i++ ) {
-						if ( ( mapname != "" && maps[ i ].mapname == mapname ) || ( maphash != "" && maps[ i ].maphash == maphash ) ) {
+						if ( ( mapname != "" && maps[ i ].mapname ~== mapname ) || ( maphash != "" && maps[ i ].maphash ~== maphash ) ) {
 							foundMap = prevMapIndex = i;
 							break;
 						}
@@ -204,6 +204,7 @@ class AutoAmbientMapSet play {
 			} else {
 				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::FindMap(). Cached last map index (" .. prevMapIndex .. ") is greater than array size (" .. mapsSize .. ")." );
 			}
+
 		}
 
 		return foundMap;

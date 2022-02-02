@@ -261,9 +261,6 @@ class AutoAmbientConfigParser play {
 			if ( configFileLine.Size() > 1 ) {
 				for ( int i = 1; i < configFileLine.Size(); i++ )
 					curTextureMapNames.Push( configFileLine[ i ] );
-
-				for ( int i = 0; i < curTextureMapNames.Size(); i++ )
-					console.printf( "curTextureMapNames[ " .. i .. " ]: " .. curTextureMapNames[ i ] );
 			} else {
 				ParserError( "::ParseTextureBlock(). \"onmaps\": no argument(s)." );
 			}

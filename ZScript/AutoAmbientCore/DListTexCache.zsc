@@ -39,10 +39,12 @@ class AutoAmbientCacheTextureKeeper play {
 		if ( !mapData && mustCheckForMapData ) {
 			mapData = NULL;
 
-			uint mapDataIndex = g.maptextures.FindMap( level.mapname, level.getChecksum() );
+			int mapDataIndex = g.maptextures.FindMap( level.mapname, level.getChecksum() );
 
 			if ( mapDataIndex != -1 )
 				mapData = g.maptextures.maps[ mapDataIndex ];
+
+			//console.printf( GetClassName() .. "::Append(). Check for map data: " .. mapData );
 
 			mustCheckForMapData = false;
 		}
