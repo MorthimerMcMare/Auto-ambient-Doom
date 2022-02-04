@@ -163,6 +163,9 @@ class AutoAmbientGroup play {
 		switch ( sidePos ) {
 			case Side.top:
 				if ( oppositeSide ) {
+					if ( oppositeSide.sector.GetTexture( Sector.ceiling ) == skyflatnum && ac > oc )
+						return 0; // Sky lines skipping (see "TNT: Evilution", MAP27 "Mount pain").
+
 					lineHeight = max( 0, ac - oc );
 					if ( lineHeight > 0 )
 						lineHeight = min( lineHeight, ac - af );
@@ -185,6 +188,9 @@ class AutoAmbientGroup play {
 				break;
 			case Side.bottom:
 				if ( oppositeSide ) {
+					//if ( oppositeSide.sector.GetTexture( Sector.floor ) == skyflatnum && af < ac )
+					//	return 0; // Don't sure if FSKY1 expands to the floors.
+
 					lineHeight = max( 0, of - af );
 					if ( lineHeight > 0 )
 						lineHeight = min( lineHeight, ac - af );
