@@ -291,10 +291,11 @@ class AutoAmbientConfigParser play {
 			} else {
 				ParserError( "::ParseTextureBlock(). \"onmaphashes\": no argument(s)." );
 			}
-		} else if ( configFileLine[ 0 ] == "denygeneraltexture" ) { // Temporal flag placement.
+		/*} else if ( configFileLine[ 0 ] == "denygeneraltexture" ) { // Temporal flag placement.
 			parserCurTexture.restrictDefaultTextures = true;
 		} else if ( configFileLine[ 0 ] == "allowgeneraltexture" ) { // Temporal flag placement.
 			parserCurTexture.restrictDefaultTextures = false;
+		*/
 
 		} else {
 			ParserError( "::ParseTextureBlock(). Unknown keyword \"" .. configFileLine[ 0 ] .. "\"." );
@@ -544,7 +545,7 @@ class AutoAmbientConfigParser play {
 
 				parserCurTexture.mapnames.Copy( parserDefaultTexture.mapnames );
 				parserCurTexture.maphashes.Copy( parserDefaultTexture.maphashes );
-				parserCurTexture.restrictDefaultTextures = parserDefaultTexture.restrictDefaultTextures;
+				//parserCurTexture.restrictDefaultTextures = parserDefaultTexture.restrictDefaultTextures;
 
 				curTextureMapNames.Clear();
 				curTextureMapHashes.Clear();
@@ -603,9 +604,9 @@ class AutoAmbientConfigParser play {
 						if ( newTextureDef != parserDefaultTexture ) {
 							if ( parserCurTexture.mapnames.Size() || parserCurTexture.maphashes.Size() ) {
 								for ( int j = 0; j < parserCurTexture.mapnames.Size(); j++ )
-									g.maptextures.AddToMap( newTextureDef, parserCurTexture.mapnames[ j ], "" );
+									g.maptextures.LinkTextureToMap( newTextureDef, parserCurTexture.mapnames[ j ], "" );
 								for ( int j = 0; j < parserCurTexture.maphashes.Size(); j++ )
-									g.maptextures.AddToMap( newTextureDef, "", parserCurTexture.maphashes[ j ] );
+									g.maptextures.LinkTextureToMap( newTextureDef, "", parserCurTexture.maphashes[ j ] );
 							} else {
 								g.textures.Push( newTextureDef );
 							}

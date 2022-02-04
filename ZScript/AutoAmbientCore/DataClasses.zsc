@@ -107,7 +107,8 @@ class AutoAmbientTexture {
 		AutoAmbientTextureWithMaps newTex = new( 'AutoAmbientTextureWithMaps' );
 
 		newTex.linesCheckFlags = AALCF_Default;
-		newTex.restrictDefaultTextures = false;
+		newTex.sameLineDistSpawnChance = 0.0;
+		newTex.otherLineDistSpawnChance = 0.0;
 
 		return newTex;
 	} // of static AutoAmbientTextureWithMaps CreateTemporalBase( void ) {}
@@ -162,8 +163,6 @@ class AutoAmbientTexture {
 class AutoAmbientTextureWithMaps: AutoAmbientTexture {
 	Array<String> mapnames;
 	Array<String> maphashes;
-
-	bool restrictDefaultTextures;
 } // of class AutoAmbientTextureWithMaps: AutoAmbientTexture {}
 
 
@@ -184,55 +183,92 @@ class AutoAmbientMapSet play {
 		return new( 'AutoAmbientMapSet' );
 	}
 
+
+	enum EFindMapStatus {
+		FMS_Error = -2,
+		FMS_NotFound = -1,
+		FMS_First = 0
+	}
+
 	// Searches the map in the internal array:
 	int FindMap( String mapname = "", String maphash = "" ) {
-		int foundMap = -1;
+		int outstatus = FMS_Error;
 		uint mapsSize = maps.Size();
 
-		if ( mapsSize != 0 ) {
-			if ( prevMapIndex < mapsSize ) {
-				if ( prevMapIndex != -1 && ( ( mapname != "" && maps[ prevMapIndex ].mapname ~== mapname ) || ( maphash != "" && maps[ prevMapIndex ].maphash ~== maphash ) ) ) {
-					foundMap = prevMapIndex;
-				} else {
-					for ( uint i = 0; i < mapsSize; i++ ) {
-						if ( ( mapname != "" && maps[ i ].mapname ~== mapname ) || ( maphash != "" && maps[ i ].maphash ~== maphash ) ) {
-							foundMap = prevMapIndex = i;
-							break;
+		if ( mapname != "" || maphash != "" ) {
+			if ( mapsSize != 0 ) {
+				if ( prevMapIndex < mapsSize ) {
+					outstatus = FMS_NotFound;
+
+					if ( prevMapIndex != FMS_NotFound && ( ( mapname != "" && maps[ prevMapIndex ].mapname ~== mapname ) || ( maphash != "" && maps[ prevMapIndex ].maphash ~== maphash ) ) ) {
+						outstatus = prevMapIndex;
+					} else {
+						for ( uint i = 0; i < mapsSize; i++ ) {
+							if ( ( mapname != "" && maps[ i ].mapname ~== mapname ) || ( maphash != "" && maps[ i ].maphash ~== maphash ) ) {
+								outstatus = prevMapIndex = i;
+								break;
+							}
 						}
 					}
-				}
-			} else {
-				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::FindMap(). Cached last map index (" .. prevMapIndex .. ") is greater than array size (" .. mapsSize .. ")." );
-			}
 
+				} else {
+					AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::FindMap(). Cached last map index (" .. prevMapIndex .. ") is greater than array size (" .. mapsSize .. ")." );
+				}
+
+			} // of if ( mapsSize != 0 ) {}
+		} else {
+			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::FindMap(). Both map name and map hash parameters are omitted." );
 		}
 
-		return foundMap;
+		return outstatus;
 	}
 
-	void AddToMap( AutoAmbientTexture texture, String mapname = "", String maphash = "" ) {
+	private int AddMap( String mapname = "", String maphash = "", bool restrictDefaultTextures = false ) {
+		AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::LinkTextureToMap(). Creating new map named \"" .. mapname .. "\"/hashed \"" .. maphash .. "\"." );
+
+		AutoAmbientMapsData newmapdata = new( 'AutoAmbientMapsData' );
+		newmapdata.mapname = mapname;
+		newmapdata.maphash = maphash;
+		newmapdata.restrictDefaultTextures = restrictDefaultTextures;
+
+		return ( prevMapIndex = maps.Push( newmapdata ) );
+	}
+
+
+	void LinkTextureToMap( AutoAmbientTexture texture, String mapname = "", String maphash = "" ) {
 		if ( texture != NULL && texture.id ) {
-			if ( mapname != "" || maphash != "" ) {
-				int mapindex = FindMap( mapname, maphash );
+			int mapindex = FindMap( mapname, maphash );
 
-				if ( mapindex == -1 ) {
-					// Creating a new map data record if it isn't exists.
-					AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::AddToMap(). Creating new map named \"" .. mapname .. "\"/hashed \"" .. maphash .. "\" for texture \"" .. texture.id .. "\"." );
-
-					AutoAmbientMapsData newmapdata = new( 'AutoAmbientMapsData' );
-					newmapdata.mapname = mapname;
-					newmapdata.maphash = maphash;
-					prevMapIndex = mapindex = maps.Push( newmapdata );
-				}
+			if ( mapindex != FMS_Error ) {
+				if ( mapindex == FMS_NotFound )
+					mapindex = AddMap( mapname, maphash );
 
 				maps[ mapindex ].textures.Push( texture );
+
+				AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::LinkTextureToMap(). Texture \"\c-" .. texture.id .. AutoAmbientLogger.LLCOLOR_Debug .. "\" linked to map \"" .. mapname .. "\"/\"" .. maphash .. "\"." );
 			} else {
-				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::AddToMap(). Both map name and map hash parameters are omitted (texture \"" .. texture.id .. "\")." );
+				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::LinkTextureToMap(). Callback information: texture \"" .. texture.id .. "\", mapname \"" .. mapname .. "\", maphash \"" .. maphash .. "\"." );
 			}
+
 		} else {
-			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::AddToMap(). Wrong texture <" .. texture .. "> (method args: mapname \"" .. mapname .. "\", maphash \"" .. maphash .. "\"." );
+			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::LinkTextureToMap(). Wrong texture <" .. texture .. "> (method args: mapname \"" .. mapname .. "\", maphash \"" .. maphash .. "\")." );
 		}
-	}
+	} // of void LinkTextureToMap( AutoAmbientTexture texture, String mapname = "", String maphash = "" ) {}
+
+	void LinkFlagsToMap( bool restrictDefaultTextures, String mapname = "", String maphash = "" ) {
+		int mapindex = FindMap( mapname, maphash );
+
+		if ( mapindex != FMS_Error ) {
+			if ( mapindex == FMS_NotFound )
+				mapindex = AddMap( mapname, maphash );
+
+			maps[ mapindex ].restrictDefaultTextures = restrictDefaultTextures;
+
+			AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::LinkFlagsToMap(). Set restrict default textures flag to " .. restrictDefaultTextures .. " on map \"" .. mapname .. "\"/\"" .. maphash .. "\"." );
+		} else {
+			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::LinkFlagsToMap(). Callback information: flags " .. restrictDefaultTextures .. ", mapname \"" .. mapname .. "\", maphash \"" .. maphash .. "\"." );
+		}
+	} // of void LinkFlagsToMap( bool restrictDefaultTextures ) {}
 
 	uint Size( void ) {
 		return maps.Size();

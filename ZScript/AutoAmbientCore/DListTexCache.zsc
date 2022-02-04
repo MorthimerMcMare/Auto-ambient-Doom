@@ -41,7 +41,7 @@ class AutoAmbientCacheTextureKeeper play {
 
 			int mapDataIndex = g.maptextures.FindMap( level.mapname, level.getChecksum() );
 
-			if ( mapDataIndex != -1 )
+			if ( mapDataIndex >= AutoAmbientMapSet.FMS_First )
 				mapData = g.maptextures.maps[ mapDataIndex ];
 
 			//console.printf( GetClassName() .. "::Append(). Check for map data: " .. mapData );
