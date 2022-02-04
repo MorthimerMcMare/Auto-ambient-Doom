@@ -5,6 +5,8 @@ class AutoAmbientGroup play {
 	Array<AutoAmbientSoundDefinition> autoclasses;
 	double actorsDistance;
 
+	AutoAmbientSoundActorConfiguration autoclassConfig;
+
 	//TextureID cachedTexture;
 	//AutoAmbientTexture cachedTextureDefinition;
 	//Array<AutoAmbientTextureDefinition> textures;
@@ -25,6 +27,8 @@ class AutoAmbientGroup play {
 
 		newGroup.spawned = new( 'AutoAmbientListSpawnedKeeper' );
 		newGroup.spawnedOnLine = new( 'AutoAmbientListSpawnedKeeper' );
+
+		newGroup.autoclassConfig = new( 'AutoAmbientSoundActorConfiguration' );
 
 		return newGroup;
 	} // of static AutoAmbientGroup Create( String groupname, double dist, double spreading ) {}
@@ -272,15 +276,27 @@ class AutoAmbientGroup play {
 					if ( rnd < classesArraySize ) {
 						newActor = Actor.Spawn( classes[ rnd ], newPos );
 					} else if ( autoclasses.Size() ) {
-						newActor = Actor.Spawn( "AutoAmbientSoundActor", newPos );
+						// An expandable part of the code (maybe later...).
+						class<AutoAmbientSoundActor> properclass = autoclassConfig.GetProperClass( autoclasses[ rnd - classesArraySize ] );
+
+						newActor = Actor.Spawn( properclass, newPos );
 						AutoAmbientSoundActor( newActor ).Init( autoclasses[ rnd - classesArraySize ] );
 					} else {
 						logger.Log( LL_Emergency, GetClassName() .. "::SpawnActor(). Warning: random value " .. rnd .. " is out-of-bounds of classes[ " .. classesArraySize .. " ] and autoclasses[ " .. autoclasses.Size() .. " ]." );
 					}
 
 					if ( newActor ) {
+						if ( newActor is 'AutoAmbientSpawnableActor' ) {
+							AutoAmbientSpawnableActor( newActor ).attachedSide = attachSide;
+
+							vector2 lineNormal = Actor.RotateVector( attachLine.delta / lineWidth, ( ( attachSide == attachLine.sidedef[ 0 ] )? 90.0 : -90.0 ) ); // Not sure if this line is correct, actually.
+
+							newActor.angle = AutoAmbientUtil.vector2ToAngle( lineNormal );
+						}
+
 						spawnedOnLine.AppendSpawnedActor( newActor );
 						totalSpawnedOnLine++;
+
 						if ( logger.aaCurLogLevel >= LL_Detailed )
 							logger.Log( LL_Detailed, TEXTCOLOR_GRAY .. "Actor \c-" .. newActor.GetClassName() .. TEXTCOLOR_GRAY .. " spawned on \"\c-" .. texID .. "->" .. name .. TEXTCOLOR_GRAY .. "\" at " .. AutoAmbientUtil.squeezeVector3( newActor.pos ) .. "." );
 					}
@@ -305,14 +321,43 @@ class AutoAmbientGroup play {
 
 
 
-class AutoAmbientSoundActor: Actor {
+class AutoAmbientSpawnableActor: Actor abstract {
+	Side attachedSide;
+	// An angle also sets up on spawn (from the normal vector).
+}
+
+class AutoAmbientSoundActorConfiguration play {
+	virtual class<AutoAmbientSoundActor> GetProperClass( AutoAmbientSoundDefinition def ) {
+		class<AutoAmbientSoundActor> outClass;
+
+		switch ( def.sndMode ) {
+			case AASM_Looped:
+				outClass = "AutoAmbientLoopedSound";
+				break;
+			case AASM_Fixed:
+				outClass = "AutoAmbientFixDlySound";
+				break;
+			case AASM_Random:
+				outClass = "AutoAmbientRndDlySound";
+				break;
+			default:
+				AutoAmbientLogger.Get().Log( LL_Main, GetClassName() .. "::GetProperClass(). Sound mode " .. def.sndMode .. " isn't recognized." );
+				break;
+		}
+
+		return outClass;
+	}
+
+} // of class AutoAmbientSoundActorConfiguration play {}
+
+
+class AutoAmbientSoundActor: Actor abstract {
 	AutoAmbientSoundDefinition def;
 	bool actorInitialized; // Call "Init()" with right arguments to set it up.
 
 	// Here are stored the most used and local variables:
 	EAutoAmbientSoundModes playsoundMode;
 	uint minDelay, maxDelay, curDelay;
-
 
 	Default {
 		+INVISIBLE;
@@ -325,40 +370,21 @@ class AutoAmbientSoundActor: Actor {
 		RenderStyle "STYLE_Stencil";
 	}
 
-	void Init( AutoAmbientSoundDefinition initDef ) {
+	virtual void Init( AutoAmbientSoundDefinition initDef ) {
 		def = initDef;
-
 		actorInitialized = ( def && ( def.snd != "" ) && ( def.snd != "null" ) );
+	} // of virtual void Init( AutoAmbientSoundDefinition initDef ) {}
 
-		if ( actorInitialized ) {
-			playsoundMode = def.sndMode;
-
-			switch ( playsoundMode ) {
-				case AASM_Looped:
-					break;
-				case AASM_Fixed:
-					minDelay = maxDelay = def.minDelay;
-					break;
-				case AASM_Random:
-					minDelay = def.minDelay;
-					maxDelay = def.maxDelay;
-					break;
-				default:
-					AutoAmbientLogger.Get().Log( LL_Main, "Error: cannot init " .. GetClassName() .. " at " .. AutoAmbientUtil.squeezeVector3( pos ) .. ", sound mode " .. playsoundMode .. " isn't recognized." );
-					actorInitialized = false;
-					break;
-			}
-		}
-	} // of void Init( AutoAmbientSoundDefinition initDef ) {}
+	virtual void OnSpawn( void ) {
+		SetShade( "00 00 88" );
+	}
 
 
-	override void PostBeginPlay() {
+	override final void PostBeginPlay() {
 		Super.PostBeginPlay();
 
 		if ( actorInitialized ) {
-			curDelay = Random( 0, ( (playsoundMode == AASM_Looped)? 5 : maxDelay ) );
-
-			SetShade( "00 00 88" );
+			OnSpawn();
 		} else {
 			String soundInfo;
 
@@ -369,37 +395,10 @@ class AutoAmbientSoundActor: Actor {
 			else
 				soundInfo = "with sound \"" .. def.snd .. "\"";
 
-			AutoAmbientLogger.Get().Log( LL_Main, GetClassName() .. " at " .. AutoAmbientUtil.squeezeVector3( pos ) .. " " .. soundInfo .. " not initialized and thus destroyed." );
+			AutoAmbientLogger.Get().Log( LL_Main, GetClassName() .. " at " .. AutoAmbientUtil.squeezeVector3( pos ) .. " " .. soundInfo .. " not initialized properly and thus destroyed." );
 			Destroy();
 		}
 	} // of override void PostBeginPlay() {}
-
-	override void Tick() {
-		// Sounds must not stop during globalfreeze.
-
-		switch ( playsoundMode ) {
-			case AASM_Fixed:
-			case AASM_Random:
-				if ( curDelay-- <= 0 ) {
-					A_PlaySound( def.snd, CHAN_AUTO, def.sndVolume, false, def.sndAttenuation );
-					//S_Sound( def.snd, CHAN_AUTO, def.sndVolume, def.sndAttenuation );
-					curDelay = ( playsoundMode == AASM_Fixed )? minDelay : Random( minDelay, maxDelay );
-				}
-				break;
-			case AASM_Looped: // Light randomization.
-				if ( curDelay >= 0 ) {
-					if ( --curDelay < 0 ) {
-						//console.printf( "Looped sound " .. def.snd .. ", volume " .. def.sndVolume .. "." );
-						A_PlaySound( def.snd, CHAN_AUTO, def.sndVolume, true, def.sndAttenuation );
-					}
-				}
-				break;
-			default:
-				break;
-		}
-
-		Super.Tick();
-	} // of override void Tick() {}
 
 	States {
 	Spawn:
@@ -408,3 +407,63 @@ class AutoAmbientSoundActor: Actor {
 		stop;
 	}
 } // of class AutoAmbientSoundActor: Actor {}
+
+
+class AutoAmbientLoopedSound: AutoAmbientSoundActor {
+	override void OnSpawn( void ) {
+		Super.OnSpawn();
+
+		curDelay = Random( 0, 7 );
+	}
+
+	override void Tick() {
+		if ( curDelay >= 0 ) {
+			if ( --curDelay < 0 )
+				A_PlaySound( def.snd, CHAN_AUTO, def.sndVolume, true, def.sndAttenuation );
+		}
+
+		Super.Tick();
+	}
+
+} // of AutoAmbientLoopedSound: AutoAmbientSoundActor {}
+
+class AutoAmbientFixDlySound: AutoAmbientSoundActor {
+	override void OnSpawn( void ) {
+		Super.OnSpawn();
+		curDelay = Random( 0, maxDelay );
+	}
+
+	override void Init( AutoAmbientSoundDefinition initDef ) {
+		Super.Init( initDef );
+
+		minDelay = maxDelay = def.minDelay;
+	}
+
+	override void Tick() {
+		if ( curDelay-- <= 0 ) {
+			A_PlaySound( def.snd, CHAN_AUTO, def.sndVolume, false, def.sndAttenuation );
+			curDelay = minDelay;
+		}
+
+		Super.Tick();
+	}
+} // of class AutoAmbientFixDlySound: AutoAmbientSoundActor {}
+
+class AutoAmbientRndDlySound: AutoAmbientSoundActor {
+	override void Init( AutoAmbientSoundDefinition initDef ) {
+		Super.Init( initDef );
+
+		minDelay = def.minDelay;
+		maxDelay = def.maxDelay;
+	}
+
+	override void Tick() {
+		if ( curDelay-- <= 0 ) {
+			A_PlaySound( def.snd, CHAN_AUTO, def.sndVolume, false, def.sndAttenuation );
+			curDelay = Random( minDelay, maxDelay );
+		}
+
+		Super.Tick();
+	}
+} // of class AutoAmbientRndDlySound: AutoAmbientSoundActor {}
+

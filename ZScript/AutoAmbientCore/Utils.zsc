@@ -59,6 +59,20 @@ class AutoAmbientLogger: Thinker {
 
 
 class AutoAmbientUtil {
+	static double vector2ToAngle( vector2 vec ) {
+		double outAngle;
+
+		if ( vec.x == 0.0 )
+			vec.x = 0.00001;
+		outAngle = atan( vec.y / vec.x );
+
+		if ( vec.x < 0 )
+			outAngle = outAngle - 180.0;
+
+		return outAngle;
+	} // of static double vector2ToAngle( vector2 vec ) {}
+
+
     static String squeezeVector3( vector3 vec ) {
         return "(" .. int( vec.x ) .. ", " .. int( vec.y ) .. ", " .. int( vec.z ) .. ")";
     }
