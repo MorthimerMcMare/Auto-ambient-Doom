@@ -99,6 +99,7 @@ class AutoAmbientConfigParser play {
 
 			do {
 				String tempstr = configLines[ parserLineNum ];
+
 				int newlinePos = tempstr.IndexOf( "#" );
 
 				if ( newlinePos != -1 )
@@ -136,7 +137,7 @@ class AutoAmbientConfigParser play {
 				} // of for ( int i = 0; i < tempstr.Length(); i++ ) {}
 
 				if ( i - wordStartIndex > 0 ) // Pushing the last word.
-					configFileLine.Push( tempstr.Mid( wordStartIndex ) );
+					configFileLine.Push( tempstr.Mid( wordStartIndex, i - wordStartIndex ) ); // GZDoom 3.3.0 has some problems with the "String::Mid()" method default parameters.
 
 				if ( quoted )
 					logger.Log( LL_Main, GetClassName() .. "::readNextConfigLine(). " .. logger.LLCOLOR_EMERGENCY .. "Warning\c-: double quotes ('\"') not closed." );
@@ -145,7 +146,6 @@ class AutoAmbientConfigParser play {
 				//for ( i = 0; i < configFileLine.Size(); i++ )
 				//	debugString = debugString .. " \"" .. configFileLine[ i ] .. "\"";
 				//console.printf( GetClassName() .. "::readNextConfigLine(). Line " .. parserLineNum .. " parsed words: " .. debugString );
-
 
 				// Finalization. 
 				configEoF = ( ++parserLineNum >= configLines.Size() );
@@ -562,8 +562,12 @@ class AutoAmbientConfigParser play {
 						break;
 
 					if ( curTextureMapNames.Size() || curTextureMapHashes.Size() ) {
-						parserCurTexture.mapnames.Append( curTextureMapNames );
-						parserCurTexture.maphashes.Append( curTextureMapHashes );
+						// Versions of the engine below 4.2.0 has no "Array<>.Append()".
+
+						for ( int i = 0; i < curTextureMapNames.Size(); i++ )
+							parserCurTexture.mapnames.Push( curTextureMapNames[ i ] );
+						for ( int i = 0; i < curTextureMapHashes.Size(); i++ )
+							parserCurTexture.maphashes.Push( curTextureMapHashes[ i ] );
 					}
 				} else {
 					for ( int i = 0; i < parserDefaultTexture.groups.Size(); i++ )
@@ -749,6 +753,9 @@ class AutoAmbientConfigParser play {
             rawConfigFile.ToLower();
             rawConfigFile.Replace( "\r", "\n" ); // "dos2unix", "mac2unix"...
             rawConfigFile.Split( configLines, "\n", TOK_KEEPEMPTY );
+
+			//for ( int i = 0; i < configLines.Size(); i++ )
+			//	console.printf( "configLines[ " .. i .. " ]: \"" .. configLines[ i ] .. "\"" );
 
 			while ( parserLineNum < configLines.Size() && !parserErrorFlag ) {
 				parserCurBlockType = AAPB_Global;
