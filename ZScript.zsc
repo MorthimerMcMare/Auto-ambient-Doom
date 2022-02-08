@@ -20,6 +20,8 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	int parserErrorLine;
 	String parserErrorFilename;
 
+	bool errorFlag;
+
 	AutoAmbientMapSet maptextures;
 	Array<AutoAmbientTexture> textures;
 	Array<AutoAmbientGroup> groups;
@@ -74,7 +76,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 		maptextures = AutoAmbientMapSet.Create();
 		textures.Clear();
-		groups.Clear(); 
+		groups.Clear();
 		textureparams.Clear();
 		sounddefs.Clear();
 
@@ -129,10 +131,30 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		AutoAmbientConfigParser.Create( self ).ParseFile( "aambient.cfg" );
 
 
-		if ( !parserErrorLine )
+		if ( !parserErrorLine ) {
 			logger.Log( LL_Main | LL_NoPrefix, GetClassName() .. "::OnRegister(). Loading configuration done." );
-		else
+
+			AutoAmbientTexture invalidTexture = FindInvalidTexture();
+
+			if ( invalidTexture ) {
+				logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Texture definition ID " .. invalidTexture.id .. " is not valid." );
+				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). Validation callback: " 
+								.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length()
+								.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. invalidTexture.groupparams.Size()
+								.. ", addingErrorFlag=" .. invalidTexture.invalidFlag );
+
+				errorFlag = true;
+			} else if ( !groups.Size() ) {
+				logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). No group blocks provided in the configuration file." );
+				errorFlag = true;
+			} else if ( !textures.Size() ) {
+				logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). No texture definition blocks provided in the configuration file." );
+				errorFlag = true;
+			}
+		} else {
+			errorFlag = true;
 			logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Error during configuration files parsing in " .. parserErrorFilename .. " on line " .. parserErrorLine .. "." );
+		}
 
 
 		// See "Utils.zsc" -> "extend class AutoAmbientGlobalHandler".
@@ -147,33 +169,18 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		bool dontLoadAutoAmbient = false;
 		AutoAmbientLogger logger = AutoAmbientLogger.Get();
 
-		// Some checks which prevents second large part from loading:
-		if ( e.IsSaveGame || ( parserErrorLine != 0 ) ) {
-			dontLoadAutoAmbient = true;
-		} else if ( !groups.Size() ) {
-			logger.Log( LL_Emergency, GetClassName() .. "::WorldLoaded(). No group blocks provided in the configuration file." );
-			dontLoadAutoAmbient = true;
-		} else if ( !textures.Size() ) {
-			logger.Log( LL_Emergency, GetClassName() .. "::WorldLoaded(). No texture definition blocks provided in the configuration file." );
-			dontLoadAutoAmbient = true;
-		} else {
-			AutoAmbientTexture invalidTexture = FindInvalidTexture();
-
-			if ( invalidTexture ) {
-				dontLoadAutoAmbient = true;
-				logger.Log( LL_Emergency, GetClassName() .. "::WorldLoaded(). Texture definition ID " .. invalidTexture.id .. " is not valid." );
-				logger.Log( LL_Main, GetClassName() .. "::WorldLoaded(). Validation callback: " 
-								.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length()
-								.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. invalidTexture.groupparams.Size()
-								.. ", addingErrorFlag=" .. invalidTexture.invalidFlag );
-			}
-		}
-
-		if ( dontLoadAutoAmbient ) {
+		// Skip all other checks if game is loaded or if error occured.
+		if ( e.IsSaveGame || errorFlag ) {
 			Super.WorldLoaded( e );
 			return;
 		}
 
+		// Static event handlers saves information through levels.
+		for ( int i = 0; i < groups.Size(); i++ )
+			groups[ i ].ClearSpawned();
+
+
+		// Locating a top/right/bottom/left level border:
 		rightLevelBound = -32767.0;
 		bottomLevelBound = 32767.0;
 		topLevelBound = -32767.0;
@@ -193,11 +200,6 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		}
 
 		logger.Log( LL_Detailed, "Level bound box: top " .. topLevelBound .. ", right " .. rightLevelBound .. ", bottom " .. bottomLevelBound .. ", left " .. leftLevelBound .. "." );
-
-
-		// Static event handler may save information through levels.
-		for ( int i = 0; i < groups.Size(); i++ )
-			groups[ i ].ClearSpawned();
 
 
 		AutoAmbientCacheTextureKeeper cachedTextures = AutoAmbientCacheTextureKeeper.CreateKeeper( self );
@@ -285,7 +287,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		if ( optionCVar && optionCVar.GetBool() )
 			EventHandler.SendNetworkEvent( "mcm_autoambient_actors_visibility", 1 );
 
-		// Yes, I know perfectly well that garbage collector will successfully 
+		// Yes, I know perfectly well that garbage collector will successfully
 		//destroy an array.
 		cachedTextures.Clear();
 

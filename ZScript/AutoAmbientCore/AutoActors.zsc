@@ -11,6 +11,7 @@ class AutoAmbientGroup play {
 
 
 	AutoAmbientGlobalHandler g;
+	AutoAmbientLogger logger;
 
 	String name;
 	Array< class<Actor> > classes;
@@ -92,6 +93,7 @@ class AutoAmbientGroup play {
 		gridSizeX = int( ceil( levelHorizontalSize / cellSideSize ) ) + 1;
 		gridSizeY = int( ceil( levelVerticalSize / cellSideSize ) ) + 1;
 
+		// Scale amount of cells to fit to the limit.
 		if ( gridSizeX > maxGridLength || gridSizeY > maxGridLength ) {
 			int gridMaxSize = ( gridSizeX > gridSizeY? gridSizeX : gridSizeY );
 			double prevCellSideSize = cellSideSize;
@@ -105,12 +107,11 @@ class AutoAmbientGroup play {
 		}
 
 		if ( gridSizeX <= 0 || gridSizeY <= 0 ) {
-			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::CreateGrid() for \"" .. TEXTCOLOR_GRAY .. name .. AutoAmbientLogger.LLCOLOR_Debug .. "\". x " .. gridSizeX .. " (really " .. gridX.Size() .. "), y " .. gridSizeY );
-			console.printf( GetClassName() .. "::CreateGrid(). Array dimention is less or equal to zero. GridSize = ( " .. gridSizeX .. ", " .. gridSizeY .. "); level bbox: t " .. g.topLevelBound .. ", r " .. g.rightLevelBound .. ", b " .. g.bottomLevelBound .. ", l " .. g.leftLevelBound .. "; cell side size: " .. cellSideSize );
+			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::CreateGrid(). Array dimention is less or equal to zero. GridSize = ( " .. gridSizeX .. ", " .. gridSizeY .. "); level bbox: t " .. g.topLevelBound .. ", r " .. g.rightLevelBound .. ", b " .. g.bottomLevelBound .. ", l " .. g.leftLevelBound .. "; cell side size: " .. cellSideSize );
 			return;
 		}
 
-
+		// Creating a grid itself.
 		for ( int i = 0; i < gridSizeX; i++ ) {
 			uint lastXIndex = gridX.Push( new( 'AutoAmbientSpawnedGridCellX' ) );
 			AutoAmbientSpawnedGridCellX curCellX = gridX[ lastXIndex ];
@@ -119,14 +120,14 @@ class AutoAmbientGroup play {
 				curCellX.y.Push( new( 'AutoAmbientListSpawnedKeeper' ) );
 		}
 
-		AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::CreateGrid() for \"" .. TEXTCOLOR_GRAY .. name .. AutoAmbientLogger.LLCOLOR_Debug .. "\". x " .. gridSizeX .. " (really " .. gridX.Size() .. "), y " .. gridSizeY );
+		AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::CreateGrid(). Created for \"" .. TEXTCOLOR_GRAY .. name .. AutoAmbientLogger.LLCOLOR_Debug .. "\". x " .. gridSizeX .. " (really " .. gridX.Size() .. "), y " .. gridSizeY );
 	} // of void CreateGrid( void ) {}
 
 	void PrintGrid( AutoAmbientLogger logger ) {
 		logger.Log( LL_Debug, GetClassName() .. "::PrintGrid() for \"" .. TEXTCOLOR_BLUE .. name .. logger.LLCOLOR_Debug .. "\" (SizeX " .. gridSizeX .. ", SizeY " .. gridSizeY .. ", total spawned " .. TEXTCOLOR_GRAY .. spawned.Size() .. logger.LLCOLOR_Debug .. "):" );
 
 		for ( int i = 0; i < gridSizeX; i++ ) {
-			String gridstr = String.Format( "\"%s\" grid[%-3i]: ", name, i );
+			String gridstr = String.Format( "\"%s\" grid[%-2i]: ", name, i );
 
 			for ( int j = 0; j < gridSizeY; j++ ) {
 				uint curCellSize = gridX[ i ].y[ j ].Size();
@@ -203,7 +204,7 @@ class AutoAmbientGroup play {
 		double nextChance = FRandom( 0.0, 1.0 );
 		vector3 vecdist;
 
-		// To prevent the in-cycle check with the same result I'd prefer to 
+		// To prevent the in-cycle check with the same result I'd prefer to
 		//split the cycles. Seriously.
 		if ( !useDistMultipl ) {
 			Actor actoriter = listToCheck.ActorIteratorBegin();
@@ -255,13 +256,11 @@ class AutoAmbientGroup play {
 		if ( !classes.Size() && !autoclasses.Size() )
 			return 0; // We cannot spawn something if we have no spawn data.
 
-		// Locate a texture definition:
-		TextureID texID = attachSide.GetTexture( sidePos );
-
-		//console.printf( name .. "/\"" ..  TexMan.GetName( texID ) .. "\". TextureDef: " .. texdef );
-
 		if ( !texdef )
 			return 0; // Return if there's no neccesary texture definition.
+
+		// Locate a texture definition:
+		TextureID texID = attachSide.GetTexture( sidePos );
 
 		Line attachLine = attachSide.linedef;
 
@@ -337,13 +336,6 @@ class AutoAmbientGroup play {
 
 		if ( lineHeight == 0.0 || lineWidth == 0.0 )
 			return 0; // There's no point in creating an actor if the texture is not visible.
-
-		/*if ( lineHeight == 0.0 && !(
-				!attachLine.special && ( texdef.linesCheckFlags & AALCF_CommonLineZeroHeight )
-			||	attachLine.special && ( texdef.linesCheckFlags & AALCF_ActionLineZeroHeight )
-			) )
-			return; // There's no point in creating an actor if the texture is not visible.
-		*/
 
 		if ( lineHeight < 0.0 || lineWidth < 0.0 ) {
 			logger.Log( LL_Emergency, GetClassName() .. "::SpawnActor(). Line #" .. attachLine.Index() .. " calculated height " .. lineHeight .. "/width " .. lineWidth .. " is less than 0. It's at least extremely strange." );
