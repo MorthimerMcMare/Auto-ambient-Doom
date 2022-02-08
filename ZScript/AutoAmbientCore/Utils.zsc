@@ -26,7 +26,7 @@ class AutoAmbientLogger: Thinker {
 
 	// Prints well-decorated information string. "LL_NoPrefix" also disables
 	//default color mark:
-	static clearscope void ClearscopeLog( EAAmbientLogLevels loglevel, String text ) {
+	static clearscope void ClearscopeLog( EAutoAmbientLogLevels loglevel, String text ) {
 		String logPrefix = "";
 
 		if ( !( loglevel & LL_NoPrefix ) ) {
@@ -50,7 +50,7 @@ class AutoAmbientLogger: Thinker {
 	} // of static clearscope void ClearscopeLog( EAAmbientLogLevels loglevel, String text ) {}
 
 	// A play-scope wrapper around a data-scope method (mostly used):
-	static play void Log( EAAmbientLogLevels loglevel, String text ) {
+	static play void Log( EAutoAmbientLogLevels loglevel, String text ) {
 		if ( AutoAmbientLogger.Get().aaCurLogLevel >= ( loglevel & LL__No_Flags_Mask ) )
 			ClearscopeLog( loglevel, text );
 	}

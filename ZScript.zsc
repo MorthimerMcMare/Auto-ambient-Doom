@@ -15,8 +15,9 @@ version "2.4.0"
 class AutoAmbientGlobalHandler: StaticEventHandler {
 	const AutoAmbientHandlerOrder = 0x7FAA0004; // ZChecker: 0x7FAA0005 and 0x7FAA0006.
 
-	const replicateParserMaxAmount = 16;
+	const replicateParserMaxAmount = 24;
 	int replicateParserAmount; // To prevent infinite recursive including loop.
+	//int currentGlobalLumpPos; // Dangerous variable, in fact.
 	int parserErrorLine;
 	String parserErrorFilename;
 
@@ -31,7 +32,8 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	double topLevelBound, rightLevelBound, bottomLevelBound, leftLevelBound;
 
 
-	// Dangerous function, actually...
+	// Static event handlers (and its finders) has quite confusing behaviour,
+	//so it's better to set pointer to this class manually.
 	static AutoAmbientGlobalHandler Get( void ) {
 		return AutoAmbientGlobalHandler( StaticEventHandler.Find( "AutoAmbientGlobalHandler" ) );
 	}
@@ -60,6 +62,40 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		return TEXTCOLOR_GRAY .. ( ( replicateParserAmount == 0 )? "top" : "nested level " .. replicateParserAmount .. "\c-" );
 	}
 
+
+	/*void ResetGlobalLumpPos( void ) {
+		currentGlobalLumpPos = -1;
+	}
+
+	int GetPreviousGlobalLumpPos( String baseLumpName ) {
+		int outPos = -1;
+
+		if ( currentGlobalLumpPos == -1 ) {
+			int baseLumpIndex = Wads.CheckNumForName( baseLumpName, Wads.ns_global, currentGlobalPos );
+
+			if ( baseLumpIndex != -1 ) {
+				for ( int i = 0; i < 99; i++ ) {
+					int compLumpIndex = Wads.CheckNumForName( baseLumpName, Wads.ns_global, i );
+
+					if ( compLumpIndex == -1 ) {
+						break;
+					} else if ( baseLumpIndex == compFileIndex ) {
+						outPos = ( i == 0? -1 : i );
+						break;
+					}
+				}
+
+			} else {
+				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::GetPreviousGlobalFilePos(). Cannot find base lump \"" .. baseLumpName .. "\"." );
+			}
+		} else {
+			outPos = --currentGlobalLumpPos;
+		}
+
+		return outPos;
+	}*/
+
+
 	AutoAmbientTexture FindInvalidTexture( void ) {
 		for ( int i = 0; i < textures.Size(); i++ )
 			if ( !textures[ i ].Validate() )
@@ -80,58 +116,15 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		textureparams.Clear();
 		sounddefs.Clear();
 
-		/*lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "Pipe", 256 ) );
-		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Pipes", vol: 0.4, attn: 4.5 );
-		AddTexture( "BROWNPIP" );
-		AddTexture( "METAL4" );
-		AddTexture( "PIPE2" );
-		AddTexture( "PIPE6" );
-		AddTexture( "PIPEWAL1" );
-		AddTexture( "PIPES" );
-		AddTexture( "SW1PIPE" );
-		AddTexture( "SW2PIPE" );
-		AddTexture( "TEKGREN4" );
-
-		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "Comp", 128 ) );
-		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Computers/Beep", AASM_Fixed, 0.4, 5.0, 35 );
-		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Computers/Boop", AASM_Fixed, 0.4, 5.0, 35 );
-		//groups[ lastGroupIndex ].AddClass( "AutoAmbientActor_Comp" );
-		AddTexture( "COMPSTA1" );
-		AddTexture( "COMPSTA2" );
-		AddTexture( "COMPTALL", start: ( 32.0, 64.0 ), offset: ( 96.0, 0.0 ) );
-		AddTexture( "SILVER3" );
-		AddTexture( "SPACEW3", ( 32.0, 32.0 ), ( 64.0, 64.0 ), ( 0.0, 24.0 ) );
-
-		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "Tech", 192 ) );
-		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/Tech", vol: 0.7, attn: 3.5 );
-		AddTexture( "CEMENT2" );
-		AddTexture( "CEMENT4" );
-		AddTexture( "ICKWALL4" );
-		AddTexture( "SW1COMP" );
-		AddTexture( "SW2COMP" );
-		AddTexture( "COMPTALL" );
-		AddTexture( "COMPWERD" );
-		AddTexture( "TEKGREN1" );
-		AddTexture( "TEKWALL1" );
-		AddTexture( "TEKWALL4" );
-		AddTexture( "TEKWALL6" );
-		AddTexture( "ZZZFACE6" );
-
-		lastGroupIndex = groups.Push( AutoAmbientGroup.Create( "BloodPipe", 96 ) );
-		groups[ lastGroupIndex ].AddAutoSoundClass( "AA/BloodPipes", vol: 0.6, attn: 4.2 );
-		AddTexture( "BLODRIP1" );
-		AddTexture( "BLODRIP2" );
-		AddTexture( "BLODRIP3" );
-		AddTexture( "BLODRIP4" );
-		AddTexture( "PIPE1" );
-		AddTexture( "SK_LEFT" );
-		AddTexture( "SK_RIGHT" );
-		AddTexture( "SLOPPY2" );*/
-
-		AutoAmbientConfigParser.Create( self ).ParseFile( "aambient.cfg" );
+		parserErrorLine = AAParser_NoErrorLine;
+		//ResetGlobalLumpPos();
 
 
-		if ( !parserErrorLine ) {
+		if ( AutoAmbientConfigParser.Create( self ).ParseFile( "aambient.cfg", false ) && parserErrorLine == AAParser_NoErrorLine )
+			AutoAmbientConfigParser.Create( self ).ParseFile( "aambient", true, -1 );
+
+
+		if ( parserErrorLine == AAParser_NoErrorLine ) {
 			logger.Log( LL_Main | LL_NoPrefix, GetClassName() .. "::OnRegister(). Loading configuration done." );
 
 			AutoAmbientTexture invalidTexture = FindInvalidTexture();
@@ -145,10 +138,10 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 				errorFlag = true;
 			} else if ( !groups.Size() ) {
-				logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). No group blocks provided in the configuration file." );
+				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). No group blocks provided in the configuration file." );
 				errorFlag = true;
 			} else if ( !textures.Size() ) {
-				logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). No texture definition blocks provided in the configuration file." );
+				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). No texture definition blocks provided in the configuration file." );
 				errorFlag = true;
 			}
 		} else {

@@ -1,5 +1,8 @@
 //
 
+const AAParser_NoErrorLine = -1;
+const AAParser_NoGlobalLocating = -2;
+
 enum EAutoAmbientSoundModes {
 	AASM_Looped = 0,
 	AASM_Fixed,
@@ -50,7 +53,7 @@ enum EAutoAmbientParserBlocks {
 	AAPB_SoundDef = AAPB_Sound
 };
 
-enum EAAmbientLogLevels {
+enum EAutoAmbientLogLevels {
 	LL_Emergency = 0,
 	LL_General = 1,
 	LL_Detailed,
