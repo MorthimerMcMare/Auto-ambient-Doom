@@ -1,8 +1,16 @@
 
 class AutoAmbientGroup play {
-	AutoAmbientGlobalHandler g;
+	// Minimal length of a cell side length (will be clamped to this value).
+	const minGridCellSideLength = 96.0;
 
-	const minimalGridCellSideLength = 96.0;
+	// Maximal length of an array's each dimension (will be scaled to fit to).
+	const maxGridLength = 31; // Note that real value will be increased by 1.
+
+	// Maximal "Spawned" array size to use usual, non-9-cell-based algorithm.
+	const wholeListAlgorithmMaxSpawnedSize = 16;
+
+
+	AutoAmbientGlobalHandler g;
 
 	String name;
 	Array< class<Actor> > classes;
@@ -45,7 +53,7 @@ class AutoAmbientGroup play {
 			return false;
 
 		// Using fastest locating method (whole sequence/nearest grid cells):
-		if ( spawned.Size() < 16 ) {
+		if ( spawned.Size() < wholeListAlgorithmMaxSpawnedSize ) {
 			//console.printf( "Whole sequence algorithm." );
 			return checkSpawnDistance( pos, spawned, useDistMultipl, lineDistSpawnChance );
 		} else {
@@ -57,8 +65,6 @@ class AutoAmbientGroup play {
 			for ( int i = ( x < 1? x : x - 1 ); i < ( x >= gridSizeX? x + 1 : x + 2 ); i++ ) {
 				for ( int j = ( y < 1? y : y - 1 ); j < ( y >= gridSizeY? y + 1 : y + 2 ); j++ ) {
 					AutoAmbientListSpawnedKeeper curCell = gridX[ i ].y[ j ];
-
-					//console.printf( i.."/"..j );
 
 					if ( !curCell.Empty() && checkSpawnDistance( pos, curCell, useDistMultipl, lineDistSpawnChance ) )
 						return true;
@@ -73,24 +79,37 @@ class AutoAmbientGroup play {
 	void CreateGrid( void ) {
 		leftLevelBound = g.leftLevelBound;
 		topLevelBound = g.topLevelBound;
-	
+
+		double levelHorizontalSize = g.rightLevelBound - leftLevelBound;
+		double levelVerticalSize = topLevelBound - g.bottomLevelBound;
+
 		cellSideSize = actorsDistance;
 
 		// Clamp minimal square (cell) side length to not-too-little value.
-		if ( cellSideSize < minimalGridCellSideLength )
-			cellSideSize = minimalGridCellSideLength;
+		if ( cellSideSize < minGridCellSideLength )
+			cellSideSize = minGridCellSideLength;
 
-		gridSizeX = int( ceil( ( g.rightLevelBound - leftLevelBound ) / cellSideSize ) );
-		gridSizeY = int( ceil( ( topLevelBound - g.bottomLevelBound ) / cellSideSize ) );
+		gridSizeX = int( ceil( levelHorizontalSize / cellSideSize ) ) + 1;
+		gridSizeY = int( ceil( levelVerticalSize / cellSideSize ) ) + 1;
+
+		if ( gridSizeX > maxGridLength || gridSizeY > maxGridLength ) {
+			int gridMaxSize = ( gridSizeX > gridSizeY? gridSizeX : gridSizeY );
+			double prevCellSideSize = cellSideSize;
+
+			cellSideSize = ceil( cellSideSize * ( gridMaxSize / double( maxGridLength ) ) );
+
+			AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::CreateGrid() for \"" .. TEXTCOLOR_GRAY .. name .. AutoAmbientLogger.LLCOLOR_Debug .. "\". Cell side resized from " .. prevCellSideSize .. " (x " .. gridSizeX .. ", y " .. gridSizeY .. ") to " .. cellSideSize );
+
+			gridSizeX = int( ceil( levelHorizontalSize / cellSideSize ) ) + 1;
+			gridSizeY = int( ceil( levelVerticalSize / cellSideSize ) ) + 1;
+		}
 
 		if ( gridSizeX <= 0 || gridSizeY <= 0 ) {
-			console.printf( "ERROR: gridSizeX == " .. gridSizeX .. ", gridSizeY == " .. gridSizeY );
+			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::CreateGrid() for \"" .. TEXTCOLOR_GRAY .. name .. AutoAmbientLogger.LLCOLOR_Debug .. "\". x " .. gridSizeX .. " (really " .. gridX.Size() .. "), y " .. gridSizeY );
+			console.printf( GetClassName() .. "::CreateGrid(). Array dimention is less or equal to zero. GridSize = ( " .. gridSizeX .. ", " .. gridSizeY .. "); level bbox: t " .. g.topLevelBound .. ", r " .. g.rightLevelBound .. ", b " .. g.bottomLevelBound .. ", l " .. g.leftLevelBound .. "; cell side size: " .. cellSideSize );
 			return;
 		}
 
-		if ( gridSizeX > 64 || gridSizeY > 64 ) {
-			
-		}
 
 		for ( int i = 0; i < gridSizeX; i++ ) {
 			uint lastXIndex = gridX.Push( new( 'AutoAmbientSpawnedGridCellX' ) );
@@ -104,7 +123,7 @@ class AutoAmbientGroup play {
 	} // of void CreateGrid( void ) {}
 
 	void PrintGrid( AutoAmbientLogger logger ) {
-		logger.Log( LL_Debug, GetClassName() .. "::PrintGrid() for \"" .. TEXTCOLOR_BLUE .. name .. logger.LLCOLOR_Debug .. "\" (x " .. gridSizeX .. ", y " .. gridSizeY .. "):" );
+		logger.Log( LL_Debug, GetClassName() .. "::PrintGrid() for \"" .. TEXTCOLOR_BLUE .. name .. logger.LLCOLOR_Debug .. "\" (SizeX " .. gridSizeX .. ", SizeY " .. gridSizeY .. ", total spawned " .. TEXTCOLOR_GRAY .. spawned.Size() .. logger.LLCOLOR_Debug .. "):" );
 
 		for ( int i = 0; i < gridSizeX; i++ ) {
 			String gridstr = String.Format( "\"%s\" grid[%-3i]: ", name, i );
