@@ -274,3 +274,8 @@ class AutoAmbientMapSet play {
 		return maps.Size();
 	}
 } // of class AutoAmbientMapSet {}
+
+
+class AutoAmbientSpawnedGridCellX {
+	Array<AutoAmbientListSpawnedKeeper> y;
+}

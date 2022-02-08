@@ -1,32 +1,134 @@
 
 class AutoAmbientGroup play {
+	AutoAmbientGlobalHandler g;
+
+	const minimalGridCellSideLength = 96.0;
+
 	String name;
 	Array< class<Actor> > classes;
 	Array<AutoAmbientSoundDefinition> autoclasses;
-	double actorsDistance;
+	double actorsDistance; // Also side length of the one square (one cell).
 
 	AutoAmbientSoundActorConfiguration autoclassConfig;
 
-	//TextureID cachedTexture;
-	//AutoAmbientTexture cachedTextureDefinition;
-	//Array<AutoAmbientTextureDefinition> textures;
-
 	// All spawned on the level auto actors for this group:
-	AutoAmbientListSpawnedKeeper spawned;
+	AutoAmbientListSpawnedKeeper spawned; // Often it's more fast to check for some actor in the whole list.
+	Array<AutoAmbientSpawnedGridCellX> gridX;
 
 	// Temporal array which contain all positions to be moved to the "spawned[]"
-	//array on the next iteration. Defined for the quick same line distance
+	//array on the next iteration. Defined for the quick same side distance
 	//checks.
-	AutoAmbientListSpawnedKeeper spawnedOnLine;
+	AutoAmbientListSpawnedKeeper spawnedOnSide;
 
-	static AutoAmbientGroup Create( String groupname, double dist ) {
+
+	double topLevelBound, leftLevelBound;
+
+	int gridSizeX, gridSizeY;
+	double cellSideSize;
+
+	clearscope int GetGridXOffset( double posx ) const {
+		return int( ( posx - leftLevelBound ) / cellSideSize );
+	}
+
+	clearscope int GetGridYOffset( double posy ) const {
+		return int( ( topLevelBound - posy ) / cellSideSize );
+	}
+
+
+	void AddToGrid( Actor what ) {
+		gridX[ GetGridXOffset( what.pos.x ) ].y[ GetGridYOffset( what.pos.y ) ].AppendSpawnedActor( what );
+	}
+
+	// "true" if there's other actors nearby.
+	bool CheckForCloseNeighbours( vector3 pos, bool useDistMultipl, double lineDistSpawnChance ) {
+		if ( !spawned || spawned.Empty() )
+			return false;
+
+		// Using fastest locating method (whole sequence/nearest grid cells):
+		if ( spawned.Size() < 16 ) {
+			//console.printf( "Whole sequence algorithm." );
+			return checkSpawnDistance( pos, spawned, useDistMultipl, lineDistSpawnChance );
+		} else {
+			int x = GetGridXOffset( pos.x );
+			int y = GetGridYOffset( pos.y );
+
+			//console.printf( "Group " .. name .. " ::CheckForCloseNeighbours(). x " .. x .. ", y " .. y .. ", gridSizeX " .. gridSizeX .. ", gridSizeY " .. gridSizeY );
+
+			for ( int i = ( x < 1? x : x - 1 ); i < ( x >= gridSizeX? x + 1 : x + 2 ); i++ ) {
+				for ( int j = ( y < 1? y : y - 1 ); j < ( y >= gridSizeY? y + 1 : y + 2 ); j++ ) {
+					AutoAmbientListSpawnedKeeper curCell = gridX[ i ].y[ j ];
+
+					//console.printf( i.."/"..j );
+
+					if ( !curCell.Empty() && checkSpawnDistance( pos, curCell, useDistMultipl, lineDistSpawnChance ) )
+						return true;
+				}
+			}
+		}
+
+		return false;
+	} // of bool CheckForCloseNeighbours( vector3 pos, bool useDistMultipl, double lineDistSpawnChance ) {}
+
+
+	void CreateGrid( void ) {
+		leftLevelBound = g.leftLevelBound;
+		topLevelBound = g.topLevelBound;
+	
+		cellSideSize = actorsDistance;
+
+		// Clamp minimal square (cell) side length to not-too-little value.
+		if ( cellSideSize < minimalGridCellSideLength )
+			cellSideSize = minimalGridCellSideLength;
+
+		gridSizeX = int( ceil( ( g.rightLevelBound - leftLevelBound ) / cellSideSize ) );
+		gridSizeY = int( ceil( ( topLevelBound - g.bottomLevelBound ) / cellSideSize ) );
+
+		if ( gridSizeX <= 0 || gridSizeY <= 0 ) {
+			console.printf( "ERROR: gridSizeX == " .. gridSizeX .. ", gridSizeY == " .. gridSizeY );
+			return;
+		}
+
+		if ( gridSizeX > 64 || gridSizeY > 64 ) {
+			
+		}
+
+		for ( int i = 0; i < gridSizeX; i++ ) {
+			uint lastXIndex = gridX.Push( new( 'AutoAmbientSpawnedGridCellX' ) );
+			AutoAmbientSpawnedGridCellX curCellX = gridX[ lastXIndex ];
+
+			for ( int j = 0; j < gridSizeY; j++ )
+				curCellX.y.Push( new( 'AutoAmbientListSpawnedKeeper' ) );
+		}
+
+		AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::CreateGrid() for \"" .. TEXTCOLOR_GRAY .. name .. AutoAmbientLogger.LLCOLOR_Debug .. "\". x " .. gridSizeX .. " (really " .. gridX.Size() .. "), y " .. gridSizeY );
+	} // of void CreateGrid( void ) {}
+
+	void PrintGrid( AutoAmbientLogger logger ) {
+		logger.Log( LL_Debug, GetClassName() .. "::PrintGrid() for \"" .. TEXTCOLOR_BLUE .. name .. logger.LLCOLOR_Debug .. "\" (x " .. gridSizeX .. ", y " .. gridSizeY .. "):" );
+
+		for ( int i = 0; i < gridSizeX; i++ ) {
+			String gridstr = String.Format( "\"%s\" grid[%-3i]: ", name, i );
+
+			for ( int j = 0; j < gridSizeY; j++ ) {
+				uint curCellSize = gridX[ i ].y[ j ].Size();
+				gridstr.AppendFormat( "%s%s", ( curCellSize == 0 )? logger.LLCOLOR_Debug : TEXTCOLOR_GREEN, ( curCellSize > 9 )? ">" : "" .. curCellSize );
+			}
+
+			logger.Log( LL_Debug, gridstr );
+		}
+	} // of void PrintGrid( void ) {}
+
+
+
+	static AutoAmbientGroup Create( String groupname, double dist, AutoAmbientGlobalHandler globalhandler ) {
 		AutoAmbientGroup newGroup = new( 'AutoAmbientGroup' );
 
 		newGroup.name = groupname;
 		newGroup.actorsDistance = dist;
+		newGroup.g = globalhandler;
 
 		newGroup.spawned = new( 'AutoAmbientListSpawnedKeeper' );
-		newGroup.spawnedOnLine = new( 'AutoAmbientListSpawnedKeeper' );
+		newGroup.spawnedOnSide = new( 'AutoAmbientListSpawnedKeeper' );
 
 		newGroup.autoclassConfig = new( 'AutoAmbientSoundActorConfiguration' );
 
@@ -49,7 +151,7 @@ class AutoAmbientGroup play {
 	}
 
 	bool AddAutoSoundClass( Sound snd, EAutoAmbientSoundModes mode = AASM_Looped, double vol = 1.0, double attn = 1.0, uint delay1 = 0, uint delay2 = 35 ) {
-		AutoAmbientSoundDefinition newclass = AutoAmbientSoundDefinition.Create( snd, snd, mode, vol, attn, delay1, delay2 );
+		AutoAmbientSoundDefinition newclass = AutoAmbientSoundDefinition.Create( "#snd_" .. snd, snd, mode, vol, attn, delay1, delay2 );
 
 		if ( newclass )
 			autoclasses.Push( newclass );
@@ -65,6 +167,14 @@ class AutoAmbientGroup play {
 	void ClearSpawned( void ) {
 		if ( spawned )
 			spawned.Clear();
+
+		gridX.Clear();
+		gridSizeX = 0;
+		gridSizeY = 0;
+	}
+
+	bool ExistsOnLevel( void ) {
+		return ( gridX.Size() > 0 );
 	}
 
 
@@ -233,7 +343,7 @@ class AutoAmbientGroup play {
 
 		uint classesArraySize = classes.Size();
 
-		int totalSpawnedOnLine = 0;
+		int totalspawnedOnSide = 0;
 
 		//String debugTextureName = TexMan.GetName( texID );
 		//if ( debugTextureName == "BIGBRIK3" ) {
@@ -266,11 +376,12 @@ class AutoAmbientGroup play {
 
 				// Removing position if it are not far enough away from
 				//previously spawned actors on current line and/or other lines:
-				if ( texdef.sameLineDistSpawnChance < 1.0 && !spawnedOnLine.Empty() )
-					grouplingTooClose = checkSpawnDistance( newPos, spawnedOnLine, texdef.linesCheckFlags & AALCF_SelfLineDistMultipl, texdef.sameLineDistSpawnChance );
+				if ( texdef.sameLineDistSpawnChance < 1.0 && !spawnedOnSide.Empty() )
+					grouplingTooClose = checkSpawnDistance( newPos, spawnedOnSide, texdef.linesCheckFlags & AALCF_SelfLineDistMultipl, texdef.sameLineDistSpawnChance );
 
 				if ( texdef.otherLineDistSpawnChance < 1.0 && !grouplingTooClose )
-					grouplingTooClose = checkSpawnDistance( newPos, spawned, texdef.linesCheckFlags & AALCF_OtherLinesDistMultipl, texdef.otherLineDistSpawnChance );
+					grouplingTooClose = CheckForCloseNeighbours( newPos, texdef.linesCheckFlags & AALCF_OtherLinesDistMultipl, texdef.otherLineDistSpawnChance );
+				//	grouplingTooClose = checkSpawnDistance( newPos, spawned, texdef.linesCheckFlags & AALCF_OtherLinesDistMultipl, texdef.otherLineDistSpawnChance );
 
 				// Adding new actor to the array if it may be created:
 				if ( !grouplingTooClose ) {
@@ -300,8 +411,8 @@ class AutoAmbientGroup play {
 							newActor.angle = AutoAmbientUtil.vector2ToAngle( lineNormal );
 						}
 
-						spawnedOnLine.AppendSpawnedActor( newActor );
-						totalSpawnedOnLine++;
+						spawnedOnSide.AppendSpawnedActor( newActor );
+						totalspawnedOnSide++;
 
 						if ( logger.aaCurLogLevel >= LL_Detailed )
 							logger.Log( LL_Detailed, TEXTCOLOR_GRAY .. "Actor \c-" .. newActor.GetClassName() .. TEXTCOLOR_GRAY .. " spawned on \"\c-" .. texID .. "->" .. name .. TEXTCOLOR_GRAY .. "\" at " .. AutoAmbientUtil.squeezeVector3( newActor.pos ) .. "." );
@@ -311,16 +422,28 @@ class AutoAmbientGroup play {
 			} // of for ( double texxy = ( texMapOffset.x + texparam.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {}
 		} // of for ( double texz = ( texMapOffset.y + texparam.start.y ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {}
 
-		return totalSpawnedOnLine;
+		return totalspawnedOnSide;
 	}  // of void SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupPos ) {}
 
 	void FlushSpawnLineActors( void ) {
-		spawnedOnLine.AppendMoveListTo( spawned );
+		Actor actoriter = spawnedOnSide.ActorIteratorBegin();
 
-		//if ( !spawnedOnLine.Empty() && AutoAmbientLogger.Get().aaCurLogLevel >= LL_Debug )
+		if ( actoriter ) {
+			if ( !ExistsOnLevel() )
+				CreateGrid();
+
+			while ( actoriter ) {
+				AddToGrid( actoriter );
+				actoriter = spawnedOnSide.ActorIteratorNext();
+			} // of while ( actoriter ) {}
+		}
+
+		spawnedOnSide.AppendMoveToList( spawned );
+
+		//if ( !spawnedOnSide.Empty() && AutoAmbientLogger.Get().aaCurLogLevel >= LL_Debug )
 		//	AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::FlushSpawnLineActors(). Actors flushed." );
 
-		spawnedOnLine.Clear();
+		//spawnedOnSide.Clear();
 	} // of void FlushSpawnLineActors( void ) {}
 
 } // of class AutoAmbientGroup {}

@@ -26,10 +26,14 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	Array<AutoAmbientTextureParameter> textureparams;
 	Array<AutoAmbientSoundDefinition> sounddefs;
 
+	double topLevelBound, rightLevelBound, bottomLevelBound, leftLevelBound;
+
+
 	// Dangerous function, actually...
 	static AutoAmbientGlobalHandler Get( void ) {
 		return AutoAmbientGlobalHandler( StaticEventHandler.Find( "AutoAmbientGlobalHandler" ) );
 	}
+
 
 
 	bool DescendIncludeFileLevel( void ) {
@@ -158,9 +162,9 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 			if ( invalidTexture ) {
 				dontLoadAutoAmbient = true;
 				logger.Log( LL_Emergency, GetClassName() .. "::WorldLoaded(). Texture definition ID " .. invalidTexture.id .. " is not valid." );
-				logger.Log( LL_Main, GetClassName() .. "::WorldLoaded(). Validate callback: " 
-								.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length() 
-								.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. invalidTexture.groupparams.Size() 
+				logger.Log( LL_Main, GetClassName() .. "::WorldLoaded(). Validation callback: " 
+								.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length()
+								.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. invalidTexture.groupparams.Size()
 								.. ", addingErrorFlag=" .. invalidTexture.invalidFlag );
 			}
 		}
@@ -169,6 +173,27 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 			Super.WorldLoaded( e );
 			return;
 		}
+
+		rightLevelBound = -32767.0;
+		bottomLevelBound = 32767.0;
+		topLevelBound = -32767.0;
+		leftLevelBound = 32767.0;
+
+		for ( int i = 0; i < level.Vertexes.Size(); i++ ) {
+			vector2 vertexpos = level.Vertexes[ i ].p;
+			if ( vertexpos.y > topLevelBound )
+				topLevelBound = vertexpos.y;
+			else if ( vertexpos.y < bottomLevelBound )
+				bottomLevelBound = vertexpos.y;
+
+			if ( vertexpos.x > rightLevelBound )
+				rightLevelBound = vertexpos.x;
+			else if ( vertexpos.x < leftLevelBound )
+				leftLevelBound = vertexpos.x;
+		}
+
+		logger.Log( LL_Detailed, "Level bound box: top " .. topLevelBound .. ", right " .. rightLevelBound .. ", bottom " .. bottomLevelBound .. ", left " .. leftLevelBound .. "." );
+
 
 		// Static event handler may save information through levels.
 		for ( int i = 0; i < groups.Size(); i++ )
@@ -248,6 +273,10 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 			}
 
 			logger.Log( LL_Debug, "AutoAmbientCacheTextureKeeper. Total texture cache nodes amount: " .. debugTotalTexCacheAmount .. "." );
+
+			for ( int i = 0; i < groups.Size(); i++ )
+				if ( groups[ i ].ExistsOnLevel() )
+					groups[ i ].PrintGrid( logger );
 		}
 
 

@@ -138,7 +138,7 @@ extend class AutoAmbientGlobalHandler {
 			AutoAmbientGroup curgroup = groups[ i ];
 
 			if ( curgroup ) {
-				debugLogger.Log( LL_Debug, "GRP #" .. i .. " \"" .. curgroup.name .. "\": mindist " .. curgroup.actorsDistance .. ", &spawned: " .. curgroup.spawned .. ", &spawnedOnLine: " .. curgroup.spawnedOnLine .. ", classes:" );
+				debugLogger.Log( LL_Debug, "GRP #" .. i .. " \"" .. curgroup.name .. "\": mindist " .. curgroup.actorsDistance .. ", &spawned: " .. curgroup.spawned .. ", &spawnedOnSide: " .. curgroup.spawnedOnSide .. ", gridX.Size(): " .. curgroup.gridX.Size() .. ", classes:" );
 				String debugStr = "";
 
 				for ( int j = 0; j < curgroup.classes.Size(); j++ ) {

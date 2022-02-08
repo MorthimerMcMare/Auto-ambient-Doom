@@ -643,7 +643,7 @@ class AutoAmbientConfigParser play {
 					parserCurGroup.classes.Clear();
 					parserCurGroup.autoclasses.Clear();
 				} else {
-					parserCurGroup = AutoAmbientGroup.Create( blockIdentifier, parserDefaultGroup.actorsDistance );
+					parserCurGroup = AutoAmbientGroup.Create( blockIdentifier, parserDefaultGroup.actorsDistance, g );
 				}
 
 				if ( !emptyBlock )
@@ -739,7 +739,7 @@ class AutoAmbientConfigParser play {
 
 			parserDefaultTexture = AutoAmbientTexture.CreateTemporalWithMaps();
 			parserDefaultTextureParam = AutoAmbientTextureParameter.Create( "Default texture parameter", ( -50.0, -50.0 ), ( -100.0, -100.0 ), ( 0.0, 0.0 ), 1.0 );
-			parserDefaultGroup = AutoAmbientGroup.Create( "Default group", 256 );
+			parserDefaultGroup = AutoAmbientGroup.Create( "Default group", 256, g );
 			parserDefaultSound = AutoAmbientSoundDefinition.Create( "Default sound definition", "null", AASM_Looped, 1.0, 1.0, 35, 35 );
 
 			parserCurTexture = NULL;

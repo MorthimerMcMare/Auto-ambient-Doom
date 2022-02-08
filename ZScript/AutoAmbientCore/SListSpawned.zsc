@@ -8,6 +8,7 @@ class AutoAmbientListSpawnedNode {
 
 class AutoAmbientListSpawnedKeeper {
 	AutoAmbientListSpawnedNode head, tail;
+	uint length;
 
 	// Shared iterator, avoid having more than one iterator user at once!
 	AutoAmbientListSpawnedNode curiter;
@@ -20,12 +21,14 @@ class AutoAmbientListSpawnedKeeper {
 		if ( head ) {
 			tail.next = newNode;
 			tail = newNode;
+			length++;
 		} else {
 			head = tail = newNode;
+			length = 1;
 		}
 	} // of void AddSpawnedActor( Actor spawned ) {}
 
-	void AppendMoveListTo( AutoAmbientListSpawnedKeeper otherKeeper ) {
+	void AppendMoveToList( AutoAmbientListSpawnedKeeper otherKeeper ) {
 		if ( head ) {
 			if ( otherKeeper.head )
 				otherKeeper.tail.next = head;
@@ -33,9 +36,12 @@ class AutoAmbientListSpawnedKeeper {
 				otherKeeper.head = head;
 
 			otherKeeper.tail = tail;
+			otherKeeper.length += length;
+
 			head = tail = NULL;
+			length = 0;
 		}
-	} // of void AppendMoveListTo( AutoAmbientListSpawnedKeeper otherKeeper ) {}
+	} // of void AppendMoveToList( AutoAmbientListSpawnedKeeper otherKeeper ) {}
 
 	bool Empty( void ) {
 		return !head;
@@ -66,6 +72,12 @@ class AutoAmbientListSpawnedKeeper {
 			curNode = curNode.next;
 			prevNode.Destroy();
 		}
+
+		length = 0;
 	} // of void Clear( void ) {}
+
+	int Size( void ) {
+		return length;
+	}
 
 } // of AutoAmbientListSpawnedKeeper {}
