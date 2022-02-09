@@ -22,6 +22,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	String parserErrorFilename;
 
 	bool errorFlag;
+	//int actionsTimeCounter; // "Object::MSTime();"
 
 	AutoAmbientMapSet maptextures;
 	Array<AutoAmbientTexture> textures;
@@ -269,9 +270,17 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 			logger.Log( LL_Debug, "AutoAmbientCacheTextureKeeper. Total texture cache nodes amount: " .. debugTotalTexCacheAmount .. "." );
 
-			for ( int i = 0; i < groups.Size(); i++ )
-				if ( groups[ i ].ExistsOnLevel() )
+			for ( int i = 0; i < groups.Size(); i++ ) {
+				uint spawnedInGroup = groups[ i ].spawned.Size();
+
+				if ( !spawnedInGroup )
+					logger.Log( LL_Debug, GetClassName() .. "::WorldLoaded(). No spawned actors for group \"" .. groups[ i ].name .. "\"." );
+				else
+					logger.Log( LL_Debug, GetClassName() .. "::WorldLoaded(). Group \"" .. TEXTCOLOR_BLUE .. groups[ i ].name .. logger.LLCOLOR_DEBUG .. "\" total spawned: " .. TEXTCOLOR_GRAY .. spawnedInGroup .. logger.LLCOLOR_Debug .. "." );
+
+				if ( groups[ i ].GridCreated() )
 					groups[ i ].PrintGrid( logger );
+			}
 		}
 
 

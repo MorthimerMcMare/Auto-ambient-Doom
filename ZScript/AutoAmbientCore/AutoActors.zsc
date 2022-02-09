@@ -54,7 +54,7 @@ class AutoAmbientGroup play {
 			return false;
 
 		// Using fastest locating method (whole sequence/nearest grid cells):
-		if ( spawned.Size() < wholeListAlgorithmMaxSpawnedSize ) {
+		if ( !GridCreated() || spawned.Size() < wholeListAlgorithmMaxSpawnedSize ) {
 			//console.printf( "Whole sequence algorithm." );
 			return checkSpawnDistance( pos, spawned, useDistMultipl, lineDistSpawnChance );
 		} else {
@@ -120,14 +120,22 @@ class AutoAmbientGroup play {
 				curCellX.y.Push( new( 'AutoAmbientListSpawnedKeeper' ) );
 		}
 
-		AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::CreateGrid(). Created for \"" .. TEXTCOLOR_GRAY .. name .. AutoAmbientLogger.LLCOLOR_Debug .. "\". x " .. gridSizeX .. " (really " .. gridX.Size() .. "), y " .. gridSizeY );
+		Actor actoriter = spawned.ActorIteratorBegin();
+
+		while ( actoriter ) {
+			AddToGrid( actoriter );
+			actoriter = spawned.ActorIteratorNext();
+		} // of while ( actoriter ) {}
+
+
+		AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::CreateGrid(). Created for \"" .. TEXTCOLOR_GRAY .. name .. AutoAmbientLogger.LLCOLOR_Debug .. "\". x " .. gridSizeX .. " (really " .. gridX.Size() .. "), y " .. gridSizeY .. "; moved " .. spawned.Size() .. " actors." );
 	} // of void CreateGrid( void ) {}
 
 	void PrintGrid( AutoAmbientLogger logger ) {
-		logger.Log( LL_Debug, GetClassName() .. "::PrintGrid() for \"" .. TEXTCOLOR_BLUE .. name .. logger.LLCOLOR_Debug .. "\" (SizeX " .. gridSizeX .. ", SizeY " .. gridSizeY .. ", total spawned " .. TEXTCOLOR_GRAY .. spawned.Size() .. logger.LLCOLOR_Debug .. "):" );
+		logger.Log( LL_Debug, GetClassName() .. "::PrintGrid() for \"" .. TEXTCOLOR_BLUE .. name .. logger.LLCOLOR_Debug .. "\" (SizeX " .. gridSizeX .. ", SizeY " .. gridSizeY .. "):" );
 
 		for ( int i = 0; i < gridSizeX; i++ ) {
-			String gridstr = String.Format( "\"%s\" grid[%-2i]: ", name, i );
+			String gridstr = String.Format( " |- grid[%-2i]: ", i );
 
 			for ( int j = 0; j < gridSizeY; j++ ) {
 				uint curCellSize = gridX[ i ].y[ j ].Size();
@@ -193,7 +201,7 @@ class AutoAmbientGroup play {
 		gridSizeY = 0;
 	}
 
-	bool ExistsOnLevel( void ) {
+	bool GridCreated( void ) {
 		return ( gridX.Size() > 0 );
 	}
 
@@ -439,10 +447,7 @@ class AutoAmbientGroup play {
 	void FlushSpawnLineActors( void ) {
 		Actor actoriter = spawnedOnSide.ActorIteratorBegin();
 
-		if ( actoriter ) {
-			if ( !ExistsOnLevel() )
-				CreateGrid();
-
+		if ( GridCreated() ) {
 			while ( actoriter ) {
 				AddToGrid( actoriter );
 				actoriter = spawnedOnSide.ActorIteratorNext();
@@ -450,6 +455,9 @@ class AutoAmbientGroup play {
 		}
 
 		spawnedOnSide.AppendMoveToList( spawned );
+
+		if ( !GridCreated() && spawned.Size() > wholeListAlgorithmMaxSpawnedSize )
+			CreateGrid();
 
 		//if ( !spawnedOnSide.Empty() && AutoAmbientLogger.Get().aaCurLogLevel >= LL_Debug )
 		//	AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::FlushSpawnLineActors(). Actors flushed." );
