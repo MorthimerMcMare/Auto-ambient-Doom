@@ -45,7 +45,8 @@ class AutoAmbientGroup play {
 
 
 	void AddToGrid( Actor what ) {
-		gridX[ GetGridXOffset( what.pos.x ) ].y[ GetGridYOffset( what.pos.y ) ].AppendSpawnedActor( what );
+		AutoAmbientSpawnedGridCellX curX = gridX[ GetGridXOffset( what.pos.x ) ];
+		curX.y[ GetGridYOffset( what.pos.y ) ].AppendSpawnedActor( what );
 	}
 
 	// "true" if there's other actors nearby.
@@ -65,7 +66,8 @@ class AutoAmbientGroup play {
 
 			for ( int i = ( x < 1? x : x - 1 ); i < ( x >= gridSizeX? x + 1 : x + 2 ); i++ ) {
 				for ( int j = ( y < 1? y : y - 1 ); j < ( y >= gridSizeY? y + 1 : y + 2 ); j++ ) {
-					AutoAmbientListSpawnedKeeper curCell = gridX[ i ].y[ j ];
+					AutoAmbientSpawnedGridCellX curX = gridX[ i ];
+					AutoAmbientListSpawnedKeeper curCell = curX.y[ j ];
 
 					if ( !curCell.Empty() && checkSpawnDistance( pos, curCell, useDistMultipl, lineDistSpawnChance ) )
 						return true;
@@ -138,7 +140,8 @@ class AutoAmbientGroup play {
 			String gridstr = String.Format( " |- grid[%-2i]: ", i );
 
 			for ( int j = 0; j < gridSizeY; j++ ) {
-				uint curCellSize = gridX[ i ].y[ j ].Size();
+				AutoAmbientSpawnedGridCellX curX = gridX[ i ];
+				uint curCellSize = curX.y[ j ].Size();
 				gridstr.AppendFormat( "%s%s", ( curCellSize == 0 )? logger.LLCOLOR_Debug : TEXTCOLOR_GREEN, ( curCellSize > 9 )? ">" : "" .. curCellSize );
 			}
 
