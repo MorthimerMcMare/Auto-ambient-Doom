@@ -21,7 +21,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	int parserErrorLine;
 	String parserErrorFilename;
 
-	bool errorFlag;
+	bool dontLoadFlag;
 	//int actionsTimeCounter; // "Object::MSTime();"
 
 	AutoAmbientMapSet maptextures;
@@ -97,7 +97,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	}*/
 
 
-	AutoAmbientTexture FindInvalidTexture( void ) {
+	protected AutoAmbientTexture FindInvalidTexture( void ) {
 		for ( int i = 0; i < textures.Size(); i++ )
 			if ( !textures[ i ].Validate() )
 				return textures[ i ];
@@ -105,11 +105,24 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		return NULL;
 	}
 
+	protected bool IsAutoAmbientEnabled( void ) {
+		CVar AAEnabled = CVar.FindCVar( "mcm_aambient_enabled" );
+		return ( AAEnabled && AAEnabled.GetBool() );
+	}
+
 
 	// Configuration init and file parsing:
 	override void OnRegister() {
-		AutoAmbientLogger logger = AutoAmbientLogger.Get();
 		SetOrder( AutoAmbientHandlerOrder );
+		AutoAmbientLogger logger = AutoAmbientLogger.Get();
+
+		if ( !IsAutoAmbientEnabled() ) {
+			logger.Log( LL_Detailed, GetClassName() .. "::OnRegister(). AutoAmbient isn't enabled, parsing skipped." );
+			dontLoadFlag = true;
+
+			Super.OnRegister();
+			return;
+		}
 
 		maptextures = AutoAmbientMapSet.Create();
 		textures.Clear();
@@ -135,18 +148,18 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). Validation callback: " 
 								.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length()
 								.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. invalidTexture.groupparams.Size()
-								.. ", addingErrorFlag=" .. invalidTexture.invalidFlag );
+								.. ", addingdontLoadFlag=" .. invalidTexture.invalidFlag );
 
-				errorFlag = true;
+				dontLoadFlag = true;
 			} else if ( !groups.Size() ) {
 				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). No group blocks provided in the configuration file." );
-				errorFlag = true;
+				dontLoadFlag = true;
 			} else if ( !textures.Size() ) {
 				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). No texture definition blocks provided in the configuration file." );
-				errorFlag = true;
+				dontLoadFlag = true;
 			}
 		} else {
-			errorFlag = true;
+			dontLoadFlag = true;
 			logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Error during configuration files parsing in " .. parserErrorFilename .. " on line " .. parserErrorLine .. "." );
 		}
 
@@ -160,14 +173,15 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 
 	override void WorldLoaded( WorldEvent e ) {
-		bool dontLoadAutoAmbient = false;
-		AutoAmbientLogger logger = AutoAmbientLogger.Get();
-
-		// Skip all other checks if game is loaded or if error occured.
-		if ( e.IsSaveGame || errorFlag ) {
+		// Skip all other checks if game is loaded from save, 
+		//if an error occured, etc.
+		if ( e.IsSaveGame || dontLoadFlag || !IsAutoAmbientEnabled() ) {
 			Super.WorldLoaded( e );
 			return;
 		}
+
+		AutoAmbientLogger logger = AutoAmbientLogger.Get();
+
 
 		// Static event handlers saves information through levels.
 		for ( int i = 0; i < groups.Size(); i++ )
