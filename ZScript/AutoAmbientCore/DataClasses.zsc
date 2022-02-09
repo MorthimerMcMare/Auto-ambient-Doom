@@ -215,7 +215,9 @@ class AutoAmbientMapSet play {
 					AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::FindMap(). Cached last map index (" .. prevMapIndex .. ") is greater than array size (" .. mapsSize .. ")." );
 				}
 
-			} // of if ( mapsSize != 0 ) {}
+			} else { // of if ( mapsSize != 0 ) {}
+				outStatus = FMS_NotFound;
+			}
 		} else {
 			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::FindMap(). Both map name and map hash parameters are omitted." );
 		}
@@ -245,9 +247,9 @@ class AutoAmbientMapSet play {
 
 				maps[ mapindex ].textures.Push( texture );
 
-				AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::LinkTextureToMap(). Texture \"\c-" .. texture.id .. AutoAmbientLogger.LLCOLOR_Debug .. "\" linked to map \"" .. mapname .. "\"/\"" .. maphash .. "\"." );
+				AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::LinkTextureToMap(). Texture \"\c-" .. texture.id .. AutoAmbientLogger.LLCOLOR_Debug .. "\" linked to map n\"" .. mapname .. "\"/h\"" .. maphash .. "\"." );
 			} else {
-				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::LinkTextureToMap(). Callback information: texture \"" .. texture.id .. "\", mapname \"" .. mapname .. "\", maphash \"" .. maphash .. "\"." );
+				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::LinkTextureToMap(). \"FindMap()\" returned error. Callback information: texture \"" .. texture.id .. "\", mapname \"" .. mapname .. "\", maphash \"" .. maphash .. "\"." );
 			}
 
 		} else {
@@ -258,17 +260,17 @@ class AutoAmbientMapSet play {
 	void LinkFlagsToMap( bool restrictDefaultTextures, String mapname = "", String maphash = "" ) {
 		int mapindex = FindMap( mapname, maphash );
 
-		if ( mapindex != FMS_Error ) {
-			if ( mapindex == FMS_NotFound )
-				mapindex = AddMap( mapname, maphash );
-
+		if ( mapindex == FMS_NotFound ) {
+			AutoAmbientLogger.Get().Log( LL_Detailed, GetClassName() .. "::LinkFlagsToMap(). " .. AutoAmbientLogger.LLCOLOR_Emergency .. "Warning: \c-cannot find mapname \"" .. TEXTCOLOR_BLUE .. mapname .. "\c-\"/maphash \"" .. TEXTCOLOR_BLUE .. maphash .. "\c-\"." );
+		} else if ( mapindex == FMS_Error ) {
+			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::LinkFlagsToMap(). \"FindMap()\" returned error. Callback information: flags " .. restrictDefaultTextures .. ", mapname \"" .. mapname .. "\", maphash \"" .. maphash .. "\"." );
+		} else {
 			maps[ mapindex ].restrictDefaultTextures = restrictDefaultTextures;
 
 			AutoAmbientLogger.Get().Log( LL_Debug, GetClassName() .. "::LinkFlagsToMap(). Set restrict default textures flag to " .. restrictDefaultTextures .. " on map \"" .. mapname .. "\"/\"" .. maphash .. "\"." );
-		} else {
-			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::LinkFlagsToMap(). Callback information: flags " .. restrictDefaultTextures .. ", mapname \"" .. mapname .. "\", maphash \"" .. maphash .. "\"." );
 		}
-	} // of void LinkFlagsToMap( bool restrictDefaultTextures ) {}
+
+	} // of void LinkFlagsToMap( bool restrictDefaultTextures, String mapname = "", String maphash = "" ) {}
 
 	uint Size( void ) {
 		return maps.Size();

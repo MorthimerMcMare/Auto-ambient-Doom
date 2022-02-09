@@ -293,11 +293,6 @@ class AutoAmbientConfigParser play {
 			} else {
 				ParserError( "::ParseTextureBlock(). \"onmaphashes\": no argument(s)." );
 			}
-		/*} else if ( configFileLine[ 0 ] == "denygeneraltexture" ) { // Temporal flag placement.
-			parserCurTexture.restrictDefaultTextures = true;
-		} else if ( configFileLine[ 0 ] == "allowgeneraltexture" ) { // Temporal flag placement.
-			parserCurTexture.restrictDefaultTextures = false;
-		*/
 
 		} else {
 			ParserError( "::ParseTextureBlock(). Unknown keyword \"" .. configFileLine[ 0 ] .. "\"." );
@@ -682,6 +677,42 @@ class AutoAmbientConfigParser play {
 
 	} // of void ParseBlockHeader( void ) {}
 
+	void ParseTexturesOverriding( void ) {
+		uint lineArgsAmount = configFileLine.Size();
+		bool usehashes = ( configFileLine[ 0 ] == "maphashesdefaulttextures" );
+
+		if ( lineArgsAmount > 2 ) {
+			bool flagstate = false;
+
+			if ( configFileLine[ 1 ] == "deny" || configFileLine[ 1 ] == "off" ) {
+				flagstate = true;
+			} else if ( !( configFileLine[ 1 ] == "allow" || configFileLine[ 1 ] == "on" ) ) {
+				ParserError( "::ParseTexturesOverriding(). \"" .. configFileLine[ 0 ] .. "\": wrong second keyword (got \"" .. configFileLine[ 1 ] .. "\", must be allow|deny|on|off)." );
+			}
+
+			if ( !parserErrorFlag ) {
+				if ( g.maptextures.Size() ) {
+					if ( !usehashes ) {
+						for ( int i = 2; i < lineArgsAmount; i++ )
+							g.maptextures.LinkFlagsToMap( flagstate, configFileLine[ i ], "" );
+					} else {
+						for ( int i = 2; i < lineArgsAmount; i++ )
+							g.maptextures.LinkFlagsToMap( flagstate, "", configFileLine[ i ] );
+					}
+				} else {
+					logger.Log( LL_Detailed, GetClassName() .. "::ParseTexturesOverriding(). " .. logger.LLCOLOR_EMERGENCY .. "Warning: \c-maps are not defined yet." );
+				}
+			}
+		} else {
+			ParserError( "::ParseTexturesOverriding(). \"" .. configFileLine[ 0 ] .. "\": insufficient arguments (got " .. lineArgsAmount .. ", must be deny|allow <map> <...>)." );
+		}
+
+		/*} else if ( configFileLine[ 0 ] == "denygeneraltexture" ) { // Temporal flag placement.
+			parserCurTexture.restrictDefaultTextures = true;
+		} else if ( configFileLine[ 0 ] == "allowgeneraltexture" ) { // Temporal flag placement.
+			parserCurTexture.restrictDefaultTextures = false;
+		*/
+	}
 
 
 	void ParseGlobalScope( void ) {
@@ -744,6 +775,10 @@ class AutoAmbientConfigParser play {
 				} else {
 					ParserError( "::ParseGlobalScope(). Amount of words after the texture block definition must be greater than 1." );
 				}
+
+			} else if ( configFileLine[ 0 ] == "mapsdefaulttextures" || configFileLine[ 0 ] == "maphashesdefaulttextures" ) {
+
+				ParseTexturesOverriding();
 
 			} else if ( lineArgsAmount == 3 ) {
 
