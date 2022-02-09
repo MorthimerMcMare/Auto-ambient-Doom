@@ -3,3 +3,4 @@
 server bool mcm_aambient_enabled			= true;
 server int  mcm_aambient_loglevel			= 1;
 server bool mcm_aambient_showactorsatstart	= false;
+server bool mcm_aambient_fewsndchannelsinfo	= true;

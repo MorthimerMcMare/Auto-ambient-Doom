@@ -26,6 +26,7 @@ OptionMenu "mcm_AutoAmbientControl" {
 	StaticText "Debug mode:", "Gray"
 	StaticText "implies all previous and also shows some internal information.", "DarkGray"
 	StaticText " "
+	Option "Not enough sound channels info", "mcm_aambient_fewsndchannelsinfo", "OnOff"
 }
 
 AddOptionMenu "OptionsMenu" {

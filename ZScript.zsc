@@ -254,7 +254,6 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 		logger.Log( LL_Detailed, GetClassName() .. "::WorldLoaded(). Total ambient actors spawned: " .. totalAutoAmbientActorsSpawned .. "." );
 
-
 		if ( logger.aaCurLogLevel >= LL_Debug ) {
 			logger.Log( LL_Debug, "AutoAmbientCacheTextureKeeper. Head " .. cachedTextures.head .. " <<->> tail " .. cachedTextures.tail .. "." );
 			AutoAmbientCacheTexture debugTexCache = cachedTextures.head;
@@ -287,6 +286,16 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 		if ( optionCVar && optionCVar.GetBool() )
 			EventHandler.SendNetworkEvent( "mcm_autoambient_actors_visibility", 1 );
+
+
+		if ( totalAutoAmbientActorsSpawned > snd_channels - 24 ) {
+			optionCVar = CVar.GetCVar( "mcm_aambient_fewsndchannelsinfo" );
+
+			if ( optionCVar && optionCVar.GetBool() ) {
+				logger.Log( LL_Main, TEXTCOLOR_YELLOW .. "Spawned " .. TEXTCOLOR_FIRE .. totalAutoAmbientActorsSpawned .. TEXTCOLOR_YELLOW .. " sound actors, but you have only " .. TEXTCOLOR_FIRE .. snd_channels - 24 .. TEXTCOLOR_YELLOW .. " reserved sound channels \c-(and 24 for all other)." );
+				logger.Log( LL_Main, "You may increase amount of channels in the \"" .. TEXTCOLOR_BLUE .. "Sound options\c-\" menu or turn this message off in the \"" .. TEXTCOLOR_BLUE .. "Auto-Ambient control\c-\"." );
+			}
+		}
 
 		// Yes, I know perfectly well that garbage collector will successfully
 		//destroy an array.
