@@ -64,37 +64,22 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	}
 
 
-	/*void ResetGlobalLumpPos( void ) {
-		currentGlobalLumpPos = -1;
-	}
+	static clearscope int GetPreviousLumpGlobalPos( String baseLumpName, int baseLumpHander ) {
+		int outPos = AAParser_NoGlobalLocating;
 
-	int GetPreviousGlobalLumpPos( String baseLumpName ) {
-		int outPos = -1;
+		for ( int i = 0; i < 99; i++ ) {
+			int compLumpHandler = Wads.CheckNumForName( baseLumpName, Wads.ns_global, i );
 
-		if ( currentGlobalLumpPos == -1 ) {
-			int baseLumpIndex = Wads.CheckNumForName( baseLumpName, Wads.ns_global, currentGlobalPos );
-
-			if ( baseLumpIndex != -1 ) {
-				for ( int i = 0; i < 99; i++ ) {
-					int compLumpIndex = Wads.CheckNumForName( baseLumpName, Wads.ns_global, i );
-
-					if ( compLumpIndex == -1 ) {
-						break;
-					} else if ( baseLumpIndex == compFileIndex ) {
-						outPos = ( i == 0? -1 : i );
-						break;
-					}
-				}
-
-			} else {
-				AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "::GetPreviousGlobalFilePos(). Cannot find base lump \"" .. baseLumpName .. "\"." );
+			if ( compLumpHandler == -1 ) {
+				break;
+			} else if ( baseLumpHander == compLumpHandler ) {
+				outPos = ( i == 0? AAParser_NoGlobalLocating : i );
+				break;
 			}
-		} else {
-			outPos = --currentGlobalLumpPos;
 		}
 
 		return outPos;
-	}*/
+	} // of int GetPreviousLumpGlobalPos( String baseLumpHander ) {}
 
 
 	protected AutoAmbientTexture FindInvalidTexture( void ) {
