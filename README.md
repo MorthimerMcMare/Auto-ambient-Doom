@@ -257,7 +257,140 @@ texture default|<texture_name1> [<texture_name2> [...]] {
 
 ### Пример конфигурационного файла
 
+Скомпилирован из `doom2.cfg` и подключённых к нему файлов.
 
+```
+# Специальные звуковые акторы (не просто зацикленные): ========================
+
+soundactor snd_acid {
+	sound AA/Acid/loopA
+	mode random 20 175
+	volume 0.4
+	attn 3.8
+}
+
+soundactor default {
+	mode fixed 35
+	volume 0.4
+	attn 5.0
+}
+
+# В обоих: режим — "fixed, 35", громкость/затухание — 0.4/5.0.
+soundactor snd_comp1 {
+	sound AA/Computers/Beep
+}
+soundactor snd_comp2 {
+	sound AA/Computers/Boop
+}
+
+
+# Группы: =====================================================================
+
+group default {
+	mindistance 128
+}
+
+group Acid {
+	# Минимальная дистанция — 128.
+	soundactor snd_acid
+}
+
+group Blazing {
+	# Минимальная дистанция — 128.
+	loopedsound AA/Blazing/loop1 0.65 4.0
+	loopedsound AA/Blazing/loop2 0.65 4.0
+	loopedsound AA/Blazing/loop3 0.5 3.8
+}
+
+group Computers {
+	# Минимальная дистанция — 128.
+	soundactor snd_comp1 snd_comp2
+}
+
+group Tech {
+	mindistance 160 # Дистанция переопределена, тут она равна 160.
+	loopedsound AA/Tech/loopA 0.7 3.5
+	loopedsound AA/Tech/loop1 0.7 3.5
+	loopedsound AA/Tech/loop2 0.7 3.5
+	loopedsound AA/Tech/loop3 1.0 3.5
+	loopedsound AA/Tech/loop4 0.3 4.5
+}
+
+
+# Параметры текстур: ==========================================================
+
+textureparam somewhereAtTopHalf {
+	# Появляться где-то в верхней половине текстуры.
+	start -50 -75
+	random -48 -24.5
+}
+
+textureparam default {
+		start -50 -50
+		random -50 -50
+	}
+	textureparam somewhere100 {}
+	textureparam somewhere50 {
+		chance 0.5
+	}
+
+	# Подобный отступ не необходим... Но с ним проще воспринимается
+	#логика default-блоков.
+	textureparam default {
+		random 0.0
+}
+
+textureparam "Cement Tech" {
+	# Просто специализированные параметры под реалии текстуры "CEMENT[24]":
+	start -57 -70
+	random -17 -26
+	chance 0.67 # Иногда (примерно в трети случаев) ничего не появится.
+}
+
+textureparam verticalSplit {
+	# Деление надвое по вертикали.
+	#25% старт + 50% смещение: объекты по X будут на 25% и на 75% от текстуры.
+	start -50 -25
+	offset -100 -50
+	random -10 -10
+}
+
+
+# Текстуры: ===================================================================
+
+texture BRICKLIT BSTONE3 {
+	# Масляная плошка в верхней части текстуры (50% по X, 75% по Y):
+	group Blazing -50 -75
+}
+
+texture CEMENT[24] {
+	group Tech "Cement Tech" # Переплетение проводов.
+	belowdistchance 0.8 0.8 # Пусть и рядом искрит!
+}
+
+texture COMPSTA[12] {
+	# Можно использовать более одной группы для текстуры:
+
+	group Computers somewhereAtTopHalf
+	group Tech somewhereAtTopHalf
+}
+
+texture SFALL[1234] {
+	group Acid somewhere100
+	group Acid somewhere50
+	group Blazing somewhere50
+}
+
+texture SILVER3 {
+	# Иногда удобнее использовать обычное, а не процентное смещение.
+	group Tech 19 32
+	group Computers 38 96
+}
+
+texture SPACEW3 {
+	group Computers verticalSplit
+}
+```
 
 
 <a name="ru-credits"></a>
