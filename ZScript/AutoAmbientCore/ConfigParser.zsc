@@ -211,7 +211,7 @@ class AutoAmbientConfigParser play {
 						if ( texparam )
 							parserCurTexture.AddGroupParam( texgroup, texparam );
 						else
-							ParserError( "::ParseTextureBlock(). \"group\": cannot find texture parameter name \"" .. configFileLine[ 1 ] .. "\"." );
+							ParserError( "::ParseTextureBlock(). \"group\": cannot find texture parameter name \"" .. configFileLine[ 2 ] .. "\"." );
 					} else {
 						parserCurTexture.AddGroup( texgroup, ( configFileLine[ 2 ].ToDouble(), configFileLine[ 3 ].ToDouble() ) );
 					}
@@ -588,10 +588,8 @@ class AutoAmbientConfigParser play {
 					} else {
 						newTextureDef = AutoAmbientTexture.Create( curIdentifier );
 
-						if ( !newTextureDef ) {
+						if ( !newTextureDef )
 							ParserError( "::ParseBlockHeader(). \"texture\": Wrong texture name \"" .. curIdentifier .. "\"." );
-							break;
-						}
 					}
 
 					if ( newTextureDef && !parserErrorFlag ) {
