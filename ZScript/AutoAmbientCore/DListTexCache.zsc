@@ -49,9 +49,13 @@ class AutoAmbientCacheTextureKeeper play {
 			mustCheckForMapData = false;
 		}
 
+		// Some textures definitions may break normal textureID handling. 
+		//Thanks to YURA_111 for the bug report.
+		String texName = TexMan.GetName( texID );
+
 		if ( mapData ) {
 			for ( int j = 0; j < mapData.textures.Size(); j++ ) {
-				if ( mapData.textures[ j ].id == texID ) {
+				if ( TexMan.GetName( mapData.textures[ j ].id ) ~== texName ) {
 					newTextureCache.texdef = mapData.textures[ j ];
 					break;
 				}
@@ -61,7 +65,7 @@ class AutoAmbientCacheTextureKeeper play {
 		// Global texture definitions:
 		if ( !mapData || ( !newTextureCache.texdef && !mapData.restrictDefaultTextures ) ) {
 			for ( int j = 0; j < g.textures.Size(); j++ ) {
-				if ( g.textures[ j ].id == texID ) {
+				if ( TexMan.GetName( g.textures[ j ].id ) ~== texName ) {
 					newTextureCache.texdef = g.textures[ j ];
 					break;
 				}
