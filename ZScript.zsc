@@ -22,6 +22,12 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	String parserErrorFilename;
 
 	bool dontLoadFlag;
+
+	// Warning! StaticEventHandler nullifies all its fields on heaviest 
+	//game mode changes (e. g., from VM loading to title screen).
+	AutoAmbientLogger logger;
+	AutoAmbientSoundActorConfiguration autoclassConfig;
+
 	//int actionsTimeCounter; // "Object::MSTime();"
 
 	AutoAmbientMapSet maptextures;
@@ -36,10 +42,10 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	// Configuration init and file parsing:
 	override void OnRegister() {
 		SetOrder( AutoAmbientHandlerOrder );
-		AutoAmbientLogger logger = AutoAmbientLogger.Get();
+		AutoAmbientLogger reglogger = AutoAmbientLogger.Get();
 
 		if ( !IsAutoAmbientEnabled() ) {
-			logger.Log( LL_Detailed, GetClassName() .. "::OnRegister(). AutoAmbient isn't enabled, parsing skipped." );
+			reglogger.Log( LL_Detailed, GetClassName() .. "::OnRegister(). AutoAmbient isn't enabled, parsing skipped." );
 			dontLoadFlag = true;
 
 			Super.OnRegister();
@@ -55,42 +61,231 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		parserErrorLine = AAParser_NoErrorLine;
 		//ResetGlobalLumpPos();
 
+		autoclassConfig = new( 'AutoAmbientSoundActorConfiguration' );
 
 		AutoAmbientConfigParser.Create( self ).ParseFile( "aambient", true, -1 );
 
 
 		if ( parserErrorLine == AAParser_NoErrorLine ) {
-			logger.Log( LL_Main | LL_NoPrefix, GetClassName() .. "::OnRegister(). Loading configuration done." );
+			reglogger.Log( LL_Main | LL_NoPrefix, GetClassName() .. "::OnRegister(). Loading configuration done." );
 
 			AutoAmbientTexture invalidTexture = FindInvalidTexture();
 
 			if ( invalidTexture ) {
-				logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Texture definition ID " .. invalidTexture.id .. " is not valid." );
-				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). Validation callback: " 
+				reglogger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Texture definition ID " .. invalidTexture.id .. " is not valid." );
+				reglogger.Log( LL_Main, GetClassName() .. "::OnRegister(). Validation callback: " 
 								.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length()
 								.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. invalidTexture.groupparams.Size()
 								.. ", addingdontLoadFlag=" .. invalidTexture.invalidFlag );
 
 				dontLoadFlag = true;
 			} else if ( !groups.Size() ) {
-				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). No group blocks provided in the configuration file." );
+				reglogger.Log( LL_Main, GetClassName() .. "::OnRegister(). No group blocks provided in the configuration file." );
 				dontLoadFlag = true;
 			} else if ( !textures.Size() ) {
-				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). No texture definition blocks provided in the configuration file." );
+				reglogger.Log( LL_Main, GetClassName() .. "::OnRegister(). No texture definition blocks provided in the configuration file." );
 				dontLoadFlag = true;
 			}
 		} else {
 			dontLoadFlag = true;
-			logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Error during configuration files parsing in " .. parserErrorFilename .. " on line " .. parserErrorLine .. "." );
+			reglogger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Error during configuration files parsing in " .. parserErrorFilename .. " on line " .. parserErrorLine .. "." );
 		}
 
 
 		// See "Utils.zsc" -> "extend class AutoAmbientGlobalHandler".
-		if ( logger.aaCurLogLevel >= LL_Debug )
+		if ( reglogger.aaCurLogLevel >= LL_Debug )
 			OnRegisterDebugFullOutput();
 
 		Super.OnRegister();
 	} // of override void OnRegister() {}
+
+
+	int SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupIndex ) {
+		if ( !texdef )
+			return 0; // Return if there's no neccesary texture definition.
+
+		AutoAmbientGroup curgroup = texdef.groups[ groupIndex ];
+
+		if ( !curgroup.classes.Size() && !curgroup.autoclasses.Size() )
+			return 0; // We cannot spawn something if we have no spawn data.
+
+		// Locate a texture definition:
+		TextureID texID = attachSide.GetTexture( sidePos );
+
+		Line attachLine = attachSide.linedef;
+
+		//console.printf( "action: " .. attachLine.special .. ", com " .. texdef.linesCheckFlags & AALCF_CommonLine .. " / act " .. texdef.linesCheckFlags & AALCF_ActionLine );
+		if ( 	( !attachLine.special && !( texdef.linesCheckFlags & AALCF_HandleCommonLines ) )
+			||	(  attachLine.special && !( texdef.linesCheckFlags & AALCF_HandleActionLines ) ) )
+			return 0; // Return if user denies current line (action or common) spawning.
+
+		AutoAmbientTextureParameter texparam = texdef.groupparams[ groupIndex ];
+
+		Side oppositeSide = ( ( attachLine.sidedef[ 0 ] == attachSide )? attachLine.sidedef[ 1 ] : attachLine.sidedef[ 0 ] );
+		double lineWidth = attachLine.delta.Length();
+		double lineHeight = 0;
+		double firstPointFloorZOffset = 0.0;
+
+		double unpeggedOffset = 0.0;
+
+		// [A]ttaching/[O]pposite side, [F]loor/[C]eiling heights:
+		double af = attachSide.sector.floorplane.d * attachSide.sector.floorplane.negiC;
+		double ac = attachSide.sector.ceilingplane.d * attachSide.sector.ceilingplane.negiC;
+		double of = 0.0;
+		double oc = 0.0;
+		if ( oppositeSide ) {
+			of = oppositeSide.sector.floorplane.d * oppositeSide.sector.floorplane.negiC;
+			oc = oppositeSide.sector.ceilingplane.d * oppositeSide.sector.ceilingplane.negiC;
+		}
+
+		switch ( sidePos ) {
+			case Side.top:
+				if ( oppositeSide ) {
+					if ( oppositeSide.sector.GetTexture( Sector.ceiling ) == skyflatnum && ac > oc )
+						return 0; // Sky lines skipping (see "TNT: Evilution", MAP27 "Mount pain").
+
+					lineHeight = max( 0, ac - oc );
+					if ( lineHeight > 0 )
+						lineHeight = min( lineHeight, ac - af );
+
+					firstPointFloorZOffset = oc - af;
+
+					if ( attachLine.flags & Line.ML_DONTPEGTOP )
+						unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
+				}
+				break;
+			case Side.mid:
+				lineHeight = max( 0, ac - af );
+
+				// TODO: cannot recognize now what must be here...
+				//if ( lineHeight > 0 )
+				//	lineHeight = min( lineHeight, oc - of );
+
+				if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
+					unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
+				break;
+			case Side.bottom:
+				if ( oppositeSide ) {
+					//if ( oppositeSide.sector.GetTexture( Sector.floor ) == skyflatnum && af < ac )
+					//	return 0; // Don't sure if FSKY1 expands to the floors.
+
+					lineHeight = max( 0, of - af );
+					if ( lineHeight > 0 )
+						lineHeight = min( lineHeight, ac - af );
+
+					if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
+						unpeggedOffset = lineHeight - texdef.size.y;
+					else
+						unpeggedOffset = ( ac - af ) % texdef.size.y;
+				}
+				break;
+			default:
+				break;
+		} // of switch ( sidePos ) {}
+
+
+		if ( lineHeight == 0.0 || lineWidth == 0.0 )
+			return 0; // There's no point in creating an actor if the texture is not visible.
+
+		if ( lineHeight < 0.0 || lineWidth < 0.0 ) {
+			logger.Log( LL_Emergency, GetClassName() .. "::SpawnActor(). Line #" .. attachLine.Index() .. " calculated height " .. lineHeight .. "/width " .. lineWidth .. " is less than 0. It's at least extremely strange." );
+			return 0;
+		}
+
+
+		if ( unpeggedOffset != 0.0 )
+			unpeggedOffset = texdef.size.y - unpeggedOffset;
+
+		vector3 firstPoint = ( // From bottom-left (as first quadrant on cartesian plane).
+				attachLine.v1.p.x,
+				attachLine.v1.p.y,
+				af + firstPointFloorZOffset
+		);
+
+		uint classesArraySize = curgroup.classes.Size();
+
+		int totalspawnedOnSide = 0;
+
+		//String debugTextureName = TexMan.GetName( texID );
+		//if ( debugTextureName == "BIGBRIK3" ) {
+		//	console.printf( debugTextureName .. ": start.y = (" .. texMapOffset.y  .. " + " .. texparam.start.y .. ") % " .. texdef.size.y .. " = " .. ( texMapOffset.y + texparam.start.y ) % texdef.size.y .. ", end.y " .. lineHeight .. ". tex.offsety: " .. attachSide.GetTextureYOffset( sidePos ) ); // .. ". texparam.offset.x: " .. texparam.offset.x );
+		//}
+
+		// Converting virtual 2D-plane to the 3D-aligned line plane
+		//and adding potential positions to the array:
+		for ( double texz = ( attachSide.GetTextureYOffset( sidePos ) + texparam.start.y ) % texdef.size.y - unpeggedOffset; texz < lineHeight / ( texparam.offset.y / texdef.size.y ); texz += texparam.offset.y ) {
+			for ( double texxy = ( texparam.start.x - attachSide.GetTextureXOffset( sidePos ) % texdef.size.x ) % texdef.size.x; texxy < lineWidth / ( texparam.offset.x / texdef.size.x ); texxy += texparam.offset.x ) {
+
+				if ( texparam.chance != 0.0 && FRandom( 0.0, 1.0 ) > texparam.chance )
+					continue; // Skip spawning if texture parameter chance to spawn failed.
+
+				double texxyRandomized = texxy + FRandom( -texparam.spreading.x, texparam.spreading.x );
+				double texzRandomized = texz + FRandom( -texparam.spreading.y, texparam.spreading.y );
+
+				if ( texxyRandomized < 0.0 || texxyRandomized > lineWidth || texzRandomized < 0.0 || texzRandomized > lineHeight )
+					continue; // Skip spawning if random tried to spawn actor outside the texture.
+
+				// Converting to the world 3D-coordinates. Normalizing
+				//(v1-v2), multiplying it to the wish length...
+				vector2 actorPosXY = firstPoint.xy + attachLine.delta / lineWidth * texxyRandomized;
+				// ...And adding a Z-component:
+				vector3 newPos = ( actorPosXY.x, actorPosXY.y, firstPoint.z + texzRandomized );
+
+				//console.printf( "Actor for tex \"" .. TexMan.GetName( texdef.id ) .. "\": relpos " .. actorPosXY - firstPoint.xy .. ", firstPointPos " .. firstPoint .. ", texMapOfs " .. texMapOffset .. ", line w/h " .. lineWidth .. "/" .. lineHeight );
+
+				bool grouplingTooClose = false; // Same meaning as in word "Sibling".
+
+				// Removing position if it are not far enough away from
+				//previously spawned actors on current line and/or other lines:
+				if ( texdef.sameLineDistSpawnChance < 1.0 && !curgroup.spawnedOnSide.Empty() )
+					grouplingTooClose = curgroup.checkSpawnDistance( newPos, curgroup.spawnedOnSide, texdef.linesCheckFlags & AALCF_SelfLineDistMultipl, texdef.sameLineDistSpawnChance );
+
+				if ( texdef.otherLineDistSpawnChance < 1.0 && !grouplingTooClose )
+					grouplingTooClose = curgroup.CheckForCloseNeighbours( newPos, texdef.linesCheckFlags & AALCF_OtherLinesDistMultipl, texdef.otherLineDistSpawnChance );
+				//	grouplingTooClose = curgroup.checkSpawnDistance( newPos, spawned, texdef.linesCheckFlags & AALCF_OtherLinesDistMultipl, texdef.otherLineDistSpawnChance );
+
+				// Adding new actor to the array if it may be created:
+				if ( !grouplingTooClose ) {
+					Actor newActor = NULL;
+
+					// Get a random class from the (auto)classes arrays:
+					uint rnd = Random( 0, classesArraySize + curgroup.autoclasses.Size() - 1 );
+
+					if ( rnd < classesArraySize ) {
+						newActor = Actor.Spawn( curgroup.classes[ rnd ], newPos );
+					} else if ( curgroup.autoclasses.Size() ) {
+						// An expandable part of the code (maybe later...).
+						class<AutoAmbientSoundActor> properclass = autoclassConfig.GetProperClass( curgroup.autoclasses[ rnd - classesArraySize ] );
+
+						newActor = Actor.Spawn( properclass, newPos );
+						AutoAmbientSoundActor( newActor ).Init( curgroup.autoclasses[ rnd - classesArraySize ] );
+					} else {
+						logger.Log( LL_Emergency, GetClassName() .. "::SpawnActor(). Warning: random value " .. rnd .. " is out-of-bounds of classes[ " .. classesArraySize .. " ] and autoclasses[ " .. curgroup.autoclasses.Size() .. " ]." );
+					}
+
+					if ( newActor ) {
+						if ( newActor is 'AutoAmbientSpawnableActor' ) {
+							AutoAmbientSpawnableActor( newActor ).attachedSide = attachSide;
+
+							vector2 lineNormal = Actor.RotateVector( attachLine.delta / lineWidth, ( ( attachSide == attachLine.sidedef[ 0 ] )? 90.0 : -90.0 ) ); // Not sure if this line is correct, actually.
+
+							newActor.angle = AutoAmbientUtil.vector2ToAngle( lineNormal );
+						}
+
+						curgroup.spawnedOnSide.AppendSpawnedActor( newActor );
+						totalspawnedOnSide++;
+
+						if ( logger.aaCurLogLevel >= LL_Detailed )
+							logger.Log( LL_Detailed, TEXTCOLOR_GRAY .. "Actor \c-" .. newActor.GetClassName() .. TEXTCOLOR_GRAY .. " spawned on \"\c-" .. texID .. "->" .. curgroup.name .. TEXTCOLOR_GRAY .. "\" at " .. AutoAmbientUtil.squeezeVector3( newActor.pos ) .. "." );
+
+					}
+				} // of if ( !grouplingTooClose ) {}
+
+			} // of for ( double texxy = ( texMapOffset.x + texparam.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {}
+		} // of for ( double texz = ( texMapOffset.y + texparam.start.y ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {}
+
+		return totalspawnedOnSide;
+	} // of void SpawnActor( Side attachSide, int sidePos, AutoAmbientTexture texdef, uint groupIndex ) {}
 
 
 	override void WorldLoaded( WorldEvent e ) {
@@ -101,7 +296,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 			return;
 		}
 
-		AutoAmbientLogger logger = AutoAmbientLogger.Get();
+		logger = AutoAmbientLogger.Get();
 
 		// Static event handlers saves information through levels.
 		for ( int i = 0; i < groups.Size(); i++ )
@@ -142,7 +337,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 						for ( int j = 0; j < curtexdef.groups.Size(); j++ ) {
 							AutoAmbientGroup curGroup = curtexdef.groups[ j ];
 
-							totalAutoAmbientActorsSpawned += curGroup.SpawnActor( l, curSidePos, curtexdef, j );
+							totalAutoAmbientActorsSpawned += SpawnActor( l, curSidePos, curtexdef, j );
 
 							bool uniqueGroupFlag = true;
 							for ( int k = 0; k < uniqueGroups.Size(); k++ ) {
