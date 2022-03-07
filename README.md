@@ -6,7 +6,7 @@ A hightly customizable (G-/Q-/L-)ZDoom modification which lets you to dispose am
 
 - [English](#en-sector)
   - [Description](#en-description)
-  - [Mod options](#en-settings)
+  - [Options](#en-settings)
   - [Configuration file](#en-config-file)
   - [Credits](#en-credits)
 
@@ -37,9 +37,9 @@ So, Auto-ambient Doom is a modification which automatically places specified act
 Compatibility with all the modifications I have tested is not violated.
 
 
-When the game starts, the modification reads the last specified configuration text file (see [section](#en-config-file)) and handles it, parsing settings. It uses them every time a new level is loaded: in fact, it goes through the entire map, creating environment objects on the walls where necessary.
+When the game starts, the modification reads the last specified configuration text file (see [configuration section](#en-config-file)) and handles it, parsing settings. It uses them every time a new level is loaded: in fact, it goes through the entire map, creating environment objects on the walls where necessary.
 
-A release usually comes in two flavors: "`AAmbient_vXYZ.pk3`" by default includes some ambient objects and prewritten configuration file, and "`AAmbient_vXYZ_core_only.pk3`" is a pure project core.
+A release usually comes in two flavors: "`AAmbient_vXYZ.pk3`" includes by default some ambient objects and prewritten configuration file, and "`AAmbient_vXYZ_core_only.pk3`" is a pure project core.
 
 ##### Launching
 
@@ -78,7 +78,7 @@ Located in "Options"→"Auto-ambient control".
 Compiled from the default `doom2.cfg` and files included to it.
 
 ```
-# Special sound actors (not just looped): ========================
+# Special sound actors (not just looped): =====================================
 
 soundactor snd_acid {
 	sound AA/Acid/loopA
@@ -135,7 +135,7 @@ group Tech {
 }
 
 
-# Параметры текстур: ==========================================================
+# Textures parameters: ========================================================
 
 textureparam somewhereAtTopHalf {
 	# To spawn somewhere in the top half.
@@ -175,7 +175,7 @@ textureparam verticalSplit {
 }
 
 
-# Текстуры: ===================================================================
+# Textures: ===================================================================
 
 texture BRICKLIT BSTONE3 {
 	# Oil bowl at the top of the texture (50% by X, 75% by Y):
