@@ -1,4 +1,4 @@
-//
+// Utils, global classes and extendings.
 
 class AutoAmbientLogger: Thinker {
 	const LLCOLOR_DEBUG = TEXTCOLOR_DARKGRAY;
@@ -80,9 +80,74 @@ class AutoAmbientUtil {
 
 
 
+
 extend class AutoAmbientGlobalHandler {
 	String debugTextureDataPrefix;
 	AutoAmbientLogger debugLogger;
+
+
+	// Static event handlers (and its finders) has quite confusing behaviour,
+	//so it's better to set pointer to this class manually.
+	static AutoAmbientGlobalHandler Get( void ) {
+		return AutoAmbientGlobalHandler( StaticEventHandler.Find( "AutoAmbientGlobalHandler" ) );
+	}
+
+
+
+	bool DescendIncludeFileLevel( void ) {
+		bool outValue = false;
+
+		if ( replicateParserAmount < replicateParserMaxAmount ) {
+			replicateParserAmount++;
+			outValue = true;
+		}
+
+		return outValue;
+	}
+
+	void AscendIncludeFileLevel( void ) {
+		if ( replicateParserAmount > 0 )
+			replicateParserAmount--;
+		else
+			AutoAmbientLogger.Get().Log( LL_Emergency, GetClassName() .. "AscendIncludeFileLevel(). Tried to ascend over the first level." );
+	}
+
+	String GetFormattedIncludeFileLevel( void ) {
+		return TEXTCOLOR_GRAY .. ( ( replicateParserAmount == 0 )? "top" : "nested level " .. replicateParserAmount .. "\c-" );
+	}
+
+
+	static clearscope int GetPreviousLumpGlobalPos( String baseLumpName, int baseLumpHander ) {
+		int outPos = AAParser_NoGlobalLocating;
+
+		for ( int i = 0; i < 99; i++ ) {
+			int compLumpHandler = Wads.CheckNumForName( baseLumpName, Wads.ns_global, i );
+
+			if ( compLumpHandler == -1 ) {
+				break;
+			} else if ( baseLumpHander == compLumpHandler ) {
+				outPos = ( i == 0? AAParser_NoGlobalLocating : i );
+				break;
+			}
+		}
+
+		return outPos;
+	} // of int GetPreviousLumpGlobalPos( String baseLumpHander ) {}
+
+
+	protected AutoAmbientTexture FindInvalidTexture( void ) {
+		for ( int i = 0; i < textures.Size(); i++ )
+			if ( !textures[ i ].Validate() )
+				return textures[ i ];
+
+		return NULL;
+	}
+
+	protected bool IsAutoAmbientEnabled( void ) {
+		CVar AAEnabled = CVar.FindCVar( "mcm_aambient_enabled" );
+		return ( AAEnabled && AAEnabled.GetBool() );
+	}
+
 
 	private void printDebugTextureData( uint texindex, AutoAmbientTexture curtex ) {
 		if ( curtex ) {
@@ -200,5 +265,26 @@ extend class AutoAmbientGlobalHandler {
 		}
 
 	} // of private void OnRegisterDebugFullOutput( void ) {}
+
+
+	protected void LocateLevelBorders( void ) {
+		rightLevelBound = -32768.0;
+		bottomLevelBound = 32768.0;
+		topLevelBound = -32768.0;
+		leftLevelBound = 32768.0;
+
+		for ( int i = 0; i < level.Vertexes.Size(); i++ ) {
+			vector2 vertexpos = level.Vertexes[ i ].p;
+			if ( vertexpos.y > topLevelBound )
+				topLevelBound = vertexpos.y;
+			else if ( vertexpos.y < bottomLevelBound )
+				bottomLevelBound = vertexpos.y;
+
+			if ( vertexpos.x > rightLevelBound )
+				rightLevelBound = vertexpos.x;
+			else if ( vertexpos.x < leftLevelBound )
+				leftLevelBound = vertexpos.x;
+		}
+	} // of protected void locateLevelBorders( void ) {}
 
 } // of extend class AutoAmbientGlobalHandler {}
