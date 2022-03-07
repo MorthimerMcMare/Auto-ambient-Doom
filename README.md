@@ -5,12 +5,16 @@ A hightly customizable (G-/Q-/L-)ZDoom modification which lets you to dispose am
 Гибко настраиваемая модификация для (G-/Q-/L-)ZDoom, позволяющая автоматически располагать звуки или объекты окружения на стены уровней.
 
 - [English](#en-sector)
-  - []
+  - [Description](#en-description)
+  - [Mod options](#en-settings)
+  - [Configuration file](#en-config-file)
+  - [Credits](#en-credits)
+
 - [Русский](#ru-sector)
   - [Описание](#ru-description)
   - [Настройки](#ru-settings)
   - [Файл конфигурации](#ru-config-file)
-  - [Благодарности](#ru-credits)
+  - [Авторы и благодарности](#ru-credits)
 
 
 
@@ -55,12 +59,14 @@ Or launch under a Linux/MacOS terminal:
 
 <a name="en-settings"></a>
 
-## In-game options
+## Options
 
 Located in "Options"→"Auto-ambient control".
 
 [WIP section]
 
+
+<a name="en-config-file"></a>
 
 ## Configuration file
 
@@ -212,6 +218,8 @@ texture SPACEW3 {
 
 ## Credits
 
+Idea, core code, default content: Morthimer McMare.
+
 Thanks:
 
 - Renaul Damek for the moral support;
@@ -257,7 +265,7 @@ Thanks:
 
 <a name="ru-settings"></a>
 
-## Внутриигровые настройки
+## Настройки
 
 Открываются в меню "Options"→"Auto-ambient control".
 
@@ -600,7 +608,9 @@ texture SPACEW3 {
 
 <a name="ru-credits"></a>
 
-## Благодарности
+## Авторы и благодарности
+
+Идея, код ядра, содержимое по умолчанию: Morthimer McMare.
 
 Спасибо:
 
