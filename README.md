@@ -19,11 +19,203 @@ A hightly customizable (G-/Q-/L-)ZDoom modification which lets you to dispose am
 
 # English
 
-Must be here...
+<a name="en-description"></a>
+
+## Description
+
+The essence of the modification is simple. For actors (in-game objects in Doom), sounds are added [elementarily](https://zdoom.org/wiki/A_PlaySound); there are also [built-in mechanisms for flats](https://zdoom.org/wiki/SNDSEQ). And nothing for walls. I mean, absolutely nothing. No one attempt in the whole Internet.
+
+So, Auto-ambient Doom is a modification which automatically places specified actors (by default an ambient sounds like lumeniscent lamps buzzing or ducts)  to the walls textures.
+
+
+**Minimal required GZDoom engine version is v3.3.0**. Maximal isn't regulated.
+
+Compatibility with all the modifications I have tested is not violated.
+
+
+When the game starts, the modification reads the last specified configuration text file (see [section](#en-config-file)) and handles it, parsing settings. It uses them every time a new level is loaded: in fact, it goes through the entire map, creating environment objects on the walls where necessary.
+
+A release usually comes in two flavors: "`AAmbient_vXYZ.pk3`" by default includes some ambient objects and prewritten configuration file, and "`AAmbient_vXYZ_core_only.pk3`" is a pure project core.
+
+##### Launching
+
+You may drag Auto-ambient modification file(s) to the `gzdoom.exe` (`lzdoom.exe`, `qzdoom.exe`) on Windows or to the `gzdoom` on Linux/MacOS.
+
+Also you may use a console command on Windows:
+
+`gzdoom.exe -file AAmbient_v*.pk3`, where wildcard (asterisk) is a downloaded modification version;
+
+Or launch under a Linux/MacOS terminal:
+
+`gzdoom -file AAmbient_v*.pk3` with the same note as above.
+
+
+
+
+
+<a name="en-settings"></a>
+
+## In-game options
+
+Located in "Options"→"Auto-ambient control".
+
+[WIP section]
+
 
 ## Configuration file
 
+[WIP section]
 
+
+### Configuration file example
+
+Compiled from the default `doom2.cfg` and files included to it.
+
+```
+# Special sound actors (not just looped): ========================
+
+soundactor snd_acid {
+	sound AA/Acid/loopA
+	mode random 20 175
+	volume 0.4
+	attn 3.8
+}
+
+soundactor default {
+	mode fixed 35
+	volume 0.4
+	attn 5.0
+}
+
+# Both has mode "fixed, 35" and volume/attenuation of "0.4"/"5.0".
+soundactor snd_comp1 {
+	sound AA/Computers/Beep
+}
+soundactor snd_comp2 {
+	sound AA/Computers/Boop
+}
+
+
+# Groups: =====================================================================
+
+group default {
+	mindistance 128
+}
+
+group Acid {
+	# Minimal distance is 128 (from a default definition bit above).
+	soundactor snd_acid
+}
+
+group Blazing {
+	# Minimal distance is 128.
+	loopedsound AA/Blazing/loop1 0.65 4.0
+	loopedsound AA/Blazing/loop2 0.65 4.0
+	loopedsound AA/Blazing/loop3 0.5 3.8
+}
+
+group Computers {
+	# Minimal distance still 128.
+	soundactor snd_comp1 snd_comp2
+}
+
+group Tech {
+	mindistance 160 # Distance overridden, so here it equals to 160.
+	loopedsound AA/Tech/loopA 0.7 3.5
+	loopedsound AA/Tech/loop1 0.7 3.5
+	loopedsound AA/Tech/loop2 0.7 3.5
+	loopedsound AA/Tech/loop3 1.0 3.5
+	loopedsound AA/Tech/loop4 0.3 4.5
+}
+
+
+# Параметры текстур: ==========================================================
+
+textureparam somewhereAtTopHalf {
+	# To spawn somewhere in the top half.
+	start -50 -75
+	random -48 -24.5
+}
+
+textureparam default {
+		start -50 -50
+		random -50 -50
+	}
+	textureparam somewhere100 {}
+	textureparam somewhere50 {
+		chance 0.5
+	}
+
+	# No similar indentation is neccesary... But with it, the default 
+	#blocks logic is easier to perceive.
+	textureparam default {
+		random 0.0
+}
+
+textureparam "Cement Tech" {
+	# Just specialized parameters for the "CEMENT[24]" texture.
+	start -57 -70
+	random -17 -26
+	chance 0.67 # Sometimes (about a third of the time) nothing will appear.
+}
+
+textureparam verticalSplit {
+	# Dividing in two vertically.
+	# 25% start + 50% offset: objects on the X axis will be on 25% and 
+	#on 75% from texture height.
+	start -50 -25
+	offset -100 -50
+	random -10 -10
+}
+
+
+# Текстуры: ===================================================================
+
+texture BRICKLIT BSTONE3 {
+	# Oil bowl at the top of the texture (50% by X, 75% by Y):
+	group Blazing -50 -75
+}
+
+texture CEMENT[24] {
+	group Tech "Cement Tech" # Wires.
+	belowdistchance 0.8 0.8 # Let it sparkle nearby!
+}
+
+texture COMPSTA[12] {
+	# It is possible to use more than one groups for the texture:
+
+	group Computers somewhereAtTopHalf
+	group Tech somewhereAtTopHalf
+}
+
+texture SFALL[1234] {
+	group Acid somewhere100
+	group Acid somewhere50
+	group Blazing somewhere50
+}
+
+texture SILVER3 {
+	# Sometimes it is more convenient to use a regular rather than a 
+	#percentage offset.
+	group Tech 19 32
+	group Computers 38 96
+}
+
+texture SPACEW3 {
+	group Computers verticalSplit
+}
+```
+
+
+
+<a name="en-credits"></a>
+
+## Credits
+
+Thanks:
+
+- Renaul Damek for the moral support;
+- YURA_111 for the video and bug reportings.
 
 
 
@@ -41,9 +233,11 @@ Must be here...
 
  Итак. Auto-ambient Doom — модификация, позволяющая в автоматическом порядке разместить указанные объекты (по умолчанию — звуки окружения вроде жужжания люминесцентных ламп или вентиляции) на текстуры стен.
 
+
  **Минимальная версия движка — GZDoom v3.3.0**. Максимальная не регламентирована.
 
  Совместимость со всеми проверенными мной модификациями не нарушается.
+
 
  При запуске игры модификация считывает последний указанный текстовый файл конфигурации ([см.](#ru-config-file)) и обрабатывает его, извлекая настройки. Использует она их при каждой загрузке нового уровня: собственно, проходится по всей карте, создавая на стенах там, где необходимо, объекты окружения.
 
@@ -63,7 +257,7 @@ Must be here...
 
 <a name="ru-settings"></a>
 
-## Настройки
+## Внутриигровые настройки
 
 Открываются в меню "Options"→"Auto-ambient control".
 
@@ -75,7 +269,7 @@ Must be here...
 
 ##### Пункты "Show automatic actors"/"Hide automatic actors"
 
- Вспомогательная функция, пригождающаяся, например, при картостроении. Позволяет отобразить/скрыть все автоматические объекты на уровне, созданные модификацией.
+ Вспомогательная функция, пригождающаяся при картостроении. Позволяет отобразить/скрыть все автоматические объекты на уровне, созданные модификацией.
 
 ##### Пункт "Show actors at start"
 
@@ -85,7 +279,7 @@ Must be here...
 
 #### Пункт "Log level"
 
- Уровень журналирования действий модификации.
+ Уровень журналирования (уровень лога) действий модификации.
 
  Доступные значения:
 - "Emergency only" ("Только аварийные ситуации"). Записывает только критические нарушения в работе модификации. Использовать не советую, но мало ли, какие ситуации бывают...
@@ -125,6 +319,8 @@ Must be here...
 
 _"`includeprev`" (неотлаженная, используйте на свой страх и риск!)_. Добавляет файл с таким же названием из предыдущего загруженного архива, если он там существует. Если нет — ничего страшного не происходит.
 
+
+
 "`mapsdefaulttextures allow|on|deny|off <mapname1> [<mapname2> [...]]`" разрешает (`allow`/`on`) или запрещает (`deny`/`off`) использовать стандартные текстуры для всех карт с указанными названиями `<mapname*>`. При повторной встрече конструкции записывается последнее значение.
 
 "`maphashesdefaulttextures allow|on|deny|off <mapname1> [<mapname2> [...]]`" — аналогично предыдущему, но работает с контрольными суммами карт.
@@ -147,6 +343,8 @@ soundactor <soundactor_name>|default {
 "`<soundactor_name>`" — название определения для звукового актора, используется в группах.
 
 Ключевое слово "`default`" в заголовке означает, что до следующего переопределения умолчаний параметры `mode`, `volume` и `attn` во всех блоках такого типа изначально будут присвоены указанным здесь значениям.
+
+
 
 "`sound <alias>`" определяет, какой звук из `SNDINFO` будет проигрываться.
 
@@ -176,6 +374,8 @@ group <group_name>|default {
 
 Ключевое слово "`default`" в заголовке означает, что до следующего переопределения умолчаний параметр `mindistance` (и только он!) во всех блоках такого типа изначально будет присвоен указанному здесь значению.
 
+
+
 "`mindistance`" определяет, насколько близко акторы этой группы могут появиться друг рядом с другом.
 
 "`loopedsound <alias> [<volume> [<attenuation>]]`" объявляет простой звуковой актор со звуком `<alias>`, громкостью `<volume>` (по умолчанию — `1.0`) и коэффициентом затухания `<attenuation>` (по умолчанию также `1.0`).
@@ -200,6 +400,8 @@ textureparam <texparam_name>|default {
 "`<texparam_name>`" — название определения для параметров, используется в текстурах.
 
 Ключевое слово "`default`" в заголовке означает, что до следующего переопределения умолчаний все параметры во всех блоках такого типа изначально будут присвоены указанным здесь значениям.
+
+
 
 _Далее считается, что координата "0"/"0" — левый-нижний угол текстуры, а сама она располагается в первом квадранте декартовой плоскости (орт — один пиксель). Процент смещения по текстуре задаётся отрицательными значениями, то есть запись "-50.0" — это "50%"._
 
@@ -235,6 +437,8 @@ texture default|<texture_name1> [<texture_name2> [...]] {
 
 Ключевое слово "`default`" в заголовке означает, что до следующего переопределения умолчаний параметры `belowdistchance`, флаги текстур, группы, карты и хэш-суммы карт во всех блоках такого типа изначально будет присвоены указанным здесь значениям; притом группы, карты и хэш-суммы карт сначала удаляются, если в них впоследствии было указано хоть что-то.
 
+
+
 "`group <group_name> <texparam_name>`" добавляет группу `<group_name>` с параметрами привязки `<texparam_name>`.
 
 "`group <group_name> <x> <y>`" добавляет группу `<group_name>` по смещению `<x> <y>` (см. примечение к "Объявлению параметров соединения групп с текстурами").
@@ -255,9 +459,10 @@ texture default|<texture_name1> [<texture_name2> [...]] {
 "`onmaphashes <maphash1> [<maphash2> [...]]`" — аналогично предыдущему, но для контрольных сумм карт.
 
 
+
 ### Пример конфигурационного файла
 
-Скомпилирован из `doom2.cfg` и подключённых к нему файлов.
+Скомпилирован из стандартного `doom2.cfg` и подключённых к нему файлов.
 
 ```
 # Специальные звуковые акторы (не просто зацикленные): ========================
@@ -291,7 +496,7 @@ group default {
 }
 
 group Acid {
-	# Минимальная дистанция — 128.
+	# Минимальная дистанция — 128 (с определения умолчаний чуть выше).
 	soundactor snd_acid
 }
 
