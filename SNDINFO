@@ -15,6 +15,9 @@ AA/Blazing/loop1	AABLAZE1
 AA/Blazing/loop2	AABLAZE2
 AA/Blazing/loop3	AABLAZE3
 
+// Blood:
+//...
+
 // Blood pipes:
 AA/BloodPipes/loop1	AABLPIP1
 
@@ -59,6 +62,10 @@ AABEEP14	AABEEP14
 AABEEP15	AABEEP15
 AABEEP16	AABEEP16
 AABEEP17	AABEEP17
+AABEEP18	AABEEP18
+AABEEP19	AABEEP19
+AABEEP20	AABEEP20
+AABEEP21	AABEEP21
 $random AA/Computers/Beep { AABOOP1 AABOOP2 AABOOP3 AABOOP4 AABOOP5
 							AABOOP6 AABOOP7 AABOOP8 AABOOP9 AABOOP10 AABOOP11
 							AABOOP12 AABOOP13 AABOOP14 AABOOP15 AABOOP16
@@ -67,23 +74,24 @@ $random AA/Computers/Beep { AABOOP1 AABOOP2 AABOOP3 AABOOP4 AABOOP5
 $random AA/Computers/Boop { AABEEP1 AABEEP2 AABEEP3 AABEEP4 AABEEP5
 							AABEEP6 AABEEP7 AABEEP8 AABEEP9 AABEEP10 AABEEP11
 							AABEEP12 AABEEP13 AABEEP14 AABEEP15 AABEEP16
-							AABEEP17
+							AABEEP17 AABEEP18 AABEEP19 AABEEP20 AABEEP21
 }
+AA/Computers/loop1	AACOMP1
+AA/Computers/loop2	AACOMP2
 
 // Drips:
 AA/Drips/loop1		AADRIP1
 
 // Duct:
+AA/Duct/loop1		AADUCT1
+AA/Duct/loop2		AADUCT2
+AA/Duct/loop3		AADUCT3
 AA/Duct/loopA/v1	AADUCTA1
 AA/Duct/loopA/v2	AADUCTA2
 AA/Duct/loopA/v3	AADUCTA3
 AA/Duct/loopA/v4	AADUCTA4
 AA/Duct/loopA/v5	AADUCTA5
-$random AA/Duct/loopA { AA/Duct/loopA/v1 AA/Duct/loopA/v2 AA/Duct/loopA/v3 AA/Duct/loopA/v4 AA/Duct/loopA/v5 }
-
-// Electro (unused):
-AA/Electro/loop1	AAELZAP1
-AA/Electro/loop2	AAELZAP2
+$random AA/Duct/loopA { AA/Duct/loopA/v1 AA/Duct/loopA/v2 AA/Duct/loopA/v3 }
 
 // Flame:
 AA/Flame/loop1		AAFLAME1
@@ -151,21 +159,23 @@ AASCRM56	AASCRM56
 AASCRM57	AASCRM57
 AASCRM58	AASCRM58
 $random AA/Hell/screams { AASCRM00 AASCRM01 AASCRM02 AASCRM03 AASCRM04 AASCRM05 AASCRM06 AASCRM07 AASCRM08 AASCRM09 AASCRM10 AASCRM11 AASCRM12 AASCRM13 AASCRM14 AASCRM15 AASCRM16 AASCRM17 AASCRM18 AASCRM19 AASCRM20 AASCRM21 AASCRM22 AASCRM23 AASCRM24 AASCRM25 AASCRM26 AASCRM27 AASCRM28 AASCRM29 AASCRM30 AASCRM31 AASCRM32 AASCRM33 AASCRM34 AASCRM35 AASCRM36 AASCRM37 AASCRM38 AASCRM39 AASCRM40 AASCRM41 AASCRM42 AASCRM43 AASCRM44 AASCRM45 AASCRM46 AASCRM47 AASCRM48 AASCRM49 AASCRM50 AASCRM51 AASCRM52 AASCRM53 AASCRM54 AASCRM55 AASCRM56 AASCRM57 AASCRM58 }
-AA/Hell/loop1		AAHELL1
-AA/Hell/loop2		AAHELL2
-AA/Hell/loop3		AAHELL3
+AA/Hell/loopA/v1		AAHELLA1
+AA/Hell/loopA/v2		AAHELLA2
+$random AA/Hell/loopA { AA/Hell/loopA/v1 AA/Hell/loopA/v2 }
 
 // Lumeniscent lamps:
 AA/LumeniscentLamps/loopA/v1	AALUMLA1
 AA/LumeniscentLamps/loopA/v2	AALUMLA2
-$random AA/LumeniscentLamps/loopA { AA/LumeniscentLamps/loopA/v1 AA/LumeniscentLamps/loopA/v2 }
+AA/LumeniscentLamps/loopA/v3	AALUMLA3
+$random AA/LumeniscentLamps/loopA { AA/LumeniscentLamps/loopA/v1 AA/LumeniscentLamps/loopA/v2 AA/LumeniscentLamps/loopA/v3 }
 AA/LumeniscentLamps/loop1		AALUML1 // This sound forces libmpg123 to wail "Illegal Audio-MPEG-Header 0x00000054 at offset 79093".
 AA/LumeniscentLamps/loop2		AALUML2
 
 // Pipes:
 AA/Pipes/loopA/v1	AAPIPEA1
 AA/Pipes/loopA/v2	AAPIPEA2
-$random AA/Pipes/loopA { AA/Pipes/loopA/v1 AA/Pipes/loopA/v2 }
+AA/Pipes/loopA/v3	AAPIPEA3
+$random AA/Pipes/loopA { AA/Pipes/loopA/v1 AA/Pipes/loopA/v2 AA/Pipes/loopA/v3 }
 AA/Pipes/loop1		AAPIPE1
 AA/Pipes/loop2		AAPIPE2
 
@@ -175,10 +185,13 @@ AA/Tech/loopA/v2	AATECHA2
 AA/Tech/loopA/v3	AATECHA3
 AA/Tech/loopA/v4	AATECHA4
 AA/Tech/loopA/v5	AATECHA5
-$random AA/Tech/loopA { AA/Tech/loopA/v1 AA/Tech/loopA/v2 AA/Tech/loopA/v3 AA/Tech/loopA/v4 AA/Tech/loopA/v5 }
+AA/Tech/loopA/v6	AATECHA6
+$random AA/Tech/loopA { AA/Tech/loopA/v1 AA/Tech/loopA/v2 AA/Tech/loopA/v3 AA/Tech/loopA/v4 AA/Tech/loopA/v5 AA/Tech/loopA/v6 }
 AA/Tech/loop1		AATECH1
 AA/Tech/loop2		AATECH2
 AA/Tech/loop3		AATECH3
 AA/Tech/loop4		AATECH4
+AA/Tech/loop5		AATECH5
+AA/Tech/loop6		AATECH6
 
 // 

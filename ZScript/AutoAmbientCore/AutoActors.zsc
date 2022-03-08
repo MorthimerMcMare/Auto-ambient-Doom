@@ -379,8 +379,15 @@ class AutoAmbientLoopedSound: AutoAmbientSoundActor {
 
 	override void Tick() {
 		if ( curDelay >= 0 ) {
-			if ( --curDelay < 0 )
-				A_PlaySound( def.snd, CHAN_AUTO, def.sndVolume, true, def.sndAttenuation );
+			if ( --curDelay < 0 ) {
+				A_PlaySound( def.snd, CHAN_AUTO | CHAN_NOSTOP | CHAN_LOOP, def.sndVolume, true, def.sndAttenuation );
+
+				// In theory this line will play something even if other
+				//sounds are presented. On practice I hear no other sound
+				//handling differences between "A_StartSound()" and
+				//back-compatible "A_PlaySound()":
+				//A_StartSound( def.snd, CHAN_AUTO, CHANF_LOOP | CHAN_NOSTOP | CHANF_OVERLAP, def.sndVolume, def.sndAttenuation );
+			}
 		}
 
 		Super.Tick();
