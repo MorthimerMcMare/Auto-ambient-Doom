@@ -374,7 +374,7 @@ class AutoAmbientLoopedSound: AutoAmbientSoundActor {
 	override void OnSpawn( void ) {
 		Super.OnSpawn();
 
-		curDelay = Random( 0, 7 );
+		curDelay = Random( 2, 7 );
 	}
 
 	override void Tick() {

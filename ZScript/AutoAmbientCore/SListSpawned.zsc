@@ -63,6 +63,10 @@ class AutoAmbientListSpawnedKeeper {
 	}
 
 
+	int Size( void ) {
+		return length;
+	}
+
 	void Clear( void ) {
 		AutoAmbientListSpawnedNode curNode = head;
 		AutoAmbientListSpawnedNode prevNode;
@@ -76,8 +80,34 @@ class AutoAmbientListSpawnedKeeper {
 		length = 0;
 	} // of void Clear( void ) {}
 
-	int Size( void ) {
-		return length;
-	}
+	// Clears "round( Size() * <delpercent == (0.0; 1.0)> )" nodes from the list.
+	void PartiallyClear( double delpercent ) {
+		if ( length > 2 && delpercent > 0.0 && delpercent < 1.0 ) {
+			int preDeleteLength = length;
+
+			AutoAmbientListSpawnedNode prevNode = head;
+			AutoAmbientListSpawnedNode curNode = head.next;
+
+			double flushDelay = 1 / delpercent;
+			double curDelay = Random( 0.0, flushDelay );
+
+			while ( curNode ) {
+				if ( curDelay <= 0.0 ) {
+					prevNode.next = curNode.next;
+					curNode.Destroy();
+					curNode = prevNode.next;
+					length--;
+
+					curDelay += flushDelay;
+				}
+
+				prevNode = curNode;
+				if ( curNode )
+					curNode = curNode.next;
+
+				curDelay -= 1.0;
+			}
+		}
+	} // of void PartiallyClear( double delpercent ) {}
 
 } // of AutoAmbientListSpawnedKeeper {}

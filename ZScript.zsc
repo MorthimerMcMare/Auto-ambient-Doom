@@ -95,8 +95,8 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 
 		// See "Utils.zsc" -> "extend class AutoAmbientGlobalHandler".
-		if ( reglogger.aaCurLogLevel >= LL_Debug )
-			OnRegisterDebugFullOutput();
+		//if ( reglogger.aaCurLogLevel >= LL_Debug )
+		//	OnRegisterDebugFullOutput();
 
 		Super.OnRegister();
 	} // of override void OnRegister() {}
@@ -126,6 +126,46 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		int totalAutoAmbientActorsSpawned = SpawnAllActors( cachedTextures );
 
 
+		// Partial clearing actor arrays for fitting to the limit (we cannot 
+		//know in advance how many actors will be spawned on level):
+		int reservedSoundChannels = 32;
+		CVar optionCVar = CVar.GetCVar( "mcm_aambient_sndchannelsreserve" );
+
+		if ( optionCVar )
+			reservedSoundChannels = optionCVar.GetInt();
+		else
+			logger.Log( LL_Main, logger.LLCOLOR_EMERGENCY .. "Cannot find CVar \"mcm_aambient_sndchannelsreserve\", using default value (32)." );
+
+		int availChannels = snd_channels - reservedSoundChannels;
+		if ( availChannels < 24 ) {
+			logger.Log( LL_Detailed, "Calculated available sound channels amount is too little (" .. TEXTCOLOR_YELLOW .. availChannels .. "\c-), set to 24." );
+			availChannels = 24;
+		}
+
+		// Cycle isn't the best choice, of course...
+		while ( totalAutoAmbientActorsSpawned > availChannels ) {
+			logger.Log( LL_Detailed, "Partially clearing from " .. TEXTCOLOR_YELLOW .. totalAutoAmbientActorsSpawned .. "\c- sound actors because of limit of " .. TEXTCOLOR_FIRE .. availChannels .. "\c- available sound channels (reserved " .. reservedSoundChannels .. ")." );
+
+			int newTotalActorsSpawned = 0;
+
+			for ( int i = 0; i < groups.Size(); i++ ) {
+				int prevActorsAmount = groups[ i ].spawned.Size();
+
+				if ( prevActorsAmount > 0 ) {
+					groups[ i ].spawned.PartiallyClear( 1.0 - 0.85 * availChannels / double( totalAutoAmbientActorsSpawned ) );
+					int newActorsAmount = groups[ i ].spawned.Size();
+
+					newTotalActorsSpawned += newActorsAmount;
+
+					logger.Log( LL_Debug, "Group " .. groups[ i ].name .. ": was " .. prevActorsAmount .. " actors, became " .. newActorsAmount .. " actors." );
+				}
+			}
+
+			totalAutoAmbientActorsSpawned = newTotalActorsSpawned;
+		} // of while ( totalAutoAmbientActorsSpawned > availChannels ) {}
+
+
+		// Post-logging:
 		logger.Log( LL_Detailed, GetClassName() .. "::WorldLoaded(). Total ambient actors spawned: " .. totalAutoAmbientActorsSpawned .. "." );
 
 		if ( logger.aaCurLogLevel >= LL_Debug ) {
@@ -156,20 +196,11 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		}
 
 
-		CVar optionCVar = CVar.GetCVar( "mcm_aambient_showactorsatstart" );
+		optionCVar = CVar.GetCVar( "mcm_aambient_showactorsatstart" );
 
 		if ( optionCVar && optionCVar.GetBool() )
 			EventHandler.SendNetworkEvent( "mcm_autoambient_actors_visibility", 1 );
 
-
-		if ( totalAutoAmbientActorsSpawned > snd_channels - 24 ) {
-			optionCVar = CVar.GetCVar( "mcm_aambient_fewsndchannelsinfo" );
-
-			if ( optionCVar && optionCVar.GetBool() ) {
-				logger.Log( LL_Main, TEXTCOLOR_YELLOW .. "Spawned " .. TEXTCOLOR_FIRE .. totalAutoAmbientActorsSpawned .. TEXTCOLOR_YELLOW .. " sound actors, but you have only " .. TEXTCOLOR_FIRE .. snd_channels - 24 .. TEXTCOLOR_YELLOW .. " reserved sound channels \c-(and 24 for all other)." );
-				logger.Log( LL_Main, "You may increase amount of channels in the \"" .. TEXTCOLOR_BLUE .. "Sound options\c-\" menu or turn this message off in the \"" .. TEXTCOLOR_BLUE .. "Auto-Ambient control\c-\"." );
-			}
-		}
 
 		// Yes, I know perfectly well that garbage collector will successfully
 		//destroy an array.
