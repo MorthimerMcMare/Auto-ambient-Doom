@@ -3,18 +3,21 @@
 OptionMenu "mcm_AutoAmbientControl" {
 	Title "Auto-Ambient control"
 	StaticText " "
+
 	Option "Modification enabled", "mcm_aambient_enabled", "YesNo"
 	StaticText "Will be changed on a new level if it was enabled at game start;", "DarkGray"
 	StaticText "or after restart if at game start it was disabled.", "DarkGray"
 	StaticText " "
+
 	StaticText "Automatic ambient sound actors", "Teal"
 	Command "Show automatic actors", "netevent mcm_autoambient_actors_visibility 1"
 	Command "Hide automatic actors", "netevent mcm_autoambient_actors_visibility 0"
 	Option "Show actors at start", "mcm_aambient_showactorsatstart", "YesNo"
 	StaticText " "
 	Slider "Reserved sound channels", "mcm_aambient_sndchannelsreserve", 24, 128, 8
-
+	StaticText "See also \"Sound options\"->\"Sound channels\" slider.", "DarkGray"
 	StaticText " "
+
 	StaticText "Logging", "Teal"
 	Option "Log level", "mcm_aambient_loglevel", "mcm_aambient_LogLevels"
 	StaticText "Emergency only mode:", "Gray"
@@ -28,6 +31,10 @@ OptionMenu "mcm_AutoAmbientControl" {
 	StaticText " "
 	StaticText "Debug mode:", "Gray"
 	StaticText "implies all previous and also shows some internal information.", "DarkGray"
+	StaticText " "
+
+	StaticText "Specific controls", "Teal"
+	SafeCommand "Destroy auto-ambient actors", "netevent mcm_autoambient_destroy_actors", "Note that looped sounds will not stop. Proceed?"
 }
 
 AddOptionMenu "OptionsMenu" {
