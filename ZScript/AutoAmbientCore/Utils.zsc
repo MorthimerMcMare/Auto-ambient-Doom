@@ -203,8 +203,13 @@ extend class AutoAmbientGlobalHandler {
 			AutoAmbientGroup curgroup = groups[ i ];
 
 			if ( curgroup ) {
-				debugLogger.Log( LL_Debug, "GRP #" .. i .. " \"" .. curgroup.name .. "\": mindist " .. curgroup.actorsDistance .. ", &spawned: " .. curgroup.spawned .. ", &spawnedOnSide: " .. curgroup.spawnedOnSide .. ", gridX.Size(): " .. curgroup.gridX.Size() .. ", classes:" );
-				String debugStr = "";
+				String debugStr = String.Format( "GRP #%i \"%s\": mindist %.3f, gridX.Size() %i, %s, %s; classes:",
+								i, curgroup.name, curgroup.actorsDistance, curgroup.gridX.Size(),
+								( curgroup.spawned? "&spawned exists" : TEXTCOLOR_FIRE .. "no &spawned" .. debugLogger.LLCOLOR_DEBUG ),
+								( curgroup.spawnedOnSide? "&spawnedOnSide exists" : TEXTCOLOR_FIRE .. "no &spawnedOnSide" .. debugLogger.LLCOLOR_DEBUG ) );
+				debugLogger.Log( LL_Debug, debugStr );
+
+				debugStr = "";
 
 				for ( int j = 0; j < curgroup.classes.Size(); j++ ) {
 					debugStr = debugStr .. " (" .. TEXTCOLOR_GRAY;

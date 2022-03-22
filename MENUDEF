@@ -34,7 +34,7 @@ OptionMenu "mcm_AutoAmbientControl" {
 	StaticText " "
 
 	StaticText "Specific controls", "Teal"
-	SafeCommand "Destroy auto-ambient actors", "netevent mcm_autoambient_destroy_actors", "Note that looped sounds will not stop. Proceed?"
+	SafeCommand "Destroy auto-ambient actors", "netevent mcm_autoambient_destroy_actors"
 }
 
 AddOptionMenu "OptionsMenu" {

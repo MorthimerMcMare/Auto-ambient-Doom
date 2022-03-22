@@ -6,7 +6,7 @@ class AutoAmbientListSpawnedNode {
 	AutoAmbientListSpawnedNode next;
 }
 
-class AutoAmbientListSpawnedKeeper {
+class AutoAmbientListSpawnedKeeper play {
 	AutoAmbientListSpawnedNode head, tail;
 	uint length;
 
@@ -74,6 +74,7 @@ class AutoAmbientListSpawnedKeeper {
 		while ( curNode ) {
 			prevNode = curNode;
 			curNode = curNode.next;
+			prevNode.thing.Destroy();
 			prevNode.Destroy();
 		}
 
@@ -94,6 +95,7 @@ class AutoAmbientListSpawnedKeeper {
 			while ( curNode ) {
 				if ( curDelay <= 0.0 ) {
 					prevNode.next = curNode.next;
+					curNode.thing.Destroy();
 					curNode.Destroy();
 					curNode = prevNode.next;
 					length--;

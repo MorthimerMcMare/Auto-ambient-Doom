@@ -7,7 +7,7 @@ class AutoAmbientGroup play {
 	const maxGridLength = 31; // Note that real value will be increased by 1.
 
 	// Maximal "Spawned" array size to use usual, non-9-cell-based algorithm.
-	const wholeListAlgorithmMaxSpawnedSize = 16;
+	const wholeListAlgorithmMaxSpawnedSize = 31;
 
 
 	AutoAmbientGlobalHandler g;
