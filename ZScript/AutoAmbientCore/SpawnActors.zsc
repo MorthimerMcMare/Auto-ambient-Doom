@@ -24,6 +24,100 @@ extend class AutoAmbientGlobalHandler {
 					// Spawning actor(s) according to the cached groups:
 					AutoAmbientTexture texdef = cachedTexture.texdef;
 					if ( texdef ) {
+
+						// Handling of the common part:
+						Line attachLine = attachSide.linedef;
+
+                       	//console.printf( "action: " .. attachLine.special .. ", com " .. texdef.linesCheckFlags & AALCF_CommonLine .. " / act " .. texdef.linesCheckFlags & AALCF_ActionLine );
+                       	if ( 	( !attachLine.special && !( texdef.linesCheckFlags & AALCF_HandleCommonLines ) )
+                       		||	(  attachLine.special && !( texdef.linesCheckFlags & AALCF_HandleActionLines ) ) )
+                       		continue; // Return if user denies current line (action or common) spawning.
+
+                       	Side oppositeSide = ( ( attachLine.sidedef[ 0 ] == attachSide )? attachLine.sidedef[ 1 ] : attachLine.sidedef[ 0 ] );
+                       	double lineWidth = attachLine.delta.Length();
+                       	double lineHeight = 0;
+                       	double firstPointFloorZOffset = 0.0;
+
+                       	double unpeggedOffset = 0.0;
+
+                       	// [A]ttaching/[O]pposite side, [F]loor/[C]eiling heights:
+                       	double af = attachSide.sector.floorplane.d * attachSide.sector.floorplane.negiC;
+                       	double ac = attachSide.sector.ceilingplane.d * attachSide.sector.ceilingplane.negiC;
+                       	double of = 0.0;
+                       	double oc = 0.0;
+                       	if ( oppositeSide ) {
+                       		of = oppositeSide.sector.floorplane.d * oppositeSide.sector.floorplane.negiC;
+                       		oc = oppositeSide.sector.ceilingplane.d * oppositeSide.sector.ceilingplane.negiC;
+                       	}
+
+                       	switch ( curSidePos ) {
+                       		case Side.top:
+                       			if ( oppositeSide ) {
+                       				if ( oppositeSide.sector.GetTexture( Sector.ceiling ) == skyflatnum && ac > oc )
+                       					return 0; // Sky lines skipping (see "TNT: Evilution", MAP27 "Mount pain").
+
+                       				lineHeight = max( 0, ac - oc );
+                       				if ( lineHeight > 0 )
+                       					lineHeight = min( lineHeight, ac - af );
+
+                       				firstPointFloorZOffset = oc - af;
+
+                       				if ( attachLine.flags & Line.ML_DONTPEGTOP )
+                       					unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
+                       			}
+                       			break;
+                       		case Side.mid:
+                       			lineHeight = max( 0, ac - af );
+
+                       			// TODO: cannot recognize now what must be here...
+                       			//if ( lineHeight > 0 )
+                       			//	lineHeight = min( lineHeight, oc - of );
+
+                       			if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
+                       				unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
+                       			break;
+                       		case Side.bottom:
+                       			if ( oppositeSide ) {
+                       				//if ( oppositeSide.sector.GetTexture( Sector.floor ) == skyflatnum && af < ac )
+                       				//	return 0; // Don't sure if FSKY1 expands to the floors.
+
+                       				lineHeight = max( 0, of - af );
+                       				if ( lineHeight > 0 )
+                       					lineHeight = min( lineHeight, ac - af );
+
+                       				if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
+                       					unpeggedOffset = lineHeight - texdef.size.y;
+                       				else
+                       					unpeggedOffset = ( ac - af ) % texdef.size.y;
+                       			}
+                       			break;
+                       		default:
+                       			break;
+                       	} // of switch ( curSidePos ) {}
+
+
+                       	if ( lineHeight == 0.0 || lineWidth == 0.0 )
+                       		continue; // There's no point in creating an actor if the texture is not visible.
+
+                       	if ( lineHeight < 0.0 || lineWidth < 0.0 ) {
+                       		logger.Log( LL_Emergency, GetClassName() .. "::SpawnAllActors(). Line #" .. attachLine.Index() .. " calculated height " .. lineHeight .. "/width " .. lineWidth .. " is less than 0. It's at least extremely strange." );
+                       		continue;
+                       	}
+
+
+                       	if ( unpeggedOffset != 0.0 )
+                       		unpeggedOffset = texdef.size.y - unpeggedOffset;
+
+                       	vector3 firstPoint = ( // From bottom-left (as first quadrant on cartesian plane).
+                       			attachLine.v1.p.x,
+                       			attachLine.v1.p.y,
+                       			af + firstPointFloorZOffset
+                       	);
+
+
+
+						// Handling of different groups:
+
 						// Storing actors spawned on one line to flush them at
 						//once later. May look illogical, but it saves about
 						//2-13% of time (see Doom 2 MAP24).
@@ -36,105 +130,21 @@ extend class AutoAmbientGlobalHandler {
 							AutoAmbientGroup curGroup = texdef.groups[ groupIndex ];
 
                            	if ( !curgroup.classes.Size() && !curgroup.autoclasses.Size() )
-                           		continue; // We cannot spawn something if we have no spawn data.
-
-                           	Line attachLine = attachSide.linedef;
-
-                           	//console.printf( "action: " .. attachLine.special .. ", com " .. texdef.linesCheckFlags & AALCF_CommonLine .. " / act " .. texdef.linesCheckFlags & AALCF_ActionLine );
-                           	if ( 	( !attachLine.special && !( texdef.linesCheckFlags & AALCF_HandleCommonLines ) )
-                           		||	(  attachLine.special && !( texdef.linesCheckFlags & AALCF_HandleActionLines ) ) )
-                           		continue; // Return if user denies current line (action or common) spawning.
-
-                           	AutoAmbientTextureParameter texparam = texdef.groupparams[ groupIndex ];
-
-                           	Side oppositeSide = ( ( attachLine.sidedef[ 0 ] == attachSide )? attachLine.sidedef[ 1 ] : attachLine.sidedef[ 0 ] );
-                           	double lineWidth = attachLine.delta.Length();
-                           	double lineHeight = 0;
-                           	double firstPointFloorZOffset = 0.0;
-
-                           	double unpeggedOffset = 0.0;
-
-                           	// [A]ttaching/[O]pposite side, [F]loor/[C]eiling heights:
-                           	double af = attachSide.sector.floorplane.d * attachSide.sector.floorplane.negiC;
-                           	double ac = attachSide.sector.ceilingplane.d * attachSide.sector.ceilingplane.negiC;
-                           	double of = 0.0;
-                           	double oc = 0.0;
-                           	if ( oppositeSide ) {
-                           		of = oppositeSide.sector.floorplane.d * oppositeSide.sector.floorplane.negiC;
-                           		oc = oppositeSide.sector.ceilingplane.d * oppositeSide.sector.ceilingplane.negiC;
-                           	}
-
-                           	switch ( curSidePos ) {
-                           		case Side.top:
-                           			if ( oppositeSide ) {
-                           				if ( oppositeSide.sector.GetTexture( Sector.ceiling ) == skyflatnum && ac > oc )
-                           					return 0; // Sky lines skipping (see "TNT: Evilution", MAP27 "Mount pain").
-
-                           				lineHeight = max( 0, ac - oc );
-                           				if ( lineHeight > 0 )
-                           					lineHeight = min( lineHeight, ac - af );
-
-                           				firstPointFloorZOffset = oc - af;
-
-                           				if ( attachLine.flags & Line.ML_DONTPEGTOP )
-                           					unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
-                           			}
-                           			break;
-                           		case Side.mid:
-                           			lineHeight = max( 0, ac - af );
-
-                           			// TODO: cannot recognize now what must be here...
-                           			//if ( lineHeight > 0 )
-                           			//	lineHeight = min( lineHeight, oc - of );
-
-                           			if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
-                           				unpeggedOffset = ( lineHeight - texdef.size.y ) % texdef.size.y;
-                           			break;
-                           		case Side.bottom:
-                           			if ( oppositeSide ) {
-                           				//if ( oppositeSide.sector.GetTexture( Sector.floor ) == skyflatnum && af < ac )
-                           				//	return 0; // Don't sure if FSKY1 expands to the floors.
-
-                           				lineHeight = max( 0, of - af );
-                           				if ( lineHeight > 0 )
-                           					lineHeight = min( lineHeight, ac - af );
-
-                           				if ( !( attachLine.flags & Line.ML_DONTPEGBOTTOM ) )
-                           					unpeggedOffset = lineHeight - texdef.size.y;
-                           				else
-                           					unpeggedOffset = ( ac - af ) % texdef.size.y;
-                           			}
-                           			break;
-                           		default:
-                           			break;
-                           	} // of switch ( curSidePos ) {}
-
-
-                           	if ( lineHeight == 0.0 || lineWidth == 0.0 )
-                           		continue; // There's no point in creating an actor if the texture is not visible.
-
-                           	if ( lineHeight < 0.0 || lineWidth < 0.0 ) {
-                           		logger.Log( LL_Emergency, GetClassName() .. "::SpawnAllActors(). Line #" .. attachLine.Index() .. " calculated height " .. lineHeight .. "/width " .. lineWidth .. " is less than 0. It's at least extremely strange." );
-                           		continue;
-                           	}
-
-
-                           	if ( unpeggedOffset != 0.0 )
-                           		unpeggedOffset = texdef.size.y - unpeggedOffset;
-
-                           	vector3 firstPoint = ( // From bottom-left (as first quadrant on cartesian plane).
-                           			attachLine.v1.p.x,
-                           			attachLine.v1.p.y,
-                           			af + firstPointFloorZOffset
-                           	);
+                           		continue; // We cannot spawn something if we have no spawn data for the current group.
 
                            	uint classesArraySize = curgroup.classes.Size();
+                           	AutoAmbientTextureParameter texparam = texdef.groupparams[ groupIndex ];
 
+							double texStartXY = ( texparam.start.x - attachSide.GetTextureXOffset( curSidePos ) % texdef.size.x ) % texdef.size.x;
+							double texEndXY = lineWidth / ( texparam.offset.x / texdef.size.x );
+
+							double texStartZ = ( attachSide.GetTextureYOffset( curSidePos ) + texparam.start.y ) % texdef.size.y - unpeggedOffset;
+							double texEndZ = lineHeight / ( texparam.offset.y / texdef.size.y );
 
                            	// Converting virtual 2D-plane to the 3D-aligned line plane
                            	//and adding potential positions to the array:
-                           	for ( double texz = ( attachSide.GetTextureYOffset( curSidePos ) + texparam.start.y ) % texdef.size.y - unpeggedOffset; texz < lineHeight / ( texparam.offset.y / texdef.size.y ); texz += texparam.offset.y ) {
-                           		for ( double texxy = ( texparam.start.x - attachSide.GetTextureXOffset( curSidePos ) % texdef.size.x ) % texdef.size.x; texxy < lineWidth / ( texparam.offset.x / texdef.size.x ); texxy += texparam.offset.x ) {
+                           	for ( double texz = texStartZ; texz < texEndZ; texz += texparam.offset.y ) {
+                           		for ( double texxy = texStartXY; texxy < texEndXY; texxy += texparam.offset.x ) {
 
                            			if ( texparam.chance != 0.0 && FRandom( 0.0, 1.0 ) > texparam.chance )
                            				continue; // Skip spawning if texture parameter chance to spawn failed.
@@ -200,8 +210,8 @@ extend class AutoAmbientGlobalHandler {
                            				}
                            			} // of if ( !grouplingTooClose ) {}
 
-                           		} // of for ( double texxy = ( texMapOffset.x + texparam.start.x ) % texdef.size.x; texxy < lineWidth; texxy += texparam.offset.x ) {}
-                           	} // of for ( double texz = ( texMapOffset.y + texparam.start.y ) % texdef.size.y; texz < lineHeight; texz += texparam.offset.y ) {}
+                           		} // of for ( double texxy = ( texparam.start.x - attachSide.GetTextureXOffset( curSidePos ) % texdef.size.x ) % texdef.size.x; texxy < lineWidth / ( texparam.offset.x / texdef.size.x ); texxy += texparam.offset.x ) {}
+                           	} // of for ( double texz = ( attachSide.GetTextureYOffset( curSidePos ) + texparam.start.y ) % texdef.size.y - unpeggedOffset; texz < lineHeight / ( texparam.offset.y / texdef.size.y ); texz += texparam.offset.y ) {}
 
 							bool uniqueGroupFlag = true;
 
