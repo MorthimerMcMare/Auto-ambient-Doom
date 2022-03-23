@@ -14,7 +14,7 @@ OptionMenu "mcm_AutoAmbientControl" {
 	Command "Hide automatic actors", "netevent mcm_autoambient_actors_visibility 0"
 	Option "Show actors at start", "mcm_aambient_showactorsatstart", "YesNo"
 	StaticText " "
-	Slider "Reserved sound channels", "mcm_aambient_sndchannelsreserve", 24, 128, 8
+	Slider "Reserved channels for other sounds", "mcm_aambient_sndchannelsreserve", 24, 128, 8, 0
 	StaticText "See also \"Sound options\"->\"Sound channels\" slider.", "DarkGray"
 	StaticText " "
 
@@ -34,7 +34,7 @@ OptionMenu "mcm_AutoAmbientControl" {
 	StaticText " "
 
 	StaticText "Specific controls", "Teal"
-	SafeCommand "Destroy auto-ambient actors", "netevent mcm_autoambient_destroy_actors"
+	SafeCommand "Destroy Auto-ambient actors", "netevent mcm_autoambient_destroy_actors"
 }
 
 AddOptionMenu "OptionsMenu" {
