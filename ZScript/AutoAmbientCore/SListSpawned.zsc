@@ -74,14 +74,14 @@ class AutoAmbientListSpawnedKeeper play {
 		while ( curNode ) {
 			prevNode = curNode;
 			curNode = curNode.next;
-			prevNode.thing.Destroy();
 			prevNode.Destroy();
 		}
 
 		length = 0;
 	} // of void Clear( void ) {}
 
-	// Clears "round( Size() * <delpercent == (0.0; 1.0)> )" nodes from the list.
+	// Clears about "round( Size() * <delpercent == (0.0; 1.0)> )" nodes
+	//from the list.
 	void PartiallyClear( double delpercent ) {
 		if ( length > 2 && delpercent > 0.0 && delpercent < 1.0 ) {
 			int preDeleteLength = length;
