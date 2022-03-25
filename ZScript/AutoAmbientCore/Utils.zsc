@@ -151,18 +151,18 @@ extend class AutoAmbientGlobalHandler {
 
 	private void printDebugTextureData( uint texindex, AutoAmbientTexture curtex ) {
 		if ( curtex ) {
-			debugLogger.Log( LL_Debug, debugTextureDataPrefix .. "TEX #" .. texindex .. " \"" .. TEXTCOLOR_TEAL .. curtex.id .. AutoAmbientLogger.LLCOLOR_DEBUG .. "\": size " .. curtex.size .. ", flags " .. curtex.linesCheckFlags .. ", spawnchances same:" .. curtex.sameLineDistSpawnChance .. " other:" .. curtex.otherLineDistSpawnChance .. ", groups:" );
+			debugLogger.Log( LL_Debug, debugTextureDataPrefix .. "TEX #" .. texindex .. " \"" .. TEXTCOLOR_TEAL .. curtex.id .. AutoAmbientLogger.LLCOLOR_DEBUG .. "\": size " .. curtex.size .. ", flags " .. curtex.linesCheckFlags .. ", spawnchances same:" .. curtex.sameLineDistSpawnChance .. "/oth:" .. curtex.otherLineDistSpawnChance .. "; groups:" );
 			String debugStr = "";
 
 			for ( int j = 0; j < curtex.groups.Size(); j++ ) {
-				debugStr = debugStr .. " (" .. TEXTCOLOR_GRAY;
+				debugStr = debugStr .. " (" .. TEXTCOLOR_WHITE;
 
 				if ( !curtex.groups[ j ] )
 					debugStr = debugStr .. debugLogger.LLCOLOR_EMERGENCY .. "Group #" .. j .. " is NULL!";
 				else if ( !curtex.groupparams[ j ] )
 					debugStr = debugStr .. debugLogger.LLCOLOR_EMERGENCY .. "Group \"" .. curtex.groups[ j ].name .. "\" (#" .. j .. ")'s texparam is NULL!!!";
 				else
-					debugStr = debugStr .. curtex.groups[ j ].name .. " at " .. curtex.groupparams[ j ].name;
+					debugStr = debugStr .. curtex.groups[ j ].name .. TEXTCOLOR_DARKGRAY .. " at " .. TEXTCOLOR_OLIVE .. curtex.groupparams[ j ].name;
 
 				debugStr = debugStr .. debugLogger.LLCOLOR_DEBUG .. ")";
 			}
@@ -184,16 +184,34 @@ extend class AutoAmbientGlobalHandler {
 
 		debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Sound definitions (total " .. sounddefs.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
 		for ( int i = 0; i < sounddefs.Size(); i++ ) {
-			if ( sounddefs[ i ] )
-				debugLogger.Log( LL_Debug, "SND #" .. i .. " \"" .. sounddefs[ i ].name .. "\": snd " .. sounddefs[ i ].snd .. " vol " .. sounddefs[ i ].sndVolume .. " attn " .. sounddefs[ i ].sndAttenuation .. ", mode " .. sounddefs[ i ].sndMode .. " " .. sounddefs[ i ].minDelay .. " " .. sounddefs[ i ].maxDelay );
-			else
+			if ( sounddefs[ i ] ) {
+				String soundmodeStr;
+
+				switch ( sounddefs[ i ].sndMode ) {
+					case AASM_Looped:
+						soundmodeStr = "looped";
+						break;
+					case AASM_Fixed:
+						soundmodeStr = "fixed delay {" .. sounddefs[ i ].minDelay .. "}";
+						break;
+					case AASM_Random:
+						soundmodeStr = "random delay [" .. sounddefs[ i ].minDelay .. ".." .. sounddefs[ i ].maxDelay .. "]";
+						break;
+					default:
+						soundmodeStr = debugLogger.LLCOLOR_EMERGENCY .. "unknown";
+						break;
+				}
+
+				debugLogger.Log( LL_Debug, "SND #" .. i .. " \"" .. TEXTCOLOR_GRAY .. sounddefs[ i ].name .. debugLogger.LLCOLOR_DEBUG .. "\": snd " .. sounddefs[ i ].snd .. " vol " .. sounddefs[ i ].sndVolume .. " attn " .. sounddefs[ i ].sndAttenuation .. ", " .. soundmodeStr .. " mode" );
+			} else {
 				debugLogger.Log( LL_Emergency, "SND #" .. i .. ": NULL!!!" );
+			}
 		} // of for ( int i = 0; i < sounddefs.Size(); i++ ) {}
 
 		debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Texture parameters (total " .. textureparams.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
 		for ( int i = 0; i < textureparams.Size(); i++ ) {
 			if ( textureparams[ i ] )
-				debugLogger.Log( LL_Debug, "TPM #" .. i .. " \"" .. textureparams[ i ].name .. "\": " .. textureparams[ i ].start .. "++" .. textureparams[ i ].offset .. " rnd " .. textureparams[ i ].spreading .. " chnc " .. textureparams[ i ].chance );
+				debugLogger.Log( LL_Debug, "TPM #" .. i .. " \"" .. TEXTCOLOR_GRAY .. textureparams[ i ].name .. debugLogger.LLCOLOR_DEBUG .. "\": " .. textureparams[ i ].start .. "++" .. textureparams[ i ].offset .. " rnd " .. textureparams[ i ].spreading .. " chnc " .. textureparams[ i ].chance );
 			else
 				debugLogger.Log( LL_Emergency, "TPM #" .. i .. ": NULL!!!" );
 		} // of for ( int i = 0; i < textureparams.Size(); i++ ) {}
