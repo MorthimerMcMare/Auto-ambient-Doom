@@ -22,7 +22,6 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	//int currentGlobalLumpPos; // Dangerous variable, in fact.
 	int parserErrorLine;
 	String parserErrorFilename;
-	ENewlineTypes OSNewlinesType;
 
 	bool dontLoadFlag;
 
@@ -65,8 +64,6 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 		//ResetGlobalLumpPos();
 
 		autoclassConfig = new( 'AutoAmbientSoundActorConfiguration' );
-
-		OSNewlinesType = AutoAmbientConfigParser.GetTextNewlineType( "\n" );
 
 		AutoAmbientConfigParser.Create( self ).ParseFile( "aambient", true, -1 );
 

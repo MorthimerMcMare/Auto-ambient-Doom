@@ -6,8 +6,8 @@ class AutoAmbientConfigParser play {
 
 	String configFilename;
 	int configFileHandler;
-	ENewlineTypes newlinesType;
 
+	String rawConfigFile;
 	Array<String> configLines; // All configuration file lines.
 	bool configEoF;
 	int parserLineNum;
@@ -801,7 +801,7 @@ class AutoAmbientConfigParser play {
 	} // of void ParseGlobalScope( void ) {}
 
 
-	static ENewlineTypes GetTextNewlineType( String text ) {
+	static ENewlineTypes GetTextNewlinesType( String text ) {
 		ENewlineTypes nltype = AANL_Unknown;
 
 		if ( text != "" ) {
@@ -816,23 +816,6 @@ class AutoAmbientConfigParser play {
 
 				curPos++;
 			}
-
-			if ( AutoAmbientLogger.Get().aaCurLogLevel >= LL_Debug ) {
-				String info = "New lines type recognized as ";
-
-				switch ( nltype ) {
-					case AANL_DOS: info = info .. "DOS/Windows (CR/LF)"; break;
-					case AANL_Unix: info = info .. "*nix (LF)"; break;
-					case AANL_Mac: info = info .. "MacOS (CR)"; break;
-					case AANL_DOSReversed: info = info .. "DOS reversed (LF/CR)"; break;
-					default:
-						info = TEXTCOLOR_YELLOW .. "Cannot recognize new lines type, using *nix" .. AutoAmbientLogger.LLCOLOR_DEBUG .. ".";
-						nltype = AANL_Unix;
-						break;
-				}
-
-				AutoAmbientLogger.Get().Log( LL_Debug, info );
-			} // of if ( AutoAmbientLogger.Get().aaCurLogLevel >= LL_Debug ) {}
 
 		} // of if ( text != "" ) {}
 
@@ -850,6 +833,13 @@ class AutoAmbientConfigParser play {
 			header = header .. "*";
 
 		return header .. ( forParserError? logger.LLCOLOR_EMERGENCY : "\c-" ) .. "\" )";
+	}
+
+	private void handleConfigFileNewlines( String newlineTypeComment, String replaceeNewlineSeq ) {
+		if ( replaceeNewlineSeq != "\n" )
+			rawConfigFile.Replace( replaceeNewlineSeq, "\n" );
+
+		logger.Log( LL_Debug, "New lines type for file \"" .. configFilename .. "\" recognized as " .. newlineTypeComment );
 	}
 
 	bool ParseFile( String rawConfigFilename, bool required = true, int globalLocatePos = AAParser_NoGlobalLocating ) {
@@ -876,19 +866,23 @@ class AutoAmbientConfigParser play {
 			parserCurSound = NULL;
 
 			parserLineNum = 0;
-            String rawConfigFile = Wads.ReadLump( configFileHandler );
+            rawConfigFile = Wads.ReadLump( configFileHandler );
+            rawConfigFile.ToLower();
 
-			if ( logger.aaCurLogLevel >= LL_Debug ) {
-				logger.Log( LL_Debug, "Debug recognizing (only recognizing) file \"" .. configFilename .. "\" newlines type..." );
-				GetTextNewlineType( rawConfigFile );
+			ENewlineTypes newlinesType = GetTextNewlinesType( rawConfigFile );
+
+			switch ( newlinesType ) {
+				case AANL_Unix: handleConfigFileNewlines( "*nix (LF)", "\n" ); break;
+				case AANL_DOS: handleConfigFileNewlines( "DOS/Windows (CR/LF)", "\r\n" ); break;
+				case AANL_Mac: handleConfigFileNewlines( "MacOS (CR)", "\r" ); break;
+				case AANL_DOSReversed: handleConfigFileNewlines( "DOS reversed (LF/CR)", "\n\r" ); break;
+				default:
+					logger.Log( LL_Debug, TEXTCOLOR_YELLOW .. "Cannot recognize new lines type, using *nix" .. AutoAmbientLogger.LLCOLOR_DEBUG .. "." );
+					newlinesType = AANL_Unix;
+					break;
 			}
 
-            rawConfigFile.ToLower();
-            rawConfigFile.Replace( "\r", "\n" ); // "dos2unix", "mac2unix"...
             rawConfigFile.Split( configLines, "\n", TOK_KEEPEMPTY );
-
-			//for ( int i = 0; i < configLines.Size(); i++ )
-			//	console.printf( "configLines[ " .. i .. " ]: \"" .. configLines[ i ] .. "\"" );
 
 			while ( parserLineNum < configLines.Size() && !parserErrorFlag ) {
 				parserCurBlockType = AAPB_Global;
