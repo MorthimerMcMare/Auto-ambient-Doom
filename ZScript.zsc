@@ -44,10 +44,10 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 	// Configuration init and file parsing:
 	override void OnRegister() {
 		SetOrder( AutoAmbientHandlerOrder );
-		AutoAmbientLogger reglogger = AutoAmbientLogger.Get();
+		logger = AutoAmbientLogger.Get();
 
 		if ( !IsAutoAmbientEnabled() ) {
-			reglogger.Log( LL_Detailed, GetClassName() .. "::OnRegister(). AutoAmbient isn't enabled, parsing skipped." );
+			logger.Log( LL_Detailed, GetClassName() .. "::OnRegister(). AutoAmbient isn't enabled, parsing skipped." );
 			dontLoadFlag = true;
 
 			Super.OnRegister();
@@ -69,34 +69,38 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 
 		if ( parserErrorLine == AAParser_NoErrorLine ) {
-			reglogger.Log( LL_Main | LL_NoPrefix, GetClassName() .. "::OnRegister(). Loading configuration done." );
+			logger.Log( LL_Main | LL_NoPrefix, GetClassName() .. "::OnRegister(). Loading configuration done." );
 
 			AutoAmbientTexture invalidTexture = FindInvalidTexture();
 
 			if ( invalidTexture ) {
-				reglogger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Texture definition ID " .. invalidTexture.id .. " is not valid." );
-				reglogger.Log( LL_Main, GetClassName() .. "::OnRegister(). Validation callback: " 
+				logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Texture definition ID " .. invalidTexture.id .. " is not valid." );
+				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). Validation callback: " 
 								.. "id=" .. TexMan.GetName( invalidTexture.id ) .. ", size.Length()=" .. invalidTexture.size.Length()
 								.. ", groups.Size()=" .. invalidTexture.groups.Size() .. ", groupparams.Size()=" .. invalidTexture.groupparams.Size()
 								.. ", addingdontLoadFlag=" .. invalidTexture.invalidFlag );
 
 				dontLoadFlag = true;
 			} else if ( !groups.Size() ) {
-				reglogger.Log( LL_Main, GetClassName() .. "::OnRegister(). No group blocks provided in the configuration file." );
+				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). No group blocks provided in the configuration file." );
 				dontLoadFlag = true;
 			} else if ( !textures.Size() ) {
-				reglogger.Log( LL_Main, GetClassName() .. "::OnRegister(). No texture definition blocks provided in the configuration file." );
+				logger.Log( LL_Main, GetClassName() .. "::OnRegister(). No texture definition blocks provided in the configuration file." );
 				dontLoadFlag = true;
 			}
 		} else {
 			dontLoadFlag = true;
-			reglogger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Error during configuration files parsing in " .. parserErrorFilename .. " on line " .. parserErrorLine .. "." );
+			logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Error during configuration files parsing in " .. parserErrorFilename .. " on line " .. parserErrorLine .. "." );
 		}
 
 
+		CVar optionCVar = CVar.FindCVar( "mcm_aambient_showparseddata" );
+
 		// See "Utils.zsc" -> "extend class AutoAmbientGlobalHandler".
-		if ( reglogger.aaCurLogLevel >= LL_Debug )
+		if ( optionCVar && optionCVar.GetBool() && logger.aaCurLogLevel >= LL_Detailed )
 			OnRegisterDebugFullOutput();
+
+		logger = NULL; // See note right before variable definition.
 
 		Super.OnRegister();
 	} // of override void OnRegister() {}

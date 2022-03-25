@@ -32,6 +32,11 @@ OptionMenu "mcm_AutoAmbientControl" {
 	StaticText "Debug mode:", "Gray"
 	StaticText "implies all previous and also shows some internal information.", "DarkGray"
 	StaticText " "
+	Option "Show parsed data on load", "mcm_aambient_showparseddata", "OnOff"
+	StaticText "Print to console all the data parsed from", "DarkGray"
+	StaticText "configuration files. Works only on Detailed/Debug log", "DarkGray"
+	StaticText "levels. Executes on game loading, right after parsing.", "DarkGray"
+	StaticText " "
 
 	StaticText "Specific controls", "Teal"
 	SafeCommand "Destroy Auto-ambient actors", "netevent mcm_autoambient_destroy_actors"

@@ -151,7 +151,7 @@ extend class AutoAmbientGlobalHandler {
 
 	private void printDebugTextureData( uint texindex, AutoAmbientTexture curtex ) {
 		if ( curtex ) {
-			debugLogger.Log( LL_Debug, debugTextureDataPrefix .. "TEX #" .. texindex .. " \"" .. TEXTCOLOR_TEAL .. curtex.id .. AutoAmbientLogger.LLCOLOR_DEBUG .. "\": size " .. curtex.size .. ", flags " .. curtex.linesCheckFlags .. ", spawnchances same:" .. curtex.sameLineDistSpawnChance .. "/oth:" .. curtex.otherLineDistSpawnChance .. "; groups:" );
+			debugLogger.ClearscopeLog( LL_Debug, debugTextureDataPrefix .. "TEX #" .. texindex .. " \"" .. TEXTCOLOR_TEAL .. curtex.id .. AutoAmbientLogger.LLCOLOR_DEBUG .. "\": size " .. curtex.size .. ", flags " .. curtex.linesCheckFlags .. ", spawnchances same:" .. curtex.sameLineDistSpawnChance .. "/oth:" .. curtex.otherLineDistSpawnChance .. "; groups:" );
 			String debugStr = "";
 
 			for ( int j = 0; j < curtex.groups.Size(); j++ ) {
@@ -170,9 +170,9 @@ extend class AutoAmbientGlobalHandler {
 			if ( debugStr == "" )
 				debugStr = TEXTCOLOR_YELLOW .. " No groups defined";
 
-			debugLogger.Log( LL_Debug, debugTextureDataPrefix .. " \\_" .. debugStr );
+			debugLogger.ClearscopeLog( LL_Debug, debugTextureDataPrefix .. " \\_" .. debugStr );
 		} else {
-			debugLogger.Log( LL_Emergency, debugTextureDataPrefix .. "TEX #" .. texindex .. ": NULL!!!" );
+			debugLogger.ClearscopeLog( LL_Emergency, debugTextureDataPrefix .. "TEX #" .. texindex .. ": NULL!!!" );
 		}
 	}
 
@@ -182,7 +182,7 @@ extend class AutoAmbientGlobalHandler {
 
 		debugLogger = AutoAmbientLogger.Get();
 
-		debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Sound definitions (total " .. sounddefs.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
+		debugLogger.ClearscopeLog( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Sound definitions (total " .. sounddefs.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
 		for ( int i = 0; i < sounddefs.Size(); i++ ) {
 			if ( sounddefs[ i ] ) {
 				String soundmodeStr;
@@ -202,21 +202,21 @@ extend class AutoAmbientGlobalHandler {
 						break;
 				}
 
-				debugLogger.Log( LL_Debug, "SND #" .. i .. " \"" .. TEXTCOLOR_GRAY .. sounddefs[ i ].name .. debugLogger.LLCOLOR_DEBUG .. "\": snd " .. sounddefs[ i ].snd .. " vol " .. sounddefs[ i ].sndVolume .. " attn " .. sounddefs[ i ].sndAttenuation .. ", " .. soundmodeStr .. " mode" );
+				debugLogger.ClearscopeLog( LL_Debug, "SND #" .. i .. " \"" .. TEXTCOLOR_GRAY .. sounddefs[ i ].name .. debugLogger.LLCOLOR_DEBUG .. "\": snd " .. sounddefs[ i ].snd .. " vol " .. sounddefs[ i ].sndVolume .. " attn " .. sounddefs[ i ].sndAttenuation .. ", " .. soundmodeStr .. " mode" );
 			} else {
-				debugLogger.Log( LL_Emergency, "SND #" .. i .. ": NULL!!!" );
+				debugLogger.ClearscopeLog( LL_Emergency, "SND #" .. i .. ": NULL!!!" );
 			}
 		} // of for ( int i = 0; i < sounddefs.Size(); i++ ) {}
 
-		debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Texture parameters (total " .. textureparams.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
+		debugLogger.ClearscopeLog( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Texture parameters (total " .. textureparams.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
 		for ( int i = 0; i < textureparams.Size(); i++ ) {
 			if ( textureparams[ i ] )
-				debugLogger.Log( LL_Debug, "TPM #" .. i .. " \"" .. TEXTCOLOR_GRAY .. textureparams[ i ].name .. debugLogger.LLCOLOR_DEBUG .. "\": " .. textureparams[ i ].start .. "++" .. textureparams[ i ].offset .. " rnd " .. textureparams[ i ].spreading .. " chnc " .. textureparams[ i ].chance );
+				debugLogger.ClearscopeLog( LL_Debug, "TPM #" .. i .. " \"" .. TEXTCOLOR_GRAY .. textureparams[ i ].name .. debugLogger.LLCOLOR_DEBUG .. "\": " .. textureparams[ i ].start .. "++" .. textureparams[ i ].offset .. " rnd " .. textureparams[ i ].spreading .. " chnc " .. textureparams[ i ].chance );
 			else
-				debugLogger.Log( LL_Emergency, "TPM #" .. i .. ": NULL!!!" );
+				debugLogger.ClearscopeLog( LL_Emergency, "TPM #" .. i .. ": NULL!!!" );
 		} // of for ( int i = 0; i < textureparams.Size(); i++ ) {}
 
-		debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Groups (total " .. groups.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
+		debugLogger.ClearscopeLog( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Groups (total " .. groups.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
 		for ( int i = 0; i < groups.Size(); i++ ) {
 			AutoAmbientGroup curgroup = groups[ i ];
 
@@ -225,7 +225,7 @@ extend class AutoAmbientGlobalHandler {
 								i, curgroup.name, curgroup.actorsDistance, curgroup.gridX.Size(),
 								( curgroup.spawned? "&spawned exists" : TEXTCOLOR_FIRE .. "no &spawned" .. debugLogger.LLCOLOR_DEBUG ),
 								( curgroup.spawnedOnSide? "&spawnedOnSide exists" : TEXTCOLOR_FIRE .. "no &spawnedOnSide" .. debugLogger.LLCOLOR_DEBUG ) );
-				debugLogger.Log( LL_Debug, debugStr );
+				debugLogger.ClearscopeLog( LL_Debug, debugStr );
 
 				debugStr = "";
 
@@ -254,29 +254,29 @@ extend class AutoAmbientGlobalHandler {
 				if ( debugStr == "" )
 					debugStr = TEXTCOLOR_YELLOW .. " No classes defined";
 
-				debugLogger.Log( LL_Debug, " \\_" .. debugStr );
+				debugLogger.ClearscopeLog( LL_Debug, " \\_" .. debugStr );
 			} else {
-				debugLogger.Log( LL_Emergency, "GRP #" .. i .. ": NULL!!!" );
+				debugLogger.ClearscopeLog( LL_Emergency, "GRP #" .. i .. ": NULL!!!" );
 			}
 		} // of for ( int i = 0; i < groups.Size(); i++ ) {}
 
 		debugTextureDataPrefix = "";
 
-		debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Global textures (total " .. textures.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
+		debugLogger.ClearscopeLog( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Global textures (total " .. textures.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
 		for ( int i = 0; i < textures.Size(); i++ )
 			printDebugTextureData( i, textures[ i ] );
 
 		if ( maptextures.Size() ) {
 			bool isMapColor2 = false;
 
-			debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Map defines (total " .. maptextures.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
+			debugLogger.ClearscopeLog( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). Map defines (total " .. maptextures.Size() .. ")" .. debugLogger.LLCOLOR_DEBUG .. ":" );
 
 			for ( int i = 0; i < maptextures.Size(); i++ ) {
 				String mapColor2 = ( isMapColor2? TEXTCOLOR_PURPLE : TEXTCOLOR_DARKGREEN );
 				debugTextureDataPrefix = mapColor2 .. "> " .. AutoAmbientLogger.LLCOLOR_DEBUG;
 
 				AutoAmbientMapsData curmap = maptextures.maps[ i ];
-				debugLogger.Log( LL_Debug, mapColor2 .. "MAP #" .. i .. AutoAmbientLogger.LLCOLOR_DEBUG .. ": name \"" .. mapColor2 .. curmap.mapname .. AutoAmbientLogger.LLCOLOR_DEBUG .. "\"/hash \"" .. mapColor2 .. curmap.maphash .. AutoAmbientLogger.LLCOLOR_DEBUG .. "\", no dflt tex: " .. curmap.restrictDefaultTextures .. ", textures:" );
+				debugLogger.ClearscopeLog( LL_Debug, mapColor2 .. "MAP #" .. i .. AutoAmbientLogger.LLCOLOR_DEBUG .. ": name \"" .. mapColor2 .. curmap.mapname .. AutoAmbientLogger.LLCOLOR_DEBUG .. "\"/hash \"" .. mapColor2 .. curmap.maphash .. AutoAmbientLogger.LLCOLOR_DEBUG .. "\", no dflt tex: " .. curmap.restrictDefaultTextures .. ", textures:" );
 
 				for ( int j = 0; j < curmap.textures.Size(); j++ )
 					printDebugTextureData( j, curmap.textures[ j ] );
@@ -284,7 +284,7 @@ extend class AutoAmbientGlobalHandler {
 				isMapColor2 = !isMapColor2;
 			}
 		} else {
-			debugLogger.Log( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). No map defines." );
+			debugLogger.ClearscopeLog( LL_Debug, TEXTCOLOR_SAPPHIRE .. GetClassName() .. "::OnRegister(). No map defines." );
 		}
 
 	} // of private void OnRegisterDebugFullOutput( void ) {}
