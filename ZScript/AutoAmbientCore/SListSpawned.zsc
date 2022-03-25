@@ -90,7 +90,7 @@ class AutoAmbientListSpawnedKeeper play {
 			AutoAmbientListSpawnedNode curNode = head.next;
 
 			double flushDelay = 1 / delpercent;
-			double curDelay = Random( 0.0, flushDelay );
+			double curDelay = FRandom( 0.0, flushDelay );
 
 			while ( curNode ) {
 				if ( curDelay <= 0.0 ) {

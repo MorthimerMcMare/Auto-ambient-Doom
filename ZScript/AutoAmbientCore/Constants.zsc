@@ -66,3 +66,11 @@ enum EAutoAmbientLogLevels {
 	LL__No_Flags_Mask = 0x000F,
 	LL_NoPrefix = 0x8000
 };
+
+enum ENewlineTypes {
+	AANL_Unknown = 0,
+	AANL_DOS,			// 0x0D, 0x0A
+	AANL_Unix,			// 0x0A
+	AANL_Mac,			// 0x0D
+	AANL_DOSReversed	// 0x0A, 0x0D
+};

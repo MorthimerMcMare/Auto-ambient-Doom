@@ -6,6 +6,7 @@ class AutoAmbientConfigParser play {
 
 	String configFilename;
 	int configFileHandler;
+	ENewlineTypes newlinesType;
 
 	Array<String> configLines; // All configuration file lines.
 	bool configEoF;
@@ -149,7 +150,7 @@ class AutoAmbientConfigParser play {
 				//	debugString = debugString .. " \"" .. configFileLine[ i ] .. "\"";
 				//console.printf( GetClassName() .. "::readNextConfigLine(). Line " .. parserLineNum .. " parsed words: " .. debugString );
 
-				// Finalization. 
+				// Finalization.
 				configEoF = ( ++parserLineNum >= configLines.Size() );
 
 				emptyStringFlag = ( configFileLine.Size() == 0 || ( configFileLine.Size() == 1 && configFileLine[ 0 ].CharCodeAt( 0 ) == 0 ) );
@@ -166,8 +167,9 @@ class AutoAmbientConfigParser play {
 	void ParserError( String msg ) {
 		parserErrorFlag = true;
 
-		for ( int i = 0; i < configFileLine.Size(); i++ )
-			logger.Log( LL_Detailed, GetClassName() .. "::ParserError() response. configFileLine[ " .. i .. " ] = \"" .. configFileLine[ i ] .. "\";" );
+		if ( logger.aaCurLogLevel >= LL_Detailed )
+			for ( int i = 0; i < configFileLine.Size(); i++ )
+				logger.ClearscopeLog( LL_Detailed, GetClassName() .. "::ParserError() response. configFileLine[ " .. i .. " ] = \"" .. configFileLine[ i ] .. "\";" );
 
 		logger.Log( LL_Emergency, GetClassName() .. msg );
 		g.parserErrorLine = parserLineNum;
@@ -729,8 +731,8 @@ class AutoAmbientConfigParser play {
 							logger.Log( LL_Detailed, GetClassName() .. "::ParseGlobalScope( \"" .. TEXTCOLOR_TEAL .. configFilename .. "\c-\" ). Continue parsing file." );
 						} else {
 							// Partially undo the subcreated object "ParserError()" call.
-							g.parserErrorLine = parserLineNum;
-							g.parserErrorFilename = configFilename;
+							//g.parserErrorLine = parserLineNum;
+							//g.parserErrorFilename = configFilename;
 						}
 
 						g.AscendIncludeFileLevel(); // Up to one level.
@@ -799,6 +801,45 @@ class AutoAmbientConfigParser play {
 	} // of void ParseGlobalScope( void ) {}
 
 
+	static ENewlineTypes GetTextNewlineType( String text ) {
+		ENewlineTypes nltype = AANL_Unknown;
+
+		if ( text != "" ) {
+			int curPos = 0;
+			int textLength = text.Length();
+
+			while ( nltype == AANL_Unknown && curPos < textLength ) {
+				if ( text.CharCodeAt( curPos ) == 0x0D )
+					nltype = ( ++curPos < textLength && text.CharCodeAt( curPos ) == 0x0A )? AANL_DOS : AANL_Mac;
+				else if ( text.CharCodeAt( curPos ) == 0x0A )
+					nltype = ( ++curPos < textLength && text.CharCodeAt( curPos ) == 0x0D )? AANL_DOSReversed : AANL_Unix;
+
+				curPos++;
+			}
+
+			if ( AutoAmbientLogger.Get().aaCurLogLevel >= LL_Debug ) {
+				String info = "New lines type recognized as ";
+
+				switch ( nltype ) {
+					case AANL_DOS: info = info .. "DOS/Windows (CR/LF)"; break;
+					case AANL_Unix: info = info .. "*nix (LF)"; break;
+					case AANL_Mac: info = info .. "MacOS (CR)"; break;
+					case AANL_DOSReversed: info = info .. "DOS reversed (LF/CR)"; break;
+					default:
+						info = TEXTCOLOR_YELLOW .. "Cannot recognize new lines type, using *nix" .. AutoAmbientLogger.LLCOLOR_DEBUG .. ".";
+						nltype = AANL_Unix;
+						break;
+				}
+
+				AutoAmbientLogger.Get().Log( LL_Debug, info );
+			} // of if ( AutoAmbientLogger.Get().aaCurLogLevel >= LL_Debug ) {}
+
+		} // of if ( text != "" ) {}
+
+		return nltype;
+	}
+
+
 	private String niceFileHeaderBegin( bool forParserError, int globalLocatePos ) {
 		String header = "::ParseFile( \"" .. TEXTCOLOR_TEAL .. configFilename;
 
@@ -836,6 +877,11 @@ class AutoAmbientConfigParser play {
 
 			parserLineNum = 0;
             String rawConfigFile = Wads.ReadLump( configFileHandler );
+
+			if ( logger.aaCurLogLevel >= LL_Debug ) {
+				logger.Log( LL_Debug, "Debug recognizing (only recognizing) file \"" .. configFilename .. "\" newlines type..." );
+				GetTextNewlineType( rawConfigFile );
+			}
 
             rawConfigFile.ToLower();
             rawConfigFile.Replace( "\r", "\n" ); // "dos2unix", "mac2unix"...
