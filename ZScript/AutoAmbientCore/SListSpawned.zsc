@@ -68,14 +68,16 @@ class AutoAmbientListSpawnedKeeper play {
 	}
 
 	void Clear( void ) {
-		AutoAmbientListSpawnedNode curNode = head;
+		head = tail = NULL;
+
+		/*AutoAmbientListSpawnedNode curNode = head;
 		AutoAmbientListSpawnedNode prevNode;
 
 		while ( curNode ) {
 			prevNode = curNode;
 			curNode = curNode.next;
 			prevNode.Destroy();
-		}
+		}*/
 
 		length = 0;
 	} // of void Clear( void ) {}
@@ -96,7 +98,7 @@ class AutoAmbientListSpawnedKeeper play {
 				if ( curDelay <= 0.0 ) {
 					prevNode.next = curNode.next;
 					curNode.thing.Destroy();
-					curNode.Destroy();
+					//curNode.Destroy();
 					curNode = prevNode.next;
 					length--;
 
