@@ -220,10 +220,12 @@ texture SPACEW3 {
 
 Idea, core code, default content: Morthimer McMare.
 
-Thanks:
+Special thanks to:
 
 - Renaul Damek for the moral support;
-- YURA_111 for the video and bug reportings.
+- YURA_111 for the video and bug reportings (commit dc41772).
+- endoomer for the overview;
+- ika707 for the bug reportings (commit 5560bf7).
 
 
 
@@ -621,8 +623,10 @@ texture SPACEW3 {
 
 Идея, код ядра, содержимое по умолчанию: Morthimer McMare.
 
-Спасибо:
+Отдельное спасибо:
 
 - Renaul Damek за моральную поддержку;
-- YURA_111 за запись видео и сообщение об ошибке ([коммит dc41772](https://github.com/MorthimerMcMare/Auto-ambient-Doom/commit/dc417726fff413ab299094eecb55c07e7fc9c2a5)).
+- YURA_111 за запись видео и сообщение об ошибке (коммит dc41772);
+- endoomer за обзор;
+- ika707 за сообщение об ошибке (коммит 5560bf7).
 
