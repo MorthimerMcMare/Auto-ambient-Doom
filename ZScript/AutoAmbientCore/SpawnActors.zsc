@@ -127,7 +127,7 @@ extend class AutoAmbientGlobalHandler {
 						uniqueGroups.Clear();
 
 						for ( int groupIndex = 0; groupIndex < texdef.groups.Size(); groupIndex++ ) {
-							AutoAmbientGroup curGroup = texdef.groups[ groupIndex ];
+							AutoAmbientGroup curgroup = texdef.groups[ groupIndex ];
 
                            	if ( !curgroup.classes.Size() && !curgroup.autoclasses.Size() )
                            		continue; // We cannot spawn something if we have no spawn data for the current group.
@@ -145,7 +145,6 @@ extend class AutoAmbientGlobalHandler {
                            	//and adding potential positions to the array:
                            	for ( double texz = texStartZ; texz < texEndZ; texz += texparam.offset.y ) {
                            		for ( double texxy = texStartXY; texxy < texEndXY; texxy += texparam.offset.x ) {
-
                            			if ( texparam.chance != 0.0 && FRandom( 0.0, 1.0 ) > texparam.chance )
                            				continue; // Skip spawning if texture parameter chance to spawn failed.
 
@@ -163,52 +162,38 @@ extend class AutoAmbientGlobalHandler {
 
                            			//console.printf( "Actor for tex \"" .. TexMan.GetName( texdef.id ) .. "\": relpos " .. actorPosXY - firstPoint.xy .. ", firstPointPos " .. firstPoint .. ", texMapOfs " .. texMapOffset .. ", line w/h " .. lineWidth .. "/" .. lineHeight );
 
-                           			bool grouplingTooClose = false; // Same meaning as in word "Sibling".
+                       				Actor newActor = NULL;
 
-                           			// Removing position if it are not far enough away from
-                           			//previously spawned actors on current line and/or other lines:
-                           			if ( texdef.sameLineDistSpawnChance < 1.0 && !curgroup.spawnedOnSide.Empty() )
-                           				grouplingTooClose = curgroup.checkSpawnDistance( newPos, curgroup.spawnedOnSide, texdef.linesCheckFlags & AALCF_SelfLineDistMultipl, texdef.sameLineDistSpawnChance );
+                       				// Get a random class from the (auto)classes arrays:
+                       				uint rnd = Random( 0, classesArraySize + curgroup.autoclasses.Size() - 1 );
 
-                           			if ( texdef.otherLineDistSpawnChance < 1.0 && !grouplingTooClose )
-                           				grouplingTooClose = curgroup.CheckForCloseNeighbours( newPos, texdef.linesCheckFlags & AALCF_OtherLinesDistMultipl, texdef.otherLineDistSpawnChance );
-                           			//	grouplingTooClose = curgroup.checkSpawnDistance( newPos, spawned, texdef.linesCheckFlags & AALCF_OtherLinesDistMultipl, texdef.otherLineDistSpawnChance );
+                       				if ( rnd < classesArraySize ) {
+                       					newActor = Actor.Spawn( curgroup.classes[ rnd ], newPos );
+                       				} else if ( curgroup.autoclasses.Size() ) {
+                       					// An expandable part of the code (maybe later...).
+                       					class<AutoAmbientSoundActor> properclass = autoclassConfig.GetProperClass( curgroup.autoclasses[ rnd - classesArraySize ] );
 
-                           			// Adding new actor to the array if it may be created:
-                           			if ( !grouplingTooClose ) {
-                           				Actor newActor = NULL;
+                       					newActor = Actor.Spawn( properclass, newPos );
+                       					AutoAmbientSoundActor( newActor ).Init( curgroup.autoclasses[ rnd - classesArraySize ] );
+                       				} else {
+                       					logger.Log( LL_Emergency, GetClassName() .. "::SpawnAllActors(). Error: random value " .. rnd .. " is out-of-bounds of classes[ " .. classesArraySize .. " ] and autoclasses[ " .. curgroup.autoclasses.Size() .. " ]." );
+                       				}
 
-                           				// Get a random class from the (auto)classes arrays:
-                           				uint rnd = Random( 0, classesArraySize + curgroup.autoclasses.Size() - 1 );
+                       				if ( newActor ) {
+                       					if ( newActor is 'AutoAmbientSpawnableActor' ) {
+                       						AutoAmbientSpawnableActor( newActor ).attachedSide = attachSide;
 
-                           				if ( rnd < classesArraySize ) {
-                           					newActor = Actor.Spawn( curgroup.classes[ rnd ], newPos );
-                           				} else if ( curgroup.autoclasses.Size() ) {
-                           					// An expandable part of the code (maybe later...).
-                           					class<AutoAmbientSoundActor> properclass = autoclassConfig.GetProperClass( curgroup.autoclasses[ rnd - classesArraySize ] );
+                       						vector2 lineNormal = Actor.RotateVector( attachLine.delta / lineWidth, ( ( attachSide == attachLine.sidedef[ 0 ] )? 90.0 : -90.0 ) ); // Not sure if this line is correct, actually.
 
-                           					newActor = Actor.Spawn( properclass, newPos );
-                           					AutoAmbientSoundActor( newActor ).Init( curgroup.autoclasses[ rnd - classesArraySize ] );
-                           				} else {
-                           					logger.Log( LL_Emergency, GetClassName() .. "::SpawnAllActors(). Warning: random value " .. rnd .. " is out-of-bounds of classes[ " .. classesArraySize .. " ] and autoclasses[ " .. curgroup.autoclasses.Size() .. " ]." );
-                           				}
+                       						newActor.angle = AutoAmbientUtil.vector2ToAngle( lineNormal );
+                       					}
 
-                           				if ( newActor ) {
-                           					if ( newActor is 'AutoAmbientSpawnableActor' ) {
-                           						AutoAmbientSpawnableActor( newActor ).attachedSide = attachSide;
+                       					curgroup.spawnedOnSide.AppendSpawnedActor( newActor );
+                       					totalAutoAmbientActorsSpawned++;
 
-                           						vector2 lineNormal = Actor.RotateVector( attachLine.delta / lineWidth, ( ( attachSide == attachLine.sidedef[ 0 ] )? 90.0 : -90.0 ) ); // Not sure if this line is correct, actually.
-
-                           						newActor.angle = AutoAmbientUtil.vector2ToAngle( lineNormal );
-                           					}
-
-                           					curgroup.spawnedOnSide.AppendSpawnedActor( newActor );
-                           					totalAutoAmbientActorsSpawned++;
-
-                           					if ( logger.aaCurLogLevel >= LL_Detailed )
-                           						logger.Log( LL_Detailed, TEXTCOLOR_GRAY .. "Actor \c-" .. newActor.GetClassName() .. TEXTCOLOR_GRAY .. " spawned on \"\c-" .. texID .. "->" .. curgroup.name .. TEXTCOLOR_GRAY .. "\" at " .. AutoAmbientUtil.squeezeVector3( newActor.pos ) .. "." );
-                           				}
-                           			} // of if ( !grouplingTooClose ) {}
+                       					if ( logger.aaCurLogLevel >= LL_Detailed )
+                       						logger.Log( LL_Detailed, TEXTCOLOR_GRAY .. "Actor \c-" .. newActor.GetClassName() .. TEXTCOLOR_GRAY .. " spawned on \"\c-" .. texID .. "->" .. curgroup.name .. TEXTCOLOR_GRAY .. "\" at " .. AutoAmbientUtil.squeezeVector3( newActor.pos ) .. "." );
+                       				}
 
                            		} // of for ( double texxy = ( texparam.start.x - attachSide.GetTextureXOffset( curSidePos ) % texdef.size.x ) % texdef.size.x; texxy < lineWidth / ( texparam.offset.x / texdef.size.x ); texxy += texparam.offset.x ) {}
                            	} // of for ( double texz = ( attachSide.GetTextureYOffset( curSidePos ) + texparam.start.y ) % texdef.size.y - unpeggedOffset; texz < lineHeight / ( texparam.offset.y / texdef.size.y ); texz += texparam.offset.y ) {}
@@ -240,5 +225,28 @@ extend class AutoAmbientGlobalHandler {
 
 		return totalAutoAmbientActorsSpawned;
 	} // of int SpawnAllActors( void ) {}
+
+
+	void FilterTooCloseActors( void ) {
+		for ( int groupIndex = 0; groupIndex < groups.Size(); groupIndex++ ) {
+			AutoAmbientGroup curgroup = groups[ groupIndex ];
+			AutoAmbientListSpawnedNode prev = NULL, cur = curgroup.spawned.head;
+
+			while ( cur ) {
+				bool grouplingTooClose = false; // Same meaning as in word "Sibling".
+
+				// Removing position if it are not far enough away from
+				//previously spawned actors:
+				//if ( texdef.otherLineDistSpawnChance < 1.0 )
+				grouplingTooClose = curgroup.CheckForCloseNeighbours( cur.thing.pos, false /*!!( texdef.linesCheckFlags & AALCF_OtherLinesDistMultipl )*/, 0.0 /*texdef.otherLineDistSpawnChance*/ );
+
+				if ( grouplingTooClose )
+					curgroup.spawned.DeleteNextNode( prev );
+
+				prev = cur;
+				cur = cur.next;
+			}
+		}
+	} // of void FilterAllActors( void ) {}
 
 } // of extend class AutoAmbientGlobalHandler {}

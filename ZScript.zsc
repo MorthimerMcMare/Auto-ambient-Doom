@@ -167,6 +167,9 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 			totalAutoAmbientActorsSpawned = newTotalActorsSpawned;
 		} // of while ( totalAutoAmbientActorsSpawned > availChannels ) {}
+		
+		// Removing too close same group actors:
+		FilterTooCloseActors();
 
 
 		// Post-logging:

@@ -67,6 +67,18 @@ class AutoAmbientListSpawnedKeeper play {
 		return length;
 	}
 
+	void DeleteNextNode( AutoAmbientListSpawnedNode node ) {
+		if ( node == NULL ) {
+			if ( head ) {
+				head = head.next;
+				length--;
+			}
+		} else if ( head && node.next ) {
+			node.next = node.next.next;
+			length--;
+		}
+	}
+
 	void Clear( void ) {
 		head = tail = NULL;
 
