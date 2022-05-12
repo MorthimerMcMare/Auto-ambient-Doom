@@ -188,7 +188,7 @@ extend class AutoAmbientGlobalHandler {
                        						newActor.angle = AutoAmbientUtil.vector2ToAngle( lineNormal );
                        					}
 
-                       					curgroup.spawnedOnSide.AppendSpawnedActor( newActor );
+                       					curgroup.spawned.AppendSpawnedActor( newActor );
                        					totalAutoAmbientActorsSpawned++;
 
                        					if ( logger.aaCurLogLevel >= LL_Detailed )
@@ -213,8 +213,10 @@ extend class AutoAmbientGlobalHandler {
 
 
 						// Move all actors spawned on line to the general array:
-						for ( int j = 0; j < uniqueGroups.Size(); j++ )
+						for ( int j = 0; j < uniqueGroups.Size(); j++ ) {
+							// Grid creates here.
 							uniqueGroups[ j ].FlushSpawnLineActors();
+						}
 
 					} // of if ( texdef ) {}
 				} // of if ( texID ) {}
@@ -227,10 +229,13 @@ extend class AutoAmbientGlobalHandler {
 	} // of int SpawnAllActors( void ) {}
 
 
-	void FilterTooCloseActors( void ) {
+	int FilterTooCloseActors( void ) {
+		int removedActorsAmount = 0;
+
 		for ( int groupIndex = 0; groupIndex < groups.Size(); groupIndex++ ) {
 			AutoAmbientGroup curgroup = groups[ groupIndex ];
 			AutoAmbientListSpawnedNode prev = NULL, cur = curgroup.spawned.head;
+			//console.printf( TEXTCOLOR_TEAL .. curgroup.name .. ".spawned.head: " .. curgroup.spawned.head );
 
 			while ( cur ) {
 				bool grouplingTooClose = false; // Same meaning as in word "Sibling".
@@ -238,15 +243,27 @@ extend class AutoAmbientGlobalHandler {
 				// Removing position if it are not far enough away from
 				//previously spawned actors:
 				//if ( texdef.otherLineDistSpawnChance < 1.0 )
-				grouplingTooClose = curgroup.CheckForCloseNeighbours( cur.thing.pos, false /*!!( texdef.linesCheckFlags & AALCF_OtherLinesDistMultipl )*/, 0.0 /*texdef.otherLineDistSpawnChance*/ );
+				grouplingTooClose = curgroup.CheckForCloseNeighbours( cur.thing.pos, false /*!!( texdef.linesCheckFlags & AALCF_OtherLinesDistMultipl )*/, 0.9 /*texdef.otherLineDistSpawnChance*/ );
+				//grouplingTooClose = !!Random( 0, 1 );
 
-				if ( grouplingTooClose )
-					curgroup.spawned.DeleteNextNode( prev );
+				//console.printf( TEXTCOLOR_DARKGRAY .. "PRE  cur.next: " .. (cur? cur.next .. "" : "<no cur>") );
+
+				if ( grouplingTooClose ) {
+					//console.printf( "Deleting next of " .. prev .. ": next=" .. ( prev? prev.next : curgroup.spawned.head ) );
+
+					cur = curgroup.spawned.DeleteNextNode( prev );
+					removedActorsAmount++;
+				}
 
 				prev = cur;
-				cur = cur.next;
+
+				if ( cur )
+					cur = cur.next;
+				//console.printf( TEXTCOLOR_DARKGRAY .. "POST cur.next: " .. (cur? cur.next .. "" : "<no cur>") );
 			}
 		}
-	} // of void FilterAllActors( void ) {}
+
+		return removedActorsAmount;
+	} // of int FilterAllActors( void ) {}
 
 } // of extend class AutoAmbientGlobalHandler {}

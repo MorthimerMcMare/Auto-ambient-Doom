@@ -54,6 +54,8 @@ class AutoAmbientGroup play {
 		double nextChance = FRandom( 0.0, 1.0 );
 		vector3 vecdist;
 
+		//console.printf( GetClassName() .. "::checkSpawnDistance(). listToCheck.Size() == " .. listToCheck.Size() );
+
 		// To prevent the in-cycle check with the same result I'd prefer to
 		//split the cycles. Seriously.
 		if ( !useDistMultipl ) {

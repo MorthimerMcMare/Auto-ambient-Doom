@@ -67,17 +67,35 @@ class AutoAmbientListSpawnedKeeper play {
 		return length;
 	}
 
-	void DeleteNextNode( AutoAmbientListSpawnedNode node ) {
+	AutoAmbientListSpawnedNode DeleteNextNode( AutoAmbientListSpawnedNode node ) {
+		AutoAmbientListSpawnedNode delnode = NULL;
+		AutoAmbientListSpawnedNode cursetnode = NULL;
+
 		if ( node == NULL ) {
 			if ( head ) {
+				delnode = head;
 				head = head.next;
-				length--;
+				cursetnode = head;
 			}
-		} else if ( head && node.next ) {
-			node.next = node.next.next;
+		} else {
+			if ( node.next ) {
+				delnode = node.next;
+				node.next = node.next.next;
+				cursetnode = node;
+			}
+		}
+
+		if ( delnode ) {
+			//Actor.Spawn( "Unknown", delnode.thing.pos );
+			delnode.thing.Destroy();
+			delnode.next = NULL;
+
+			delnode.Destroy();
 			length--;
 		}
-	}
+
+		return cursetnode;
+	} // of void DeleteNextNode( AutoAmbientListSpawnedNode node ) {}
 
 	void Clear( void ) {
 		head = tail = NULL;

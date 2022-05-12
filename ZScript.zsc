@@ -167,9 +167,10 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 			totalAutoAmbientActorsSpawned = newTotalActorsSpawned;
 		} // of while ( totalAutoAmbientActorsSpawned > availChannels ) {}
-		
+		logger.Log( LL_Detailed, GetClassName() .. "::WorldLoaded(). Pre-filter ambient actors spawned: " .. totalAutoAmbientActorsSpawned .. "." );
+
 		// Removing too close same group actors:
-		FilterTooCloseActors();
+		totalAutoAmbientActorsSpawned -= FilterTooCloseActors();
 
 
 		// Post-logging:
