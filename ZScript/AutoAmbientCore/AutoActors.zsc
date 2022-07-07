@@ -325,6 +325,7 @@ class AutoAmbientSoundActor: Actor abstract {
 	Default {
 		+INVISIBLE;
 		+BRIGHT;
+		+NOTONAUTOMAP;
 
 		+NOINTERACTION;
 		+NOBLOCKMAP;
