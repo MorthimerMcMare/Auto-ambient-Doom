@@ -69,7 +69,7 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 
 
 		if ( parserErrorLine == AAParser_NoErrorLine ) {
-			logger.Log( LL_Main | LL_NoPrefix, GetClassName() .. "::OnRegister(). Loading configuration done." );
+			logger.Log( LL_Main, TEXTCOLOR_GRAY .. GetClassName() .. "::OnRegister(). \c-Loading configuration done." );
 
 			AutoAmbientTexture invalidTexture = FindInvalidTexture();
 
@@ -90,15 +90,21 @@ class AutoAmbientGlobalHandler: StaticEventHandler {
 			}
 		} else {
 			dontLoadFlag = true;
-			logger.Log( LL_Emergency, GetClassName() .. "::OnRegister(). Error during configuration files parsing in " .. parserErrorFilename .. " on line " .. parserErrorLine .. "." );
+			logger.Log( LL_Emergency, "Error during configuration files parsing in \"" .. parserErrorFilename .. "\" on line " .. parserErrorLine .. "." );
+
+			logger.Log( LL_Emergency, String.Format( TEXTCOLOR_GRAY .. GetClassName() .. "::OnRegister(). EGameType 0x%03x, EGameAction %i, multiplayer %i, dm %i.",
+							gameinfo.gametype, gameaction, multiplayer, deathmatch ) );
 		}
 
 
-		CVar optionCVar = CVar.FindCVar( "mcm_aambient_showparseddata" );
+		if ( !dontLoadFlag ) {
+			CVar optionCVar = CVar.FindCVar( "mcm_aambient_showparseddata" );
 
-		// See "Utils.zsc" -> "extend class AutoAmbientGlobalHandler".
-		if ( optionCVar && optionCVar.GetBool() && logger.aaCurLogLevel >= LL_Detailed )
-			OnRegisterDebugFullOutput();
+			// See "Utils.zsc" -> "extend class AutoAmbientGlobalHandler".
+			if ( optionCVar && optionCVar.GetBool() && logger.aaCurLogLevel >= LL_Detailed )
+				OnRegisterDebugFullOutput();
+		}
+
 
 		logger = NULL; // See note right before variable definition.
 
