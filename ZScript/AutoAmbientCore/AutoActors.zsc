@@ -330,6 +330,7 @@ class AutoAmbientSoundActor: Actor abstract {
 		Scale 0.2;
 		Alpha 1.0;
 		RenderStyle "STYLE_Stencil";
+		FloatBobPhase 0;
 	}
 
 	virtual void Init( AutoAmbientSoundDefinition initDef ) {
@@ -341,6 +342,16 @@ class AutoAmbientSoundActor: Actor abstract {
 		SetShade( "00 00 88" );
 	}
 
+	override void Tick() {
+		if ( bCORPSE ) {
+			Destroy();
+
+		} else if ( tics != -1 ) {
+			if ( --tics <= 0 )
+				if ( !SetState( curState.NextState ) )
+					return;
+		}
+	} // of override void Tick() {}
 
 	override final void PostBeginPlay() {
 		Super.PostBeginPlay();
@@ -368,8 +379,7 @@ class AutoAmbientSoundActor: Actor abstract {
 		SPKR A -1;
 		stop;
 	}
-} // of class AutoAmbientSoundActor: Actor {}
-
+} // of class AutoAmbientSoundActor: Actor abstract {}
 
 class AutoAmbientLoopedSound: AutoAmbientSoundActor {
 	override void OnSpawn( void ) {
@@ -392,7 +402,7 @@ class AutoAmbientLoopedSound: AutoAmbientSoundActor {
 		}
 
 		Super.Tick();
-	}
+	} // of override void Tick() {}
 
 } // of AutoAmbientLoopedSound: AutoAmbientSoundActor {}
 
